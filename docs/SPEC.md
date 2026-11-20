@@ -105,7 +105,7 @@ Règles :
 4. Aucun résultat exact : la liste affiche des articles proches avec l'étiquette « Alternative, pas l'article exact ».
 5. Le choix ouvre le formulaire de validation ; la photo de l'utilisateur peut être gardée comme image de l'article.
 
-**Partage Android** : depuis une appli de boutique, « Partager → ClosetA » lance directement le parcours par lien. Pratique, mais optionnel en 1a.
+**Partage Android** : depuis une appli ou un site de boutique, « Partager → ClosetA » lance directement le parcours par lien. Usage principal attendu : inclus au lot 1a.
 
 ## Architecture
 
@@ -124,7 +124,7 @@ L'app n'appelle jamais directement l'IA ni la recherche visuelle : tout passe pa
 
 | Route | Entrée | Sortie | Fonctionnement |
 | --- | --- | --- | --- |
-| POST /extract | `{ url }` | `{ nom, marque, image, prix, devise, url }`, champs absents = null | 1) lecture des données produit standard de la page (schema.org Product, Open Graph) ; 2) si incomplet, extraction par IA sur le texte de la page |
+| POST /extract | `{ url }` | `{ nom, marque, image, prix, devise, url }`, champs absents = null | 1) lecture des données produit standard de la page (schema.org Product, Open Graph ; nom du site en dernier recours pour la marque) ; 2) si incomplet, extraction par IA sur le texte de la page, ajoutée seulement si les boutiques test l'exigent |
 | POST /identify (1b) | photo JPEG ≤ 1024 px | `{ resultats: [ { nom, marque, image, prix, url, alternative } ] }`, 3 à 5 éléments | 1) IA vision : description de l'article ; 2) recherche visuelle SerpApi Google Lens ; 3) si pas de correspondance exacte, recherche Google Shopping à partir de la description, `alternative = true` |
 
 **Sécurité**
@@ -144,11 +144,11 @@ Voir DESIGN.md (tokens, typographie, composants, charte des textes).
 
 1. Socle : projet Expo, polices, thème, base SQLite et migrations, workflows de build
 2. Wishlist et fiche : grille, filtres, total, modifier, supprimer, « Je l'ai acheté » ; formulaire de saisie manuelle (ajout et modification)
-2b. Vue par catégorie : sections par catégorie, sous-totaux
-3. Choix du mode d'ajout (feuille du bas) et écran Réglages (saisie du jeton du relais)
-4. Relais Cloudflare : `/extract`, jeton, limite de requêtes
-5. Ajout par lien côté app (et partage Android si le temps le permet) → **fin du lot 1a**
-6. Relais `/identify` et parcours photo → **fin du lot 1b**
+3. Relais Cloudflare : `/extract`, jeton, limite de requêtes (lecture des données standard ; IA en renfort seulement si nécessaire)
+4. Écran Réglages (saisie du jeton du relais) et choix du mode d'ajout (feuille du bas)
+5. Ajout par lien côté app et partage Android → **fin du lot 1a**
+6. Vue par catégorie : sections par catégorie, sous-totaux
+7. Relais `/identify` et parcours photo → **fin du lot 1b**
 
 L'APK est construit par GitHub Actions (expo prebuild puis Gradle), avec la clé de signature dans les secrets GitHub. Dépôt public.
 
@@ -176,4 +176,6 @@ L'APK est construit par GitHub Actions (expo prebuild puis Gradle), avec la clé
 
 **Questions ouvertes**
 
-- Quelles 5 boutiques test pour le critère d'extraction ?
+- ~~Quelles 5 boutiques test pour le critère d'extraction ?~~ Réponse :
+  Scavini (WooCommerce), Suitsupply, Hast (Shopify), Aspen, Couturier Parisien (Shopify).
+  Les liens produits exacts ne sont pas dans le dépôt (dépôt public) : ils sont testés à la main sur le relais.
