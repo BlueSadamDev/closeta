@@ -44,12 +44,12 @@
 ## Découpage en étapes (lot 1)
 Une étape = une branche `lot-1-<n>-<nom>` et un APK testé.
 1. Socle : projet Expo, thème, polices, base SQLite et migrations, les deux workflows de build. **Terminée, fusionnée via la PR #1** : app Expo SDK 58, identité visuelle, table `article` et migrations, accueil provisoire.
-2. Wishlist et fiche : grille, filtres, total, modifier, supprimer, « Je l'ai acheté » ; formulaire de saisie manuelle (sert à ajouter et à modifier).
-2b. Vue par catégorie : Wishlist regroupée en sections par catégorie, avec sous-totaux.
-3. Choix du mode d'ajout (feuille du bas) ; écran Réglages (saisie du jeton du relais).
-4. Relais : `/extract`, jeton, limite de débit.
-5. Ajout par lien dans l'app (+ partage Android si simple) → fin du lot 1a.
-6. Relais `/identify` + parcours photo → fin du lot 1b. Recherche visuelle : SerpApi (API Google Lens ; alternatives via Google Shopping à partir de la description IA).
+2. Wishlist et fiche : grille, filtres, total, modifier, supprimer, « Je l'ai acheté » ; formulaire de saisie manuelle (ajout et modification). **Terminée, fusionnée via la PR #2** : Wishlist, fiche, formulaire, barre de navigation couleur papier.
+3. Relais : `/extract`, jeton, limite de débit, mise en ligne par GitHub Actions. Lecture des données produit standard d'abord ; IA en renfort seulement si les boutiques test l'exigent.
+4. Écran Réglages (saisie et test du jeton) ; choix du mode d'ajout (feuille du bas).
+5. Ajout par lien dans l'app et partage Android (« Partager → ClosetA ») → fin du lot 1a.
+6. Vue par catégorie : Wishlist regroupée en sections par catégorie, avec sous-totaux.
+7. Relais `/identify` + parcours photo → fin du lot 1b. Recherche visuelle : SerpApi (API Google Lens ; alternatives via Google Shopping à partir de la description IA).
 
 Tenir cette liste à jour : marquer chaque étape « terminée, fusionnée via la PR #n » avec une ligne de résumé.
 

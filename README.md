@@ -56,6 +56,16 @@ node scripts/generate-brand-images.js
 
 Cormorant Garamond et Jost, sous licence SIL Open Font License (fichiers de licence dans `assets/fonts/`).
 
-## Relais Cloudflare
+## Relais Cloudflare (dossier `relay/`)
 
-À venir (étape 4) : dossier `relay/`.
+Petit programme hébergé chez Cloudflare (gratuit). L'app lui envoie un lien produit ; il lit la page de la boutique et renvoie nom, marque, image, prix et devise (une information introuvable reste vide). Il ne conserve rien.
+
+- Route : `POST /extract`, corps `{ "url": "https://…" }`, en-tête `Authorization: Bearer <jeton>`.
+- Refuse toute requête sans le bon jeton, limite à 30 requêtes par minute, n'accepte que des liens `https` publics.
+- Tests : `cd relay && npm ci && npm test`.
+
+### Mise en ligne
+
+1. Une fois : secrets GitHub `CLOUDFLARE_API_TOKEN` et `CLOUDFLARE_ACCOUNT_ID` (Settings > Secrets and variables > Actions).
+2. Onglet **Actions** > **Mettre en ligne le relais** > **Run workflow**.
+3. Une fois, après la première mise en ligne : dans le tableau de bord Cloudflare, Workers & Pages > `closeta-relay` > Settings > Variables and Secrets, ajouter le secret `RELAY_TOKEN` (le jeton à saisir ensuite dans l'app). Il est conservé lors des mises en ligne suivantes.
