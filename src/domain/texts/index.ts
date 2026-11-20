@@ -28,6 +28,13 @@ export const texts = {
       prix: 'Prix',
       priorite: 'Priorité',
     },
+    vue: {
+      intitule: 'Vue',
+      grille: 'Grille',
+      categories: 'Catégories',
+    },
+    pieces,
+    aClasser: 'À classer',
     recherche: 'Une pièce, une marque, une couleur',
     ajouter: 'Ajouter',
   },

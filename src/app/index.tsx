@@ -5,6 +5,7 @@ import {
   FlatList,
   Pressable,
   ScrollView,
+  SectionList,
   StyleSheet,
   Text,
   TextInput,
@@ -24,7 +25,21 @@ import { lireWishlist } from '@/db/articles';
 import { PRIORITES, type Article } from '@/domain/article';
 import { formaterPrix } from '@/domain/prix';
 import { texts } from '@/domain/texts';
-import { categoriesPresentes, FILTRE_VIDE, filtrer, totalWishlist, trier, TRIS, type Filtre, type Tri } from '@/domain/wishlist';
+import {
+  categoriesPresentes,
+  FILTRE_VIDE,
+  filtrer,
+  parPaires,
+  regrouperParCategorie,
+  totalWishlist,
+  trier,
+  TRIS,
+  VUES,
+  type Filtre,
+  type Section,
+  type Tri,
+  type Vue,
+} from '@/domain/wishlist';
 import { colors, fonts, spacing, type } from '@/theme';
 
 type SousMenu = 'priorite' | 'categorie' | null;
@@ -36,6 +51,7 @@ export default function Wishlist() {
   const [articles, setArticles] = useState<Article[] | null>(null);
   const [filtre, setFiltre] = useState<Filtre>(FILTRE_VIDE);
   const [tri, setTri] = useState<Tri>('date');
+  const [vue, setVue] = useState<Vue>('grille');
   const [sousMenu, setSousMenu] = useState<SousMenu>(null);
   const [rechercheOuverte, setRechercheOuverte] = useState(false);
   const [feuilleOuverte, setFeuilleOuverte] = useState(false);
@@ -49,6 +65,13 @@ export default function Wishlist() {
 
   const visibles = useMemo(() => trier(filtrer(articles ?? [], filtre), tri), [articles, filtre, tri]);
   const total = totalWishlist(visibles);
+  const sections = useMemo(
+    () =>
+      vue === 'categories'
+        ? regrouperParCategorie(visibles).map((section) => ({ section, data: parPaires(section.articles) }))
+        : [],
+    [vue, visibles],
+  );
   const categories = useMemo(() => categoriesPresentes(articles ?? []), [articles]);
   const largeurCarte = (width - 2 * spacing.screen - spacing.gridColumnGap) / 2;
 
@@ -60,6 +83,12 @@ export default function Wishlist() {
   };
 
   const triSuivant = () => setTri(TRIS[(TRIS.indexOf(tri) + 1) % TRIS.length]);
+  const vueSuivante = () => setVue(VUES[(VUES.indexOf(vue) + 1) % VUES.length]);
+
+  const carte = (article: Article) => (
+    <CarteArticle article={article} largeur={largeurCarte} onPress={() => router.push(`/article/${article.id}`)} />
+  );
+  const aucunResultat = <RichText style={[styles.phrase, styles.aucunResultat]}>{texts.wishlist.aucunResultat}</RichText>;
 
   const enTeteDeListe = (
     <View>
@@ -150,6 +179,9 @@ export default function Wishlist() {
       ) : null}
 
       <View style={styles.ligneTri}>
+        <Pressable accessibilityRole="button" onPress={vueSuivante} style={styles.boutonTri} hitSlop={8}>
+          <Etiquette>{`${texts.wishlist.vue.intitule} · ${texts.wishlist.vue[vue]}`}</Etiquette>
+        </Pressable>
         <Pressable accessibilityRole="button" onPress={triSuivant} style={styles.boutonTri} hitSlop={8}>
           <Etiquette>{`${texts.wishlist.tri.intitule} · ${texts.wishlist.tri[tri]}`}</Etiquette>
         </Pressable>
@@ -175,19 +207,35 @@ export default function Wishlist() {
         <View style={styles.vide}>
           <RichText style={styles.phrase}>{texts.wishlist.vide}</RichText>
         </View>
+      ) : vue === 'categories' ? (
+        <SectionList
+          sections={sections}
+          keyExtractor={(paire) => paire[0].id}
+          ListHeaderComponent={enTeteDeListe}
+          ListEmptyComponent={aucunResultat}
+          contentContainerStyle={styles.sections}
+          keyboardShouldPersistTaps="handled"
+          stickySectionHeadersEnabled={false}
+          renderSectionHeader={({ section }) => <EnTeteSection section={section.section} />}
+          renderItem={({ item: paire }) => (
+            <View style={styles.rangee}>
+              {paire.map((article) => (
+                <View key={article.id}>{carte(article)}</View>
+              ))}
+            </View>
+          )}
+        />
       ) : (
         <FlatList
           data={visibles}
           keyExtractor={(a) => a.id}
           numColumns={2}
           ListHeaderComponent={enTeteDeListe}
-          ListEmptyComponent={<RichText style={[styles.phrase, styles.aucunResultat]}>{texts.wishlist.aucunResultat}</RichText>}
+          ListEmptyComponent={aucunResultat}
           columnWrapperStyle={styles.colonnes}
           contentContainerStyle={styles.grille}
           keyboardShouldPersistTaps="handled"
-          renderItem={({ item }) => (
-            <CarteArticle article={item} largeur={largeurCarte} onPress={() => router.push(`/article/${item.id}`)} />
-          )}
+          renderItem={({ item }) => carte(item)}
         />
       )}
 
@@ -220,11 +268,41 @@ function MotFiltre({ libelle, actif, onPress }: { libelle: string; actif: boolea
   );
 }
 
+/** En-tête d'une section de la vue par catégorie : filet, catégorie et nombre de pièces, sous-total. */
+function EnTeteSection({ section }: { section: Section }) {
+  const { categorie, total } = section;
+  return (
+    <View style={styles.enTeteSection}>
+      <Etiquette style={styles.titreSection}>{`${categorie ?? texts.wishlist.aClasser} · ${texts.wishlist.pieces(total.pieces)}`}</Etiquette>
+      <View style={styles.blocTotal}>
+        <Text style={[styles.sousTotal, { color: colors.ink }]}>{formaterPrix(total.euros)}</Text>
+        {total.sansPrix > 0 ? (
+          <Text style={[type.gridPrice, { color: colors.inkMuted }]}>{texts.wishlist.prixACompleter(total.sansPrix)}</Text>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   ecran: { flex: 1, backgroundColor: colors.paper },
   corps: { flex: 1 },
   grille: { paddingHorizontal: spacing.screen, paddingBottom: 120, gap: spacing.gridRowGap },
   colonnes: { gap: spacing.gridColumnGap },
+  sections: { paddingHorizontal: spacing.screen, paddingBottom: 120 },
+  enTeteSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    borderTopWidth: spacing.hairline,
+    borderTopColor: colors.ink,
+    paddingTop: 14,
+    marginTop: 14,
+    marginBottom: 16,
+  },
+  titreSection: { color: colors.ink, flexShrink: 1, paddingBottom: 4, marginRight: 12 },
+  sousTotal: { fontFamily: fonts.serifSemiBold, fontSize: 19 },
+  rangee: { flexDirection: 'row', gap: spacing.gridColumnGap, marginBottom: spacing.gridRowGap },
   recherche: { marginTop: 16, borderBottomWidth: spacing.hairline, borderBottomColor: colors.ink },
   champRecherche: { ...type.body, color: colors.ink, height: spacing.touchTarget, paddingHorizontal: 0 },
   surTitre: { marginTop: 28 },
@@ -236,7 +314,7 @@ const styles = StyleSheet.create({
   zoneFiltre: { minHeight: spacing.touchTarget, justifyContent: 'center' },
   motFiltre: { paddingBottom: 4, borderBottomWidth: spacing.hairline, borderBottomColor: 'transparent' },
   motFiltreActif: { color: colors.ink, borderBottomColor: colors.ink },
-  ligneTri: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 14 },
+  ligneTri: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 14 },
   boutonTri: { minHeight: spacing.touchTarget, justifyContent: 'center' },
   vide: { flex: 1, justifyContent: 'center', paddingHorizontal: spacing.screen },
   phrase: { ...type.body, fontSize: 22, lineHeight: 30, color: colors.ink, textAlign: 'center' },

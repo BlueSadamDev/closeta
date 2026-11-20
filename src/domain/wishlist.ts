@@ -87,3 +87,48 @@ export function indiceAplat(id: string): 0 | 1 | 2 {
   for (const car of id) somme = (somme + car.charCodeAt(0)) % 3;
   return somme as 0 | 1 | 2;
 }
+
+export type Vue = 'grille' | 'categories';
+export const VUES: readonly Vue[] = ['grille', 'categories'];
+
+export type Section = {
+  /** Nom de la catégorie tel que saisi ; null pour les pièces sans catégorie. */
+  categorie: string | null;
+  articles: Article[];
+  total: ReturnType<typeof totalWishlist>;
+};
+
+/**
+ * Vue par catégorie : une section par catégorie (« veste » et « Veste » ensemble),
+ * dans l'ordre alphabétique, puis les pièces sans catégorie à la fin.
+ * L'ordre des pièces dans chaque section reste celui de la liste reçue (donc le tri choisi).
+ */
+export function regrouperParCategorie(articles: readonly Article[]): Section[] {
+  const groupes = new Map<string, Article[]>();
+  const sansCategorie: Article[] = [];
+  for (const a of articles) {
+    const cle = a.categorie ? normaliser(a.categorie) : '';
+    if (!cle) {
+      sansCategorie.push(a);
+      continue;
+    }
+    const groupe = groupes.get(cle);
+    if (groupe) groupe.push(a);
+    else groupes.set(cle, [a]);
+  }
+  const sections: Section[] = categoriesPresentes(articles).map((categorie) => {
+    const contenu = groupes.get(normaliser(categorie)) ?? [];
+    return { categorie, articles: contenu, total: totalWishlist(contenu) };
+  }).filter((s) => s.articles.length > 0);
+  if (sansCategorie.length > 0) {
+    sections.push({ categorie: null, articles: sansCategorie, total: totalWishlist(sansCategorie) });
+  }
+  return sections;
+}
+
+/** Range les pièces par deux, pour afficher les sections sur 2 colonnes. */
+export function parPaires<T>(liste: readonly T[]): T[][] {
+  const paires: T[][] = [];
+  for (let i = 0; i < liste.length; i += 2) paires.push(liste.slice(i, i + 2));
+  return paires;
+}
