@@ -31,7 +31,14 @@
       ],
       "expo-sqlite",
       "expo-font",
-      "expo-build-properties"
+      "expo-build-properties",
+      [
+        "expo-navigation-bar",
+        {
+          "enforceContrast": false,
+          "style": "dark"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
