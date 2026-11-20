@@ -11,11 +11,12 @@ import { Icone, type NomIcone } from './Icone';
 type Props = {
   visible: boolean;
   onFermer: () => void;
+  onLien: () => void;
   onManuel: () => void;
 };
 
 /** Feuille du bas « Ajouter une pièce » : une ligne par mode d'ajout (DESIGN.md, « Feuille du bas »). */
-export function FeuilleAjout({ visible, onFermer, onManuel }: Props) {
+export function FeuilleAjout({ visible, onFermer, onLien, onManuel }: Props) {
   const { bottom } = useSafeAreaInsets();
   return (
     <Modal visible={visible} transparent animationType="slide" statusBarTranslucent navigationBarTranslucent onRequestClose={onFermer}>
@@ -25,8 +26,7 @@ export function FeuilleAjout({ visible, onFermer, onManuel }: Props) {
           <Etiquette style={styles.titre}>{texts.ajout.titre}</Etiquette>
           <BoutonIcone nom="fermer" libelle={texts.accessibilite.fermerAjout} onPress={onFermer} />
         </View>
-        {/* L'ajout par lien arrive à l'étape 5 : la ligne est visible mais inactive d'ici là. */}
-        <LigneMode icone="lien" {...texts.ajout.lien} desactive />
+        <LigneMode icone="lien" {...texts.ajout.lien} onPress={onLien} />
         <LigneMode icone="crayon" {...texts.ajout.manuel} onPress={onManuel} />
       </View>
     </Modal>

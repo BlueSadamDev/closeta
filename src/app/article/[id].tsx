@@ -14,6 +14,7 @@ import { enregistrerArticle, lireArticle, supprimerArticle } from '@/db/articles
 import { marquerAchete, type Article } from '@/domain/article';
 import { formaterPrix } from '@/domain/prix';
 import { texts } from '@/domain/texts';
+import { effacerImage } from '@/relay/image';
 import { colors, spacing, type } from '@/theme';
 
 /** Fiche article (docs/SPEC.md, « 2. Fiche article »). */
@@ -67,6 +68,7 @@ export default function Fiche() {
         style: 'destructive',
         onPress: async () => {
           await supprimerArticle(db, article.id);
+          effacerImage(article.id);
           retour();
         },
       },

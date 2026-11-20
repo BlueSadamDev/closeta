@@ -87,7 +87,7 @@ export async function enregistrerArticle(db: BaseArticles, a: Article): Promise<
   );
 }
 
-/** Efface réellement l'article (l'image locale est effacée par l'appelant, quand il y en aura). */
+/** Efface réellement l'article (l'image locale est effacée par l'appelant : effacerImage). */
 export async function supprimerArticle(db: BaseArticles, id: string): Promise<void> {
   await db.runAsync('DELETE FROM article WHERE id = ?', [id]);
 }

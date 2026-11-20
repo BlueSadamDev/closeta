@@ -107,6 +107,25 @@ export const texts = {
       lienInvalide: 'Ce lien semble incomplet. *Colle-le en entier*.',
     },
     echecEnregistrement: 'La pièce n’a pas pu être enregistrée. *Réessaie*.',
+    /** Formulaire ouvert après un lien (collé ou partagé). */
+    lien: {
+      lecture: 'On lit la page…',
+      trouve: 'Fiche remplie depuis la boutique. *Vérifie-la* avant d’enregistrer.',
+      aCompleter: 'À compléter : ',
+      manquants: {
+        nom: 'le nom',
+        marque: 'la marque',
+        prix: 'le prix',
+        image: 'la photo',
+      },
+      echecs: {
+        illisible: 'Cette boutique ne se laisse pas lire. *Complète la fiche* à la main.',
+        jeton_absent: 'Aucun jeton pour l’instant. *Ajoute-le dans les Réglages*, puis complète la fiche.',
+        jeton_refuse: 'Le relais ne te reconnaît pas. *Vérifie ton jeton* dans les Réglages.',
+        limite: 'Trop de demandes en une minute. *Complète la fiche* à la main.',
+        injoignable: 'Le relais ne répond pas. *Complète la fiche* à la main.',
+      },
+    },
     enregistrer: 'Enregistrer',
     annuler: 'Annuler',
   },
@@ -121,6 +140,18 @@ export const texts = {
       libelle: 'Saisir à la main',
       phrase: 'Tu remplis la fiche toi-même.',
     },
+  },
+
+  /** Écran « Coller un lien ». */
+  lien: {
+    titre: 'Coller un lien',
+    champ: 'Lien de la boutique',
+    exemple: 'Colle le lien ici',
+    copie: 'Lien copié',
+    utiliser: 'Utiliser ce lien',
+    lire: 'Lire la page',
+    lienInvalide: 'Ce lien semble incomplet. *Colle-le en entier*.',
+    partageSansLien: 'Ce partage ne contient pas de lien. *Colle un lien de boutique*.',
   },
 
   reglages: {

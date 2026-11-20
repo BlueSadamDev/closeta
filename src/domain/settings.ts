@@ -11,4 +11,8 @@ export const settings = {
   relayTimeoutMs: 20_000,
   /** Nom sous lequel le jeton du relais est rangé dans le coffre du téléphone (expo-secure-store). */
   relayTokenKey: 'closeta.jeton-relais',
+  /** Temps maximal pour copier sur le téléphone la photo d'une pièce ajoutée par lien. */
+  imageDownloadTimeoutMs: 15_000,
+  /** Dossier (dans le stockage de l'app) où sont rangées les photos des pièces. */
+  imagesDirectory: 'images',
 } as const;
