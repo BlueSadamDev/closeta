@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "ClosetA",
+    "slug": "closeta",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "closeta",
+    "userInterfaceStyle": "light",
+    "android": {
+      "package": "com.bluesadamdev.closeta",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#F6F3EE",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "blockedPermissions": [],
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#F6F3EE",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 202
+        }
+      ],
+      "expo-sqlite",
+      "expo-font",
+      "expo-build-properties"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
