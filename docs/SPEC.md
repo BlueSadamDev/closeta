@@ -1,6 +1,6 @@
 # ClosetA — Spécification du lot 1 (Wishlist)
 
-Version du 18 novembre 2026. Copie de travail de la spec rédigée dans claude.ai : en cas d'écart, signaler et proposer la mise à jour.
+Version du 20 novembre 2026. Copie de travail de la spec rédigée dans claude.ai : en cas d'écart, signaler et proposer la mise à jour.
 
 ## Vision et périmètre
 
@@ -9,6 +9,7 @@ ClosetA est une app Android personnelle qui suit un vêtement de l'envie à l'ac
 **Lot 1a — Wishlist et ajout par lien**
 
 - Wishlist en grille, filtres (type, catégorie, priorité), total en euros
+- Vue par catégorie : la Wishlist regroupée en sections (Vestes, Pulls, Manteaux…), avec un sous-total par section
 - Fiche article : consultation, modification, suppression
 - Ajout manuel
 - Ajout par lien produit : récupération automatique du nom, de la marque, de l'image et du prix
@@ -34,7 +35,7 @@ Une seule table `article` porte la wishlist et le futur vestiaire ; c'est le cha
 | nom | texte | oui | |
 | marque | texte | non | |
 | type | enum | oui | `vetement` ou `chaussures` |
-| categorie | texte | non | liste proposée selon le type (haut, pantalon, veste, maille, baskets, mocassins…) |
+| categorie | texte | non | liste proposée selon le type (haut, pull, pantalon, veste, manteau, maille, baskets, mocassins…) |
 | taille | texte | non | |
 | couleur | texte | non | |
 | prix | décimal (€) | non | prix relevé au moment de l'ajout |
@@ -64,7 +65,8 @@ Règles :
 
 - En-tête : logo, recherche texte dans la wishlist
 - « Ma sélection · N pièces », titre « La Wishlist », total en euros
-- Filtres : Tout, Vêtements, Chaussures, Priorité ; tri par date d'ajout (défaut), prix, priorité
+- Filtres : Tout, Vêtements, Chaussures, Priorité, Catégorie ; tri par date d'ajout (défaut), prix, priorité
+- Bascule entre la grille et la vue par catégorie (sections par catégorie, sous-total par section ; articles sans catégorie regroupés à la fin)
 - Grille 2 colonnes : photo, étiquette de priorité, marque, nom, prix
 - Bouton « Ajouter » fixe en bas à droite
 - État vide : une phrase et le bouton d'ajout
@@ -141,8 +143,9 @@ Voir DESIGN.md (tokens, typographie, composants, charte des textes).
 ## Découpage, critères d'acceptation et risques
 
 1. Socle : projet Expo, polices, thème, base SQLite et migrations, workflows de build
-2. Wishlist et fiche : grille, filtres, total, modifier, supprimer, « Je l'ai acheté »
-3. Ajout manuel, formulaire de validation et écran Réglages (saisie du jeton du relais)
+2. Wishlist et fiche : grille, filtres, total, modifier, supprimer, « Je l'ai acheté » ; formulaire de saisie manuelle (ajout et modification)
+2b. Vue par catégorie : sections par catégorie, sous-totaux
+3. Choix du mode d'ajout (feuille du bas) et écran Réglages (saisie du jeton du relais)
 4. Relais Cloudflare : `/extract`, jeton, limite de requêtes
 5. Ajout par lien côté app (et partage Android si le temps le permet) → **fin du lot 1a**
 6. Relais `/identify` et parcours photo → **fin du lot 1b**

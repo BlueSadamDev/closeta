@@ -7,6 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "closeta",
     "userInterfaceStyle": "light",
+    "backgroundColor": "#F6F3EE",
     "android": {
       "package": "com.bluesadamdev.closeta",
       "versionCode": 1,
@@ -30,7 +31,14 @@
       ],
       "expo-sqlite",
       "expo-font",
-      "expo-build-properties"
+      "expo-build-properties",
+      [
+        "expo-navigation-bar",
+        {
+          "enforceContrast": false,
+          "style": "dark"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
