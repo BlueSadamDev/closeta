@@ -18,6 +18,7 @@ import { BoutonIcone } from '@/components/BoutonIcone';
 import { CarteArticle } from '@/components/CarteArticle';
 import { Entete } from '@/components/Entete';
 import { Etiquette } from '@/components/Etiquette';
+import { FeuilleAjout } from '@/components/FeuilleAjout';
 import { RichText } from '@/components/RichText';
 import { lireWishlist } from '@/db/articles';
 import { PRIORITES, type Article } from '@/domain/article';
@@ -37,6 +38,7 @@ export default function Wishlist() {
   const [tri, setTri] = useState<Tri>('date');
   const [sousMenu, setSousMenu] = useState<SousMenu>(null);
   const [rechercheOuverte, setRechercheOuverte] = useState(false);
+  const [feuilleOuverte, setFeuilleOuverte] = useState(false);
 
   // Relit la base à chaque retour sur l'écran (après un ajout, une modification, un achat…).
   useFocusEffect(
@@ -158,6 +160,7 @@ export default function Wishlist() {
   return (
     <SafeAreaView style={styles.ecran} edges={['top', 'bottom']}>
       <Entete
+        gauche={<BoutonIcone nom="menu" libelle={texts.accessibilite.reglages} onPress={() => router.push('/reglages')} />}
         droite={
           rechercheOuverte ? (
             <BoutonIcone nom="fermer" libelle={texts.accessibilite.fermerRecherche} onPress={fermerRecherche} />
@@ -189,8 +192,16 @@ export default function Wishlist() {
       )}
 
       <View style={styles.ajouter}>
-        <Bouton libelle={texts.wishlist.ajouter} icone="plus" onPress={() => router.push('/formulaire')} />
+        <Bouton libelle={texts.wishlist.ajouter} icone="plus" onPress={() => setFeuilleOuverte(true)} />
       </View>
+      <FeuilleAjout
+        visible={feuilleOuverte}
+        onFermer={() => setFeuilleOuverte(false)}
+        onManuel={() => {
+          setFeuilleOuverte(false);
+          router.push('/formulaire');
+        }}
+      />
       </View>
     </SafeAreaView>
   );

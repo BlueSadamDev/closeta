@@ -111,7 +111,40 @@ export const texts = {
     annuler: 'Annuler',
   },
 
+  ajout: {
+    titre: 'Ajouter une pièce',
+    lien: {
+      libelle: 'Coller un lien',
+      phrase: 'La fiche se remplit depuis la boutique.',
+    },
+    manuel: {
+      libelle: 'Saisir à la main',
+      phrase: 'Tu remplis la fiche toi-même.',
+    },
+  },
+
+  reglages: {
+    titre: 'Réglages',
+    jeton: 'Jeton du relais',
+    jetonExemple: 'Colle ton jeton ici',
+    enregistrer: 'Enregistrer',
+    enregistre: 'Jeton *enregistré*.',
+    tester: 'Tester la connexion',
+    testEnCours: 'On interroge le relais…',
+    version: 'Version',
+    connexion: {
+      ok: 'Le relais te reconnaît. *Tout est prêt*.',
+      jeton_absent: 'Aucun jeton pour l’instant. *Colle ton jeton* au-dessus.',
+      jeton_refuse: 'Le relais ne te reconnaît pas. *Vérifie ton jeton*.',
+      limite: 'Trop de demandes en une minute. *Réessaie dans un instant*.',
+      injoignable: 'Le relais ne répond pas. *Vérifie ta connexion* et réessaie.',
+      inattendu: 'Le relais a répondu de façon inattendue. *Réessaie plus tard*.',
+    },
+  },
+
   accessibilite: {
+    reglages: 'Ouvrir les Réglages',
+    fermerAjout: 'Fermer',
     rechercher: 'Rechercher',
     fermerRecherche: 'Fermer la recherche',
     retour: 'Retour',

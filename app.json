@@ -38,7 +38,8 @@
           "enforceContrast": false,
           "style": "dark"
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true
