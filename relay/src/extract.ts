@@ -169,18 +169,86 @@ function imageAbsolue(brute: string | null, page: URL): string | null {
   }
 }
 
+// ---------- 3) WooCommerce (pages sans données structurées de prix) ----------
+
+const decoderAttribut = (s: string) =>
+  s.replace(/&quot;/g, '"').replace(/&#0?39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+
+/**
+ * Prix d'un produit WooCommerce à variantes (attribut data-product_variations).
+ * On prend la variante qui correspond aux paramètres du lien (ex. attribute_pa_couleur=vert),
+ * sinon le prix commun à toutes les variantes. Si les prix diffèrent sans indication : rien.
+ */
+function prixVariantesWoo(html: string, page: URL): number | null {
+  const brut = html.match(/data-product_variations\s*=\s*"([^"]*)"/i)?.[1];
+  if (!brut) return null;
+  let variantes: Json;
+  try {
+    variantes = JSON.parse(decoderAttribut(brut)) as Json;
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(variantes)) return null;
+  const avecPrix = variantes.filter(estObjet).filter((v) => lireMontant(v.display_price) !== null);
+  const demandes = [...page.searchParams].filter(([cle]) => cle.startsWith('attribute_'));
+  if (demandes.length > 0) {
+    const correspondante = avecPrix.find((v) =>
+      demandes.every(([cle, valeur]) => {
+        const attributs = estObjet(v.attributes) ? v.attributes : {};
+        const a = attributs[cle];
+        return a === '' || (typeof a === 'string' && a.toLowerCase() === valeur.toLowerCase());
+      }),
+    );
+    if (correspondante) return lireMontant(correspondante.display_price);
+  }
+  const prix = [...new Set(avecPrix.map((v) => lireMontant(v.display_price)))];
+  return prix.length === 1 ? prix[0] : null;
+}
+
+/** Prix affiché dans le bloc principal « p.price » d'une page WooCommerce (un seul montant, ou le prix soldé). */
+function prixAfficheWoo(html: string): { prix: number | null; devise: string | null } {
+  const bloc = html.match(/<p\b[^>]*class\s*=\s*["'][^"']*\bprice\b[^"']*["'][^>]*>([\s\S]*?)<\/p>/i)?.[1];
+  if (!bloc) return { prix: null, devise: null };
+  const zone = bloc.match(/<ins\b[^>]*>([\s\S]*?)<\/ins>/i)?.[1] ?? bloc;
+  const montants = [...zone.matchAll(/woocommerce-Price-amount[^>]*>([\s\S]*?)<\/span>\s*(?:<\/bdi>)?/gi)];
+  if (montants.length !== 1) return { prix: null, devise: null };
+  const texte = texteNet(montants[0][1]) ?? '';
+  const prix = lireMontant(texte.replace(/€|EUR|\$|£/g, ''));
+  const devise = /€|&euro;|EUR/i.test(montants[0][1]) ? 'EUR' : null;
+  return { prix, devise };
+}
+
 // ---------- assemblage ----------
+
+/** Valeurs de marque factices laissées par certaines boutiques (ex. Shopify « vendor-unknown »). */
+const MARQUE_FACTICE = /^(vendor[-_ ]?unknown|unknown|default|default vendor|n\/?a|none|null|undefined|-)$/i;
+const marqueReelle = (m: string | null) => (m && !MARQUE_FACTICE.test(m) ? m : null);
+
+/** Retire « | Boutique », « — Boutique »… en fin de nom quand c'est le nom du site ou de la marque. */
+function sansSuffixe(nom: string | null, ...noms: (string | null)[]): string | null {
+  if (!nom) return nom;
+  const m = nom.match(/^(.*\S)\s+[|–—-]\s+([^|–—]+)$/);
+  if (!m) return nom;
+  const fin = m[2].trim().toLowerCase();
+  return noms.some((n) => n && n.trim().toLowerCase() === fin) ? m[1] : nom;
+}
 
 export function extraireProduit(html: string, page: URL): Extraction {
   const produit = trouverProduit(blocsJsonLd(html));
   const metas = balisesMeta(html);
   const titre = texteNet(html.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)?.[1]);
-
-  const nom = (produit ? premierTexte(produit.name) : null) ?? premiereMeta(metas, 'og:title', 'twitter:title') ?? titre;
+  const nomDuSite = premiereMeta(metas, 'og:site_name', 'application-name');
 
   const marque =
-    (produit ? premierTexte(produit.brand, 'name') ?? premierTexte(produit.manufacturer, 'name') : null) ??
-    premiereMeta(metas, 'product:brand', 'og:brand', 'brand', 'og:site_name', 'application-name');
+    (produit ? marqueReelle(premierTexte(produit.brand, 'name')) ?? marqueReelle(premierTexte(produit.manufacturer, 'name')) : null) ??
+    marqueReelle(premiereMeta(metas, 'product:brand', 'og:brand', 'brand')) ??
+    marqueReelle(nomDuSite);
+
+  const nom = sansSuffixe(
+    (produit ? premierTexte(produit.name) : null) ?? premiereMeta(metas, 'og:title', 'twitter:title') ?? titre,
+    nomDuSite,
+    marque,
+  );
 
   const image = imageAbsolue(
     (produit ? premierTexte(produit.image, 'url', 'contentUrl') : null) ??
@@ -193,6 +261,11 @@ export function extraireProduit(html: string, page: URL): Extraction {
     prix = lireMontant(metas.get('product:price:amount') ?? metas.get('og:price:amount') ?? metas.get('price'));
     devise = premiereMeta(metas, 'product:price:currency', 'og:price:currency', 'pricecurrency');
   }
+  if (prix === null) {
+    prix = prixVariantesWoo(html, page);
+    if (prix !== null) devise = premiereMeta(metas, 'product:price:currency', 'og:price:currency', 'pricecurrency') ?? (/&euro;|€/.test(html) ? 'EUR' : null);
+  }
+  if (prix === null) ({ prix, devise } = prixAfficheWoo(html));
   if (prix === null) devise = null;
 
   return { nom, marque, image, prix, devise: devise ? devise.toUpperCase() : null, url: page.toString() };

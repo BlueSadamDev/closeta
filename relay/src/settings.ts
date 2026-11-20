@@ -6,6 +6,8 @@ export const settings = {
   tailleMaxPage: 3_000_000,
   /** Nombre maximal de redirections suivies. */
   redirectionsMax: 5,
+  /** Pays et devise demandés aux boutiques qui adaptent le prix au pays (sinon : dollars selon le serveur). */
+  cookieLocalisation: 'localization=FR; cart_currency=EUR',
   /** Identité envoyée aux boutiques : celle d'un navigateur mobile courant. */
   userAgent:
     'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36',

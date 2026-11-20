@@ -56,6 +56,8 @@ async function lirePage(depart: URL): Promise<{ html: string; url: URL } | null>
         'user-agent': settings.userAgent,
         accept: 'text/html,application/xhtml+xml',
         'accept-language': 'fr-FR,fr;q=0.9,en;q=0.6',
+        // Demande les prix en euros pour la France (boutiques Shopify à plusieurs devises).
+        cookie: settings.cookieLocalisation,
       },
     });
     if (reponse.status >= 300 && reponse.status < 400) {

@@ -2,12 +2,24 @@ import { describe, expect, it } from 'vitest';
 
 import { extraireProduit, lireMontant, texteNet } from '../src/extract';
 import opengraphSeul from './fixtures/opengraph-seul.html?raw';
+import shopifyVendeurInconnu from './fixtures/shopify-vendeur-inconnu.html?raw';
 import shopify from './fixtures/shopify.html?raw';
 import squarespace from './fixtures/squarespace.html?raw';
 import vide from './fixtures/vide.html?raw';
+import wooPrixAffiche from './fixtures/woo-prix-affiche.html?raw';
+import wooVariantes from './fixtures/woo-variantes.html?raw';
 import woocommerce from './fixtures/woocommerce.html?raw';
 
-const PAGES: Record<string, string> = { shopify, woocommerce, squarespace, 'opengraph-seul': opengraphSeul, vide };
+const PAGES: Record<string, string> = {
+  shopify,
+  woocommerce,
+  squarespace,
+  'opengraph-seul': opengraphSeul,
+  vide,
+  'woo-variantes': wooVariantes,
+  'woo-prix-affiche': wooPrixAffiche,
+  'shopify-vendeur-inconnu': shopifyVendeurInconnu,
+};
 const page = (nom: string) => PAGES[nom];
 
 describe('extraction des données produit (pages fictives)', () => {
@@ -62,6 +74,36 @@ describe('extraction des données produit (pages fictives)', () => {
       prix: null,
       devise: null,
       url: 'https://exemple.test/rien',
+    });
+  });
+});
+
+describe('cas particuliers rencontrés sur de vraies boutiques (pages fictives)', () => {
+  it('WooCommerce à variantes : prend le prix de la variante demandée dans le lien, et nettoie le nom', () => {
+    expect(
+      extraireProduit(page('woo-variantes'), new URL('https://atelier.exemple.test/produit/blouson/?attribute_pa_couleur=vert')),
+    ).toMatchObject({ nom: 'Blouson fictif / Velours & laine', marque: 'Atelier Test', prix: 1090, devise: 'EUR' });
+  });
+
+  it('WooCommerce à variantes de prix différents, sans variante indiquée : le prix reste à compléter', () => {
+    expect(extraireProduit(page('woo-variantes'), new URL('https://atelier.exemple.test/produit/blouson/'))).toMatchObject({
+      prix: null,
+      devise: null,
+    });
+  });
+
+  it('WooCommerce sans données structurées : lit le prix affiché (le prix soldé), pas celui des articles liés', () => {
+    expect(extraireProduit(page('woo-prix-affiche'), new URL('https://atelier.exemple.test/produit/echarpe/'))).toMatchObject({
+      nom: 'Écharpe fictive',
+      prix: 120,
+      devise: 'EUR',
+    });
+  });
+
+  it('ignore une marque factice (« vendor-unknown ») et prend le nom du site', () => {
+    expect(extraireProduit(page('shopify-vendeur-inconnu'), new URL('https://tailleur.exemple.test/p'))).toMatchObject({
+      marque: 'Tailleur Exemple',
+      prix: 130,
     });
   });
 });
