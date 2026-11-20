@@ -1,19 +1,6 @@
-import { DatabaseSync } from 'node:sqlite';
-
-import { migrer, versionDeLaBase, type BaseMigrable } from '../migrate';
+import { migrer, versionDeLaBase } from '../migrate';
 import { MIGRATIONS } from '../migrations';
-
-/** Base SQLite en mémoire, avec la même interface que celle de l'app. */
-function baseDeTest(): BaseMigrable & { brute: DatabaseSync } {
-  const brute = new DatabaseSync(':memory:');
-  return {
-    brute,
-    execAsync: async (sql) => {
-      brute.exec(sql);
-    },
-    getFirstAsync: async <T,>(sql: string) => (brute.prepare(sql).get() as T | undefined) ?? null,
-  };
-}
+import { baseDeTest } from '../__fixtures__/baseDeTest';
 
 const CHAMPS_DE_LA_SPEC = [
   'id', 'nom', 'marque', 'type', 'categorie', 'taille', 'couleur', 'prix', 'devise',
