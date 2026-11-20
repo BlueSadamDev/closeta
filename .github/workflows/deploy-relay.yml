@@ -1,0 +1,49 @@
+name: Mettre en ligne le relais
+
+# Met en ligne le relais Cloudflare (dossier relay/) après ses tests.
+# Secrets GitHub nécessaires : CLOUDFLARE_API_TOKEN et CLOUDFLARE_ACCOUNT_ID.
+# Le jeton RELAY_TOKEN, lui, est un secret Cloudflare (tableau de bord), jamais ici.
+# Déclenchement uniquement manuel : onglet Actions > "Run workflow".
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy-relay:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: relay
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WRANGLER_SEND_METRICS: "false"
+
+    steps:
+      - name: Récupérer le code source
+        uses: actions/checkout@v7
+
+      - name: Vérifier que les 2 secrets Cloudflare sont présents
+        run: |
+          for S in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID; do
+            if [ -z "${!S}" ]; then echo "ERREUR : secret $S manquant – ajoute-le dans Settings > Secrets and variables > Actions"; exit 1; fi
+          done
+          echo "Les 2 secrets Cloudflare sont présents"
+
+      - name: Installer Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: relay/package-lock.json
+
+      - name: Installer les dépendances du relais
+        run: npm ci --no-audit --no-fund
+
+      - name: Vérifier les types
+        run: npm run typecheck
+
+      - name: Lancer les tests du relais
+        run: npm test
+
+      - name: Mettre en ligne sur Cloudflare
+        run: npx wrangler deploy
