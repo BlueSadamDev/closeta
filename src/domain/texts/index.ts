@@ -5,6 +5,6 @@
  */
 export const texts = {
   accueil: {
-    attente: 'Ta Wishlist *prend place ici*.',
+    attente: '*Démarre ta Wishlist* ici.',
   },
 } as const;
