@@ -10,12 +10,18 @@ import { BoutonIcone } from '@/components/BoutonIcone';
 import { Champ, Saisie } from '@/components/Champ';
 import { Choix } from '@/components/Choix';
 import { Entete } from '@/components/Entete';
+import { PhotoArticle } from '@/components/PhotoArticle';
+import { RichText } from '@/components/RichText';
 import { enregistrerArticle, lireArticle } from '@/db/articles';
 import { CATEGORIES, PRIORITES, type Article, type TypeArticle } from '@/domain/article';
+import { brouillonDepuisLien, listeFrancaise, nomDuSite, preremplir, type ChampManquant } from '@/domain/lien';
 import { prixPourSaisie } from '@/domain/prix';
 import { texts } from '@/domain/texts';
 import { BROUILLON_VIDE, validerBrouillon, type Brouillon, type Erreurs } from '@/domain/validation';
-import { colors, spacing, type } from '@/theme';
+import { extraire } from '@/relay/client';
+import { copierImage } from '@/relay/image';
+import { lireJeton } from '@/relay/jeton';
+import { colors, fonts, spacing, type } from '@/theme';
 
 const TYPES: { valeur: TypeArticle; libelle: string }[] = [
   { valeur: 'vetement', libelle: texts.types.vetement },
@@ -38,12 +44,17 @@ const versBrouillon = (a: Article): Brouillon => ({
 
 /** Formulaire de saisie (ajout manuel et modification) — docs/SPEC.md, « 4. Formulaire de validation ». */
 export default function Formulaire() {
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, lien } = useLocalSearchParams<{ id?: string; lien?: string }>();
   const db = useSQLiteContext();
   const [existant, setExistant] = useState<Article | null>(null);
   const [brouillon, setBrouillon] = useState<Brouillon>(BROUILLON_VIDE);
   const [erreurs, setErreurs] = useState<Erreurs>({});
   const [enCours, setEnCours] = useState(false);
+  // Ajout par lien : lecture de la page, photo trouvée, message et champs à compléter.
+  const [lecture, setLecture] = useState(!id && !!lien);
+  const [imageSource, setImageSource] = useState<string | null>(null);
+  const [annonce, setAnnonce] = useState<string | null>(null);
+  const [manquants, setManquants] = useState<ChampManquant[]>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -54,6 +65,30 @@ export default function Formulaire() {
       }
     });
   }, [db, id]);
+
+  useEffect(() => {
+    if (id || !lien) return;
+    let actif = true;
+    (async () => {
+      const resultat = await extraire(lien, await lireJeton());
+      if (!actif) return;
+      if (resultat.ok) {
+        const p = preremplir(resultat.extraction);
+        setBrouillon(p.brouillon);
+        setImageSource(p.image);
+        setManquants(p.manquants);
+        setAnnonce(texts.formulaire.lien.trouve);
+      } else {
+        // Un échec ne bloque jamais l'ajout : formulaire vide, lien conservé.
+        setBrouillon(brouillonDepuisLien(lien));
+        setAnnonce(texts.formulaire.lien.echecs[resultat.raison]);
+      }
+      setLecture(false);
+    })();
+    return () => {
+      actif = false;
+    };
+  }, [id, lien]);
 
   const changer = <K extends keyof Brouillon>(champ: K, valeur: Brouillon[K]) => {
     setBrouillon((b) => ({ ...b, [champ]: valeur }));
@@ -69,23 +104,26 @@ export default function Formulaire() {
       setErreurs(r.erreurs);
       return;
     }
+    setEnCours(true);
     const maintenant = new Date().toISOString();
+    const nouvelId = randomUUID();
+    // La photo trouvée sur la boutique est copiée sur le téléphone ; en cas d'échec, on garde son adresse.
+    const imageLocale = !existant && imageSource ? await copierImage(imageSource, nouvelId) : null;
     const article: Article = existant
       ? { ...existant, ...r.champs, dateMaj: maintenant }
       : {
-          id: randomUUID(),
+          id: nouvelId,
           ...r.champs,
           devise: 'EUR',
-          imageLocale: null,
-          imageSource: null,
+          imageLocale,
+          imageSource,
           statut: 'souhaite',
-          origine: 'manuel',
+          origine: lien ? 'lien' : 'manuel',
           estAlternative: false,
           dateAjout: maintenant,
           dateAchat: null,
           dateMaj: maintenant,
         };
-    setEnCours(true);
     try {
       await enregistrerArticle(db, article);
       fermer();
@@ -102,12 +140,41 @@ export default function Formulaire() {
   };
   const suggestions = brouillon.type ? CATEGORIES[brouillon.type] : [];
 
+  // Pendant la lecture de la page : texte d'attente, sans roue qui tourne (DESIGN.md, « Chargement »).
+  if (lecture) {
+    return (
+      <SafeAreaView style={styles.ecran} edges={['top', 'bottom']}>
+        <Entete gauche={<BoutonIcone nom="fermer" libelle={f.annuler} onPress={fermer} />} />
+        <View style={styles.contenu}>
+          <Text style={[type.screenTitle, styles.titre]}>{f.titreNouveau}</Text>
+          <Text style={styles.lectureTexte}>{f.lien.lecture}</Text>
+          {lien ? <Text style={[type.body, styles.discret]}>{nomDuSite(lien)}</Text> : null}
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.ecran} edges={['top', 'bottom']}>
       <Entete gauche={<BoutonIcone nom="fermer" libelle={f.annuler} onPress={fermer} />} />
       <KeyboardAvoidingView behavior="padding" style={styles.ecran}>
         <ScrollView contentContainerStyle={styles.contenu} keyboardShouldPersistTaps="handled">
           <Text style={[type.screenTitle, styles.titre]}>{existant ? f.titreModifier : f.titreNouveau}</Text>
+
+          {annonce ? (
+            <View style={styles.annonce}>
+              <RichText style={styles.annonceTexte}>{annonce}</RichText>
+              {manquants.length > 0 ? (
+                <Text style={[type.body, styles.discret]}>
+                  {f.lien.aCompleter + listeFrancaise(manquants.map((m) => f.lien.manquants[m]))}.
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
+
+          {imageSource && !existant ? (
+            <PhotoArticle article={{ id: 'apercu', nom: brouillon.nom || ' ', imageLocale: null, imageSource }} hauteur={240} style={styles.photo} />
+          ) : null}
 
           <Champ libelle={f.champs.nom} obligatoire erreur={message('nom')}>
             <Saisie
@@ -203,4 +270,9 @@ const styles = StyleSheet.create({
   deuxColonnes: { flexDirection: 'row', gap: spacing.gridColumnGap },
   colonne: { flex: 1 },
   actions: { marginTop: 36, gap: 12 },
+  lectureTexte: { fontFamily: fonts.serifItalic, fontSize: 20, color: colors.ink, marginTop: 20, marginBottom: 4 },
+  annonce: { marginTop: 12, marginBottom: 8, gap: 6 },
+  annonceTexte: { ...type.body, color: colors.ink },
+  discret: { color: colors.inkMuted },
+  photo: { marginTop: 12, marginBottom: 8 },
 });

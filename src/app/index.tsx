@@ -197,6 +197,10 @@ export default function Wishlist() {
       <FeuilleAjout
         visible={feuilleOuverte}
         onFermer={() => setFeuilleOuverte(false)}
+        onLien={() => {
+          setFeuilleOuverte(false);
+          router.push('/lien');
+        }}
         onManuel={() => {
           setFeuilleOuverte(false);
           router.push('/formulaire');
