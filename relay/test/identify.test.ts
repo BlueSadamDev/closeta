@@ -246,7 +246,7 @@ describe('relais : /identify', () => {
     vi.stubGlobal('fetch', espion);
     const r = await relais.fetch(envoi(PHOTO), e);
     expect(r.status).toBe(502);
-    expect(await r.json()).toEqual({ erreur: 'recherche_indisponible' });
+    expect(await r.json()).toEqual({ erreur: 'recherche_indisponible', incidents: ['cle_serpapi_absente'] });
     expect(espion).not.toHaveBeenCalled();
   });
 

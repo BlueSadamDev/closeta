@@ -41,7 +41,17 @@ export function assembler(lens: Proposition[], shopping: Proposition[], marque: 
   return [...lens, ...alternatives].slice(0, settings.resultatsMax).map((p) => avecMarque(p, marque));
 }
 
-export class RechercheIndisponible extends Error {}
+export class RechercheIndisponible extends Error {
+  constructor(readonly incidents: string[]) {
+    super('recherche_indisponible');
+  }
+}
+
+/** Message d'erreur court et sans secret, pour le diagnostic. */
+const resume = (e: unknown, secret: string | undefined) => {
+  const brut = e instanceof Error ? e.message : String(e);
+  return (secret ? brut.split(secret).join('***') : brut).slice(0, 160);
+};
 
 /**
  * Enchaîne IA, Lens et Shopping. `adressePhoto` est l'adresse publique (temporaire) de la photo.
@@ -53,13 +63,24 @@ export async function identifier(
 ): Promise<Identification> {
   const { ia, stockage, cleSerpApi } = outils;
   const id = nouvelIdentifiant();
+  // Étapes en échec, renvoyées seulement en cas de panne (aucun secret dedans).
+  const incidents: string[] = [];
 
   const lens = async (): Promise<Proposition[] | null> => {
-    if (!cleSerpApi) return null;
-    await stockage.put(clePhoto(id), photo, { httpMetadata: { contentType: 'image/jpeg' } });
+    if (!cleSerpApi) {
+      incidents.push('cle_serpapi_absente');
+      return null;
+    }
+    try {
+      await stockage.put(clePhoto(id), photo, { httpMetadata: { contentType: 'image/jpeg' } });
+    } catch (e) {
+      incidents.push(`stockage: ${resume(e, cleSerpApi)}`);
+      return null;
+    }
     try {
       return lireLens(await appelerSerpApi(adresseLens(cleSerpApi, outils.adressePhoto(id)), settings.delaiLensMs));
-    } catch {
+    } catch (e) {
+      incidents.push(`lens: ${resume(e, cleSerpApi)}`);
       return null;
     } finally {
       // La photo ne sert qu'à Lens : supprimée aussitôt (une règle de R2 nettoie aussi au bout d'un jour).
@@ -68,8 +89,11 @@ export async function identifier(
   };
 
   const [description, trouves] = await Promise.all([
-    decrirePhoto(ia, photo).catch(() => DESCRIPTION_VIDE),
-    lens().catch(() => null),
+    decrirePhoto(ia, photo, (e) => incidents.push(`ia: ${resume(e, cleSerpApi)}`)).catch(() => DESCRIPTION_VIDE),
+    lens().catch((e: unknown) => {
+      incidents.push(`lens: ${resume(e, cleSerpApi)}`);
+      return null;
+    }),
   ]);
 
   // null = recherche Shopping non faite ou en échec.
@@ -77,13 +101,16 @@ export async function identifier(
   if ((trouves?.length ?? 0) < settings.resultatsMin && cleSerpApi && description.recherche) {
     try {
       shopping = lireShopping(await appelerSerpApi(adresseShopping(cleSerpApi, description.recherche), settings.delaiShoppingMs));
-    } catch {
+    } catch (e) {
       // Shopping en échec : on garde ce que Lens a trouvé.
+      incidents.push(`shopping: ${resume(e, cleSerpApi)}`);
     }
+  } else if (trouves === null && !description.recherche) {
+    incidents.push('ia_sans_recherche');
   }
 
   // Aucune recherche n'a fonctionné : ce n'est pas « rien trouvé », c'est une panne.
-  if (trouves === null && shopping === null) throw new RechercheIndisponible();
+  if (trouves === null && shopping === null) throw new RechercheIndisponible(incidents);
 
   return { description, resultats: assembler(trouves ?? [], shopping ?? [], description.marque) };
 }

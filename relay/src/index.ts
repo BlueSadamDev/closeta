@@ -162,7 +162,7 @@ async function routeIdentify(requete: Request, env: Env): Promise<Response> {
     });
     return json(resultat);
   } catch (e) {
-    if (e instanceof RechercheIndisponible) return erreur('recherche_indisponible', 502);
+    if (e instanceof RechercheIndisponible) return json({ erreur: 'recherche_indisponible', incidents: e.incidents }, 502);
     throw e;
   }
 }

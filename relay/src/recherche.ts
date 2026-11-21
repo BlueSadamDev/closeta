@@ -138,8 +138,9 @@ export function lireShopping(reponse: unknown): Proposition[] {
 export async function appelerSerpApi(adresse: string, delaiMs: number): Promise<unknown> {
   const reponse = await fetch(adresse, { signal: AbortSignal.timeout(delaiMs), headers: { accept: 'application/json' } });
   const corps = (await reponse.json().catch(() => null)) as Brut | null;
-  if (!reponse.ok || !corps) throw new Error('serpapi');
+  const message = typeof corps?.error === 'string' ? corps.error : '';
+  if (!reponse.ok || !corps) throw new Error(`HTTP ${reponse.status} ${message}`.trim());
   // SerpApi répond parfois 200 avec un champ « error » ; « aucun résultat » n'est pas une panne.
-  if (typeof corps.error === 'string' && !/hasn.t returned any results|no results/i.test(corps.error)) throw new Error('serpapi');
+  if (message && !/hasn.t returned any results|no results/i.test(message)) throw new Error(message);
   return corps;
 }

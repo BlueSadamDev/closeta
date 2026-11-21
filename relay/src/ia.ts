@@ -109,7 +109,7 @@ export function lireDescription(reponse: unknown): Description {
 }
 
 /** Demande la description de la photo à l'IA. En cas d'échec ou de délai dépassé : description vide. */
-export async function decrirePhoto(ia: IA, photo: Uint8Array): Promise<Description> {
+export async function decrirePhoto(ia: IA, photo: Uint8Array, signaler: (e: unknown) => void = () => undefined): Promise<Description> {
   const appel = ia.run(settings.modeleIA, {
     messages: [
       { role: 'system', content: CONSIGNE },
@@ -133,8 +133,15 @@ export async function decrirePhoto(ia: IA, photo: Uint8Array): Promise<Descripti
   });
   try {
     const reponse = await Promise.race([appel, delai]);
-    return reponse === null ? DESCRIPTION_VIDE : lireDescription(reponse);
-  } catch {
+    if (reponse === null) {
+      signaler(new Error('délai dépassé'));
+      return DESCRIPTION_VIDE;
+    }
+    const description = lireDescription(reponse);
+    if (!description.recherche) signaler(new Error(`réponse sans recherche : ${JSON.stringify(reponse).slice(0, 120)}`));
+    return description;
+  } catch (e) {
+    signaler(e);
     return DESCRIPTION_VIDE;
   } finally {
     clearTimeout(minuterie);
