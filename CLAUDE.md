@@ -48,7 +48,7 @@ Une étape = une branche `lot-1-<n>-<nom>` et un APK testé.
 3. Relais : `/extract`, jeton, limite de débit, mise en ligne par GitHub Actions. Lecture des données produit standard d'abord ; IA en renfort seulement si les boutiques test l'exigent. **Terminée, fusionnée via la PR #4** : relais `/extract` en ligne (jeton, limite de débit, URL publiques), lecture des données produit, workflow de mise en ligne.
 4. Écran Réglages (saisie et test du jeton) ; choix du mode d'ajout (feuille du bas). **Terminée, fusionnée via la PR #5** : écran Réglages (jeton rangé dans le coffre du téléphone, bouton « Tester la connexion »), feuille du bas « Ajouter une pièce ».
 5. Ajout par lien dans l'app et partage Android (« Partager → ClosetA ») → fin du lot 1a. **Terminée, fusionnée via la PR #6** : écran « Coller un lien » (lien du presse-papiers proposé), formulaire pré-rempli par le relais, partage Android, photo copiée sur le téléphone.
-6. Vue par catégorie : Wishlist regroupée en sections par catégorie, avec sous-totaux.
+6. Vue par catégorie : Wishlist regroupée en sections par catégorie, avec sous-totaux. **Terminée, fusionnée via la PR #7** : bascule « VUE · GRILLE / CATÉGORIES », sections alphabétiques avec sous-totaux, section « À classer » à la fin.
 7. Relais `/identify` + parcours photo → fin du lot 1b. Recherche visuelle : SerpApi (API Google Lens ; alternatives via Google Shopping à partir de la description IA).
 
 Tenir cette liste à jour : marquer chaque étape « terminée, fusionnée via la PR #n » avec une ligne de résumé.
