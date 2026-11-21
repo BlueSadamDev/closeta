@@ -67,6 +67,7 @@ Règles :
 - « Ma sélection · N pièces », titre « La Wishlist », total en euros
 - Filtres : Tout, Vêtements, Chaussures, Priorité, Catégorie ; tri par date d'ajout (défaut), prix, priorité
 - Bascule entre la grille et la vue par catégorie (sections par catégorie, sous-total par section ; articles sans catégorie regroupés à la fin)
+  - Sections dans l'ordre alphabétique, titre au singulier tel que saisi (« VESTE · 2 PIÈCES »), sous-total à droite ; section « À classer » pour les pièces sans catégorie. Filtres, recherche et tri s'appliquent aussi (le tri dans chaque section). La vue choisie n'est pas mémorisée.
 - Grille 2 colonnes : photo, étiquette de priorité, marque, nom, prix
 - Bouton « Ajouter » fixe en bas à droite
 - État vide : une phrase et le bouton d'ajout
