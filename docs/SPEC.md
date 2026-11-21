@@ -101,7 +101,7 @@ Règles :
 **Parcours par photo (lot 1b)**
 
 1. Photo prise ou choisie ; l'app la réduit (1024 px max) avant envoi.
-2. Le relais `/identify` renvoie 3 à 5 propositions : image, nom, marque, prix, boutique.
+2. Le relais `/identify` renvoie 3 à 5 propositions : image, nom, marque, prix, boutique ; un indicateur de chargement s'affiche (délai maximal 30 s, la recherche enchaînant IA et Google).
 3. L'utilisateur choisit, ou refuse et relance.
 4. Aucun résultat exact : la liste affiche des articles proches avec l'étiquette « Alternative, pas l'article exact ».
 5. Le choix ouvre le formulaire de validation ; la photo de l'utilisateur peut être gardée comme image de l'article.
@@ -115,7 +115,7 @@ L'app reste locale pour les données ; seul l'ajout par lien ou par photo passe 
 ```
 Téléphone                    Cloudflare                     Services externes
 App ClosetA  ── HTTPS ──▶   Relais (Worker)        ──▶     Pages des boutiques (/extract)
-SQLite + photos              jeton, limite de débit ──▶     API IA vision (/extract, /identify)
+SQLite + photos              jeton, limite de débit ──▶     IA Cloudflare Workers AI (/identify)
 aucune clé d'API             clés d'API en secrets  ──▶     SerpApi Google Lens + Shopping (/identify)
 ```
 
@@ -126,14 +126,15 @@ L'app n'appelle jamais directement l'IA ni la recherche visuelle : tout passe pa
 | Route | Entrée | Sortie | Fonctionnement |
 | --- | --- | --- | --- |
 | POST /extract | `{ url }` | `{ nom, marque, image, prix, devise, url }`, champs absents = null | 1) lecture des données produit standard de la page (schema.org Product, Open Graph ; nom du site en dernier recours pour la marque) ; 2) si incomplet, extraction par IA sur le texte de la page, ajoutée seulement si les boutiques test l'exigent |
-| POST /identify (1b) | photo JPEG ≤ 1024 px | `{ resultats: [ { nom, marque, image, prix, url, alternative } ] }`, 3 à 5 éléments | 1) IA vision : description de l'article ; 2) recherche visuelle SerpApi Google Lens ; 3) si pas de correspondance exacte, recherche Google Shopping à partir de la description, `alternative = true` |
+| POST /identify (1b) | photo JPEG brute (`Content-Type: image/jpeg`), ≤ 1024 px, ≤ 2 Mo | `{ description: { type, categorie, couleur, matiere, marque, recherche }, resultats: [ { nom, marque, image, prix, devise, boutique, url, alternative } ] }`, 0 à 5 résultats, champs absents = null | 1) en même temps : IA Cloudflare Workers AI (offre gratuite, modèle réglable) qui décrit l'article, et recherche visuelle SerpApi Google Lens ; 2) les correspondances Lens menant à une boutique (réseaux sociaux écartés) sont les propositions, celles avec un prix d'abord ; 3) s'il y en a moins de 3, recherche Google Shopping à partir de la description, `alternative = true` ; au plus 5 résultats. La marque vue par l'IA n'est reportée que si elle figure dans le nom du résultat. Liste vide = rien trouvé ; erreur `recherche_indisponible` = aucune recherche n'a pu aboutir |
+| GET /photo/{id} (1b) | — | la photo JPEG | adresse temporaire lue par Google Lens : identifiant aléatoire de 64 caractères, sans jeton, photo supprimée dès la fin de la recherche |
 
 **Sécurité**
 
-- Clés d'API stockées en secrets Cloudflare (`wrangler secret put`), jamais dans le dépôt ni l'APK.
+- Clés d'API stockées en secrets Cloudflare (`wrangler secret put`), jamais dans le dépôt ni l'APK. L'IA de Cloudflare (Workers AI) ne demande aucune clé ; seule SerpApi en a une (`SERPAPI_KEY`).
 - Jeton partagé app ↔ relais dans l'en-tête `Authorization` ; requête refusée sans lui. Le jeton est saisi dans l'écran Réglages et stocké avec expo-secure-store, jamais injecté au build : le dépôt GitHub est public et ses APK sont téléchargeables par d'autres.
 - Limite : 30 requêtes par minute et par jeton, réglable.
-- Le relais ne conserve ni les photos ni les pages : il traite puis répond. Exception lot 1b : si SerpApi Lens exige une URL d'image, dépôt temporaire dans Cloudflare R2, supprimé juste après la recherche.
+- Le relais ne conserve ni les photos ni les pages : il traite puis répond. Exception lot 1b : SerpApi Lens exige une URL d'image, d'où un dépôt temporaire dans Cloudflare R2 (bucket `closeta-photos-temp`), supprimé juste après la recherche ; une règle du bucket supprime aussi tout fichier de plus d'un jour.
 - `/extract` n'accepte que des URL `https` publiques (pas d'adresse IP locale), pour éviter qu'on l'utilise pour sonder un réseau privé.
 - Plafond de dépenses à configurer chez chaque fournisseur d'API.
 

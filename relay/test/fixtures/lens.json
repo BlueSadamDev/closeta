@@ -1,0 +1,47 @@
+{
+  "search_metadata": {
+    "status": "Success"
+  },
+  "visual_matches": [
+    {
+      "position": 1,
+      "title": "Veste Fictive en velours côtelé – Maison Exemple",
+      "link": "https://boutique.exemple.test/veste-fictive",
+      "source": "Boutique Exemple",
+      "thumbnail": "https://images.exemple.test/vignette1.jpg",
+      "image": "https://images.exemple.test/veste1.jpg",
+      "price": {
+        "value": "249,00 €",
+        "extracted_value": 249,
+        "currency": "€"
+      },
+      "in_stock": true
+    },
+    {
+      "position": 2,
+      "title": "Inspiration veste velours",
+      "link": "https://www.pinterest.fr/pin/123",
+      "source": "Pinterest",
+      "thumbnail": "https://images.exemple.test/pin.jpg"
+    },
+    {
+      "position": 3,
+      "title": "Veste velours marron (sans prix)",
+      "link": "https://autre.exemple.test/veste",
+      "source": "Autre Exemple",
+      "thumbnail": "https://images.exemple.test/vignette3.jpg"
+    },
+    {
+      "position": 4,
+      "title": "Lien non sécurisé",
+      "link": "http://vieux.exemple.test/veste",
+      "source": "Vieux"
+    },
+    {
+      "position": 5,
+      "title": "Veste Fictive en velours côtelé – Maison Exemple",
+      "link": "https://boutique.exemple.test/veste-fictive",
+      "source": "Boutique Exemple"
+    }
+  ]
+}
