@@ -15,11 +15,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Bouton } from '@/components/Bouton';
+import { BasculeEcran } from '@/components/BasculeEcran';
 import { BoutonIcone } from '@/components/BoutonIcone';
 import { CarteArticle } from '@/components/CarteArticle';
 import { Entete } from '@/components/Entete';
 import { Etiquette } from '@/components/Etiquette';
 import { FeuilleAjout } from '@/components/FeuilleAjout';
+import { MotFiltre } from '@/components/MotFiltre';
 import { RichText } from '@/components/RichText';
 import { lireWishlist } from '@/db/articles';
 import { PRIORITES, type Article } from '@/domain/article';
@@ -167,7 +169,7 @@ export default function Wishlist() {
       {sousMenu === 'categorie' ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sousFiltres}>
           {categories.length === 0 ? (
-            <Etiquette style={styles.motFiltre}>{texts.wishlist.filtres.aucuneCategorie}</Etiquette>
+            <Etiquette style={styles.aucuneCategorie}>{texts.wishlist.filtres.aucuneCategorie}</Etiquette>
           ) : (
             categories.map((c) => (
               <MotFiltre
@@ -204,6 +206,7 @@ export default function Wishlist() {
           )
         }
       />
+      <BasculeEcran actif="wishlist" />
 
       <View style={styles.corps}>
       {articles.length === 0 ? (
@@ -266,15 +269,6 @@ export default function Wishlist() {
   );
 }
 
-/** Un mot de la ligne de filtres : actif = ink souligné, inactif = inkMuted. */
-function MotFiltre({ libelle, actif, onPress }: { libelle: string; actif: boolean; onPress: () => void }) {
-  return (
-    <Pressable accessibilityRole="button" accessibilityState={{ selected: actif }} onPress={onPress} style={styles.zoneFiltre}>
-      <Etiquette style={[styles.motFiltre, actif && styles.motFiltreActif]}>{libelle}</Etiquette>
-    </Pressable>
-  );
-}
-
 /** En-tête d'une section de la vue par catégorie : filet, catégorie et nombre de pièces, sous-total. */
 function EnTeteSection({ section }: { section: Section }) {
   const { categorie, total } = section;
@@ -312,16 +306,14 @@ const styles = StyleSheet.create({
   rangee: { flexDirection: 'row', gap: spacing.gridColumnGap, marginBottom: spacing.gridRowGap },
   recherche: { marginTop: 16, borderBottomWidth: spacing.hairline, borderBottomColor: colors.ink },
   champRecherche: { ...type.body, color: colors.ink, height: spacing.touchTarget, paddingHorizontal: 0 },
-  surTitre: { marginTop: 28 },
+  surTitre: { marginTop: 16 },
   ligneTitre: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 10 },
   titre: { color: colors.ink, paddingTop: 6 },
   blocTotal: { alignItems: 'flex-end', paddingBottom: 4 },
   filtres: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 18, marginTop: 22 },
   filtresTypes: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 18 },
   sousFiltres: { gap: 18 },
-  zoneFiltre: { minHeight: spacing.touchTarget, justifyContent: 'center' },
-  motFiltre: { paddingBottom: 4, borderBottomWidth: spacing.hairline, borderBottomColor: 'transparent' },
-  motFiltreActif: { color: colors.ink, borderBottomColor: colors.ink },
+  aucuneCategorie: { alignSelf: 'center', paddingBottom: 4 },
   ligneTri: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 14 },
   boutonTri: { minHeight: spacing.touchTarget, justifyContent: 'center' },
   vide: { flex: 1, justifyContent: 'center', paddingHorizontal: spacing.screen },
