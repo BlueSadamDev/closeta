@@ -1,4 +1,5 @@
 import type { Article } from './article';
+import { trier } from './wishlist';
 
 /** Seuls les articles achetés sont dans le Vestiaire. */
 export const articlesDuVestiaire = (articles: readonly Article[]) =>
@@ -12,6 +13,14 @@ export function trierParAchat(articles: readonly Article[]): Article[] {
     if (b.dateAchat === null) return -1;
     return b.dateAchat.localeCompare(a.dateAchat);
   });
+}
+
+export type TriVestiaire = 'achat' | 'prix';
+export const TRIS_VESTIAIRE: readonly TriVestiaire[] = ['achat', 'prix'];
+
+/** achat : plus récent d'abord ; prix : moins cher d'abord, sans prix à la fin (même règle que la Wishlist). */
+export function trierVestiaire(articles: readonly Article[], tri: TriVestiaire): Article[] {
+  return tri === 'achat' ? trierParAchat(articles) : trier(articles, 'prix');
 }
 
 const MOIS = [

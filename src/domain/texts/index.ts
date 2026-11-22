@@ -44,6 +44,10 @@ export const texts = {
     titre: 'Le Vestiaire',
     vide: 'Ton Vestiaire est vide. Sur une fiche, *Je l’ai acheté* y range la pièce.',
     acheteEn: (mois: string) => `Acheté en ${mois}`,
+    tri: {
+      achat: 'Achats récents',
+      prix: 'Prix',
+    },
   },
 
   /** Bascule sous l'en-tête (DESIGN.md, « Bascule Wishlist / Vestiaire »). */
