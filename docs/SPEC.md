@@ -1,6 +1,6 @@
 # ClosetA — Spécification (lot 1 Wishlist, lot 2 Vestiaire)
 
-Version du 22 novembre 2026 (lot 2 ajouté). Copie de travail de la spec rédigée dans claude.ai : en cas d'écart, signaler et proposer la mise à jour.
+Version du 22 novembre 2026 (lot 2 ajouté, tri et vue par marque). Copie de travail de la spec rédigée dans claude.ai : en cas d'écart, signaler et proposer la mise à jour. Lots suivants (3 à 7) : voir [ROADMAP.md](ROADMAP.md).
 
 ## Vision et périmètre
 
@@ -211,17 +211,22 @@ Le Vestiaire montre les pièces passées en « acheté » (`statut = achete`). A
 - État vide : une phrase qui explique comment une pièce y entre.
 - Filtres : Tout, Vêtements, Chaussures, Catégorie (pas de Priorité) ; recherche texte ; tri par date d'achat (défaut) ou prix ; bascule Grille / Catégories avec sous-totaux, mêmes règles que la Wishlist, dans la même barre de filtres repliable et collante.
 
+**Tri et vue par marque (Wishlist et Vestiaire)**
+
+- Tri par marque : ordre alphabétique des marques ; pièces sans marque à la fin.
+- Vue groupée par marque, en plus de la grille et de la vue par catégorie : mêmes règles que la vue par catégorie. Sections dans l'ordre alphabétique, titre tel que saisi avec le nombre de pièces, sous-total à droite ; section « Sans marque » à la fin. Filtres, recherche et tri s'appliquent aussi (le tri dans chaque section). La vue choisie n'est pas mémorisée.
+
 **Fiche d'une pièce achetée**
 
 - Affiche « Acheté le 22 novembre 2026 » ; pas de bouton « Je l'ai acheté ».
 - Actions : Modifier, Supprimer, « Remettre dans la Wishlist » (confirmation ; statut `souhaite`, `date_achat` effacée).
 
-**Hors lot 2** : statut `abandonne` (prévu en base, inutilisé), statistiques, tenues, budget.
+**Hors lot 2** : statut `abandonne` (prévu en base, inutilisé), statistiques, tenues, budget. Lots suivants : voir [ROADMAP.md](ROADMAP.md).
 
 **Découpage**
 
 1. Écran Vestiaire et accès : bascule « WISHLIST · VESTIAIRE », grille, total, état vide ; fiche adaptée (date d'achat, sans « Je l'ai acheté »)
-2. Filtres, recherche, tri et vue par catégorie du Vestiaire ; barre de filtres repliable et collante (Wishlist et Vestiaire)
+2. Filtres, recherche, tri et vue par catégorie du Vestiaire ; barre de filtres repliable et collante (Wishlist et Vestiaire) ; tri par marque et vue groupée par marque (Wishlist et Vestiaire)
 3. « Remettre dans la Wishlist » depuis la fiche → **fin du lot 2**
 
 **Retours d'usage à planifier** (notés pendant les tests de l'étape 3 du lot 2, 22 novembre 2026)
@@ -235,4 +240,5 @@ Le Vestiaire montre les pièces passées en « acheté » (`statut = achete`). A
 - [ ] Une pièce marquée « Je l'ai acheté » apparaît dans le Vestiaire, avec son mois d'achat, et le total du Vestiaire se met à jour
 - [ ] Le Vestiaire ne montre jamais une pièce de la Wishlist, et inversement
 - [ ] Les filtres type et catégorie, la recherche et le tri fonctionnent et se combinent dans le Vestiaire
+- [ ] Le tri par marque et la vue groupée par marque fonctionnent dans la Wishlist et le Vestiaire, avec sous-totaux et section « Sans marque » à la fin
 - [ ] « Remettre dans la Wishlist » ramène la pièce dans la Wishlist, sans date d'achat
