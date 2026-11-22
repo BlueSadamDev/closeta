@@ -54,7 +54,7 @@ Contraste : tout texte atteint 4,5:1 sur son fond. `inkMuted` et `tobacco` le re
 ## Composants
 - **En-tête** : icône menu, mot-symbole centré, icône recherche ; filet `ink` dessous.
 - **Sur-titre + titre** : « MA SÉLECTION · N PIÈCES » (étiquette), puis « La Wishlist » à gauche et le total à droite, alignés sur la ligne de base.
-- **Filtres** : mots en capitales sur une ligne ; actif = `ink` souligné d'un filet 1 px ; inactifs = `inkMuted`.
+- **Filtres** : mots en capitales sur deux lignes, pour que tout le menu reste visible : « TOUT · PRIORITÉ · CATÉGORIE », puis « VÊTEMENTS · CHAUSSURES » ; les choix de priorité ou de catégorie s'ouvrent en dessous. Actif = `ink` souligné d'un filet 1 px ; inactifs = `inkMuted`.
 - **Carte article** : photo, étiquette de priorité en bas à droite de la photo (fond `paper`, texte `ink`), puis marque (étiquette), nom, prix. Pas de cadre autour de la carte.
 - **Article sans prix** : « Prix à compléter » en `inkMuted` à la place du prix ; il n'entre pas dans le total, et le total le signale.
 - **Article sans photo** : aplat `photo1` à `photo3` (selon l'article) avec la première lettre du nom en Cormorant Garamond.
