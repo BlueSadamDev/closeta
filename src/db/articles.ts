@@ -74,6 +74,12 @@ export async function lireWishlist(db: BaseArticles): Promise<Article[]> {
   return lignes.map(versArticle);
 }
 
+/** Tous les articles du Vestiaire (statut acheté). */
+export async function lireVestiaire(db: BaseArticles): Promise<Article[]> {
+  const lignes = await db.getAllAsync<Ligne>("SELECT * FROM article WHERE statut = 'achete'", []);
+  return lignes.map(versArticle);
+}
+
 export async function lireArticle(db: BaseArticles, id: string): Promise<Article | null> {
   const ligne = await db.getFirstAsync<Ligne>('SELECT * FROM article WHERE id = ?', [id]);
   return ligne ? versArticle(ligne) : null;

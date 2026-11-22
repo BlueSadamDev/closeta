@@ -39,6 +39,19 @@ export const texts = {
     ajouter: 'Ajouter',
   },
 
+  vestiaire: {
+    surTitre: (n: number) => `Mon Vestiaire · ${pieces(n)}`,
+    titre: 'Le Vestiaire',
+    vide: 'Ton Vestiaire est vide. Sur une fiche, *Je l’ai acheté* y range la pièce.',
+    acheteEn: (mois: string) => `Acheté en ${mois}`,
+  },
+
+  /** Bascule sous l'en-tête (DESIGN.md, « Bascule Wishlist / Vestiaire »). */
+  ecrans: {
+    wishlist: 'Wishlist',
+    vestiaire: 'Vestiaire',
+  },
+
   priorites: {
     forte: 'Envie forte',
     moyenne: 'Moyenne',
@@ -57,11 +70,13 @@ export const texts = {
     couleur: 'Couleur',
     categorie: 'Catégorie',
     priorite: 'Priorité',
+    achat: 'Achat',
     notes: 'Notes',
     voirEnBoutique: 'Voir en boutique',
     acheter: 'Je l’ai acheté',
     modifier: 'Modifier',
     supprimer: 'Supprimer',
+    acheteLe: (date: string) => `Acheté le ${date}`,
     introuvable: 'Cette pièce n’est plus là. *Retourne à ta Wishlist*.',
     lienIllisible: 'Ce lien ne s’ouvre pas. *Vérifie-le* en modifiant la pièce.',
   },

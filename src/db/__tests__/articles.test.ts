@@ -1,7 +1,7 @@
 import { marquerAchete } from '@/domain/article';
 import { articleFictif } from '@/domain/__fixtures__/articles';
 
-import { enregistrerArticle, lireArticle, lireWishlist, supprimerArticle } from '../articles';
+import { enregistrerArticle, lireArticle, lireVestiaire, lireWishlist, supprimerArticle } from '../articles';
 import { migrer } from '../migrate';
 import { baseDeTest } from '../__fixtures__/baseDeTest';
 
@@ -34,6 +34,17 @@ describe('articles en base', () => {
     await enregistrerArticle(db, marquerAchete(a, new Date('2026-04-01T12:00:00.000Z')));
     expect(await lireWishlist(db)).toEqual([]);
     expect(await lireArticle(db, 'x')).toMatchObject({ statut: 'achete', dateAchat: '2026-04-01T12:00:00.000Z' });
+  });
+
+  it('le Vestiaire ne lit que les articles achetés', async () => {
+    const db = await basePrete();
+    const a = articleFictif({ id: 'x' });
+    await enregistrerArticle(db, a);
+    await enregistrerArticle(db, articleFictif({ id: 'y' }));
+    await enregistrerArticle(db, articleFictif({ id: 'z', statut: 'abandonne' }));
+    await enregistrerArticle(db, marquerAchete(a, new Date('2026-04-01T12:00:00.000Z')));
+    expect((await lireVestiaire(db)).map((v) => v.id)).toEqual(['x']);
+    expect((await lireWishlist(db)).map((w) => w.id)).toEqual(['y']);
   });
 
   it('supprime réellement un article', async () => {

@@ -8,15 +8,31 @@ import { colors, spacing, type } from '@/theme';
 import { Etiquette } from './Etiquette';
 import { PhotoArticle } from './PhotoArticle';
 
-/** Carte de la grille : photo + priorité, marque, nom, prix (DESIGN.md, « Carte article »). */
-export function CarteArticle({ article, largeur, onPress }: { article: Article; largeur: number; onPress: () => void }) {
+/**
+ * Carte de la grille : photo + étiquette, marque, nom, prix (DESIGN.md, « Carte article »).
+ * L'étiquette est la priorité, sauf si une autre est donnée (mois d'achat dans le Vestiaire).
+ */
+export function CarteArticle({
+  article,
+  largeur,
+  onPress,
+  etiquette,
+}: {
+  article: Article;
+  largeur: number;
+  onPress: () => void;
+  etiquette?: string | null;
+}) {
+  const texteEtiquette = etiquette === undefined ? texts.priorites[article.priorite] : etiquette;
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={{ width: largeur }}>
       <View>
         <PhotoArticle article={article} hauteur={spacing.gridPhotoHeight} />
-        <View style={styles.priorite}>
-          <Text style={[type.label, styles.prioriteTexte]}>{texts.priorites[article.priorite]}</Text>
-        </View>
+        {texteEtiquette ? (
+          <View style={styles.priorite}>
+            <Text style={[type.label, styles.prioriteTexte]}>{texteEtiquette}</Text>
+          </View>
+        ) : null}
       </View>
       {article.marque ? (
         <Etiquette style={styles.marque}>{article.marque}</Etiquette>

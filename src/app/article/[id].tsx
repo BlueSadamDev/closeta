@@ -14,6 +14,7 @@ import { enregistrerArticle, lireArticle, supprimerArticle } from '@/db/articles
 import { marquerAchete, type Article } from '@/domain/article';
 import { formaterPrix } from '@/domain/prix';
 import { texts } from '@/domain/texts';
+import { dateAchatLongue } from '@/domain/vestiaire';
 import { effacerImage } from '@/relay/image';
 import { colors, spacing, type } from '@/theme';
 
@@ -83,11 +84,16 @@ export default function Fiche() {
     }
   };
 
+  const achete = article.statut === 'achete';
+  const dateAchat = dateAchatLongue(article.dateAchat);
   const details: [string, string | null][] = [
     [texts.fiche.taille, article.taille],
     [texts.fiche.couleur, article.couleur],
     [texts.fiche.categorie, article.categorie],
-    [texts.fiche.priorite, texts.priorites[article.priorite]],
+    // Pièce achetée : la date d'achat remplace la priorité (docs/SPEC.md, « Fiche d'une pièce achetée »).
+    achete
+      ? [texts.fiche.achat, dateAchat ? texts.fiche.acheteLe(dateAchat) : null]
+      : [texts.fiche.priorite, texts.priorites[article.priorite]],
   ];
 
   return (
@@ -127,7 +133,7 @@ export default function Fiche() {
         ) : null}
 
         <View style={styles.actions}>
-          <Bouton libelle={texts.fiche.acheter} onPress={acheter} />
+          {achete ? null : <Bouton libelle={texts.fiche.acheter} onPress={acheter} />}
           <Bouton libelle={texts.fiche.modifier} variante="secondaire" onPress={() => router.push(`/formulaire?id=${article.id}`)} />
           <Bouton libelle={texts.fiche.supprimer} variante="danger" onPress={supprimer} />
         </View>
