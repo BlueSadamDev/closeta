@@ -20,7 +20,8 @@ import { prixPourSaisie } from '@/domain/prix';
 import { texts } from '@/domain/texts';
 import { BROUILLON_VIDE, validerBrouillon, type Brouillon, type Erreurs } from '@/domain/validation';
 import { extraire } from '@/relay/client';
-import { copierImage, rangerPhoto } from '@/relay/image';
+import { prendrePhoto, type SourcePhoto } from '@/photo/prise';
+import { copierImage, effacerFichier, rangerPhoto } from '@/relay/image';
 import { lireJeton } from '@/relay/jeton';
 import { colors, fonts, spacing, type } from '@/theme';
 
@@ -84,9 +85,14 @@ export default function Formulaire() {
   const [imageSource, setImageSource] = useState<string | null>(depart?.proposition?.image ?? null);
   const [annonce, setAnnonce] = useState<string | null>(depart?.annonce ?? null);
   const [manquants, setManquants] = useState<ChampManquant[]>(depart?.manquants ?? []);
-  // Ajout par photo : photo gardée (la mienne ou celle de la boutique).
+  // Ajout par photo : proposition choisie.
   const choisie = depart?.proposition ?? null;
+  // Photo prise ou choisie par l'utilisateur (parcours photo, ou ajoutée depuis le formulaire),
+  // et photo gardée quand la boutique en fournit une aussi.
+  const [maPhoto, setMaPhoto] = useState<string | null>(!id && photo ? photo : null);
   const [photoGardee, setPhotoGardee] = useState<'maPhoto' | 'boutique'>(choisie?.image ? 'boutique' : 'maPhoto');
+  const [choixPhotoOuvert, setChoixPhotoOuvert] = useState(false);
+  const [messagePhoto, setMessagePhoto] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -130,6 +136,18 @@ export default function Formulaire() {
 
   const fermer = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
+  const ajouterPhoto = async (source: SourcePhoto) => {
+    setMessagePhoto(null);
+    const prise = await prendrePhoto(source);
+    if (prise.ok) {
+      setMaPhoto(prise.uri);
+      setPhotoGardee('maPhoto');
+      setChoixPhotoOuvert(false);
+    } else if (prise.raison !== 'annule') {
+      setMessagePhoto(prise.raison === 'camera_refusee' ? texts.photo.cameraRefusee : texts.photo.photoIllisible);
+    }
+  };
+
   const enregistrer = async () => {
     const r = validerBrouillon(brouillon);
     if (!r.ok) {
@@ -140,18 +158,25 @@ export default function Formulaire() {
     const maintenant = new Date().toISOString();
     const nouvelId = randomUUID();
     // La photo trouvée sur la boutique est copiée sur le téléphone ; en cas d'échec, on garde son adresse.
-    // Ajout par photo avec « Ma photo » : la photo prise est rangée dans le stockage de l'app.
-    const garderMaPhoto = !!photo && photoGardee === 'maPhoto';
+    // « Ma photo » : la photo prise ou choisie est rangée dans le stockage de l'app.
+    const garderMaPhoto = !!maPhoto && (photoGardee === 'maPhoto' || !imageSource);
     const source = garderMaPhoto ? null : imageSource;
+    // Modification avec une nouvelle photo : rangée sous un nouveau nom, l'ancienne est effacée après l'enregistrement.
+    const remplacee = existant && maPhoto ? await rangerPhoto(maPhoto, `${existant.id}-${Date.now()}`) : null;
     const imageLocale = existant
       ? null
-      : garderMaPhoto
-        ? await rangerPhoto(photo, nouvelId)
+      : garderMaPhoto && maPhoto
+        ? await rangerPhoto(maPhoto, nouvelId)
         : source
           ? await copierImage(source, nouvelId)
           : null;
     const article: Article = existant
-      ? { ...existant, ...r.champs, dateMaj: maintenant }
+      ? {
+          ...existant,
+          ...r.champs,
+          ...(remplacee ? { imageLocale: remplacee, imageSource: null } : {}),
+          dateMaj: maintenant,
+        }
       : {
           id: nouvelId,
           ...r.champs,
@@ -167,6 +192,7 @@ export default function Formulaire() {
         };
     try {
       await enregistrerArticle(db, article);
+      if (remplacee && existant?.imageLocale) effacerFichier(existant.imageLocale);
       fermer();
     } catch {
       setEnCours(false);
@@ -213,34 +239,25 @@ export default function Formulaire() {
             </View>
           ) : null}
 
-          {photo && !existant ? (
-            <>
-              <PhotoArticle
-                article={{
-                  id: 'apercu',
-                  nom: brouillon.nom || ' ',
-                  imageLocale: photoGardee === 'maPhoto' ? photo : null,
-                  imageSource: photoGardee === 'boutique' ? imageSource : null,
-                }}
-                hauteur={240}
-                style={styles.photo}
-              />
-              {imageSource ? (
-                <Champ libelle={f.photo.image}>
-                  <Choix
-                    options={[
-                      { valeur: 'maPhoto', libelle: f.photo.maPhoto },
-                      { valeur: 'boutique', libelle: f.photo.boutique },
-                    ]}
-                    valeur={photoGardee}
-                    onChange={setPhotoGardee}
-                  />
-                </Champ>
-              ) : null}
-            </>
-          ) : imageSource && !existant ? (
-            <PhotoArticle article={{ id: 'apercu', nom: brouillon.nom || ' ', imageLocale: null, imageSource }} hauteur={240} style={styles.photo} />
-          ) : null}
+          <BlocPhoto
+            apercu={
+              maPhoto && (photoGardee === 'maPhoto' || !imageSource)
+                ? { imageLocale: maPhoto, imageSource: null }
+                : !existant && imageSource
+                  ? { imageLocale: null, imageSource }
+                  : existant && (existant.imageLocale || existant.imageSource)
+                    ? { imageLocale: existant.imageLocale, imageSource: existant.imageSource }
+                    : null
+            }
+            nom={brouillon.nom}
+            choixBoutique={!!maPhoto && !!imageSource && !existant}
+            photoGardee={photoGardee}
+            onPhotoGardee={setPhotoGardee}
+            choixOuvert={choixPhotoOuvert}
+            onOuvrirChoix={() => setChoixPhotoOuvert(true)}
+            onAjouter={ajouterPhoto}
+            message={messagePhoto}
+          />
 
           <Champ libelle={f.champs.nom} obligatoire erreur={message('nom')}>
             <Saisie
@@ -329,6 +346,62 @@ export default function Formulaire() {
   );
 }
 
+/**
+ * Photo de la pièce dans le formulaire : aperçu, choix « Ma photo / Celle de la boutique » quand les deux existent,
+ * et boutons pour prendre ou choisir une photo (« Changer la photo » quand il y en a déjà une).
+ */
+function BlocPhoto({
+  apercu,
+  nom,
+  choixBoutique,
+  photoGardee,
+  onPhotoGardee,
+  choixOuvert,
+  onOuvrirChoix,
+  onAjouter,
+  message,
+}: {
+  apercu: { imageLocale: string | null; imageSource: string | null } | null;
+  nom: string;
+  choixBoutique: boolean;
+  photoGardee: 'maPhoto' | 'boutique';
+  onPhotoGardee: (v: 'maPhoto' | 'boutique') => void;
+  choixOuvert: boolean;
+  onOuvrirChoix: () => void;
+  onAjouter: (source: SourcePhoto) => void;
+  message: string | null;
+}) {
+  const f = texts.formulaire;
+  return (
+    <View style={styles.blocPhoto}>
+      {apercu ? <PhotoArticle article={{ id: 'apercu', nom: nom || ' ', ...apercu }} hauteur={240} /> : null}
+      <Champ libelle={f.photo.image}>
+        <View style={styles.boutonsPhoto}>
+          {choixBoutique ? (
+            <Choix
+              options={[
+                { valeur: 'maPhoto', libelle: f.photo.maPhoto },
+                { valeur: 'boutique', libelle: f.photo.boutique },
+              ]}
+              valeur={photoGardee}
+              onChange={onPhotoGardee}
+            />
+          ) : null}
+          {apercu && !choixOuvert ? (
+            <Bouton libelle={f.photo.changer} variante="secondaire" onPress={onOuvrirChoix} />
+          ) : (
+            <>
+              <Bouton libelle={texts.photo.prendre} variante="secondaire" onPress={() => onAjouter('camera')} />
+              <Bouton libelle={texts.photo.choisir} variante="secondaire" onPress={() => onAjouter('galerie')} />
+            </>
+          )}
+          {message ? <RichText style={styles.messagePhoto}>{message}</RichText> : null}
+        </View>
+      </Champ>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   ecran: { flex: 1, backgroundColor: colors.paper },
   contenu: { padding: spacing.screen, paddingBottom: 48 },
@@ -340,5 +413,7 @@ const styles = StyleSheet.create({
   annonce: { marginTop: 12, marginBottom: 8, gap: 6 },
   annonceTexte: { ...type.body, color: colors.ink },
   discret: { color: colors.inkMuted },
-  photo: { marginTop: 12, marginBottom: 8 },
+  blocPhoto: { marginTop: 12, gap: 8 },
+  boutonsPhoto: { gap: 12 },
+  messagePhoto: { ...type.body, color: colors.ink },
 });

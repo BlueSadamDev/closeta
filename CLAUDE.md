@@ -50,7 +50,8 @@ Une étape = une branche `lot-1-<n>-<nom>` et un APK testé.
 4. Écran Réglages (saisie et test du jeton) ; choix du mode d'ajout (feuille du bas). **Terminée, fusionnée via la PR #5** : écran Réglages (jeton rangé dans le coffre du téléphone, bouton « Tester la connexion »), feuille du bas « Ajouter une pièce ».
 5. Ajout par lien dans l'app et partage Android (« Partager → ClosetA ») → fin du lot 1a. **Terminée, fusionnée via la PR #6** : écran « Coller un lien » (lien du presse-papiers proposé), formulaire pré-rempli par le relais, partage Android, photo copiée sur le téléphone.
 6. Vue par catégorie : Wishlist regroupée en sections par catégorie, avec sous-totaux. **Terminée, fusionnée via la PR #7** : bascule « VUE · GRILLE / CATÉGORIES », sections alphabétiques avec sous-totaux, section « À classer » à la fin.
-7. Relais `/identify` + parcours photo → fin du lot 1b. Recherche visuelle : SerpApi (API Google Lens ; alternatives via Google Shopping à partir de la description IA).
+7. Relais `/identify` + parcours photo → fin du lot 1b. Recherche visuelle : SerpApi (API Google Lens ; alternatives via Google Shopping à partir de la description IA). **Terminée, fusionnée via la PR #8** : relais `/identify` (IA Cloudflare Workers AI + Google Lens via SerpApi, alternatives Google Shopping, photo temporaire dans R2), écran « Par photo », formulaire pré-rempli, permission CAMERA.
+8. Retours d'usage de l'étape 7 : filtres de la Wishlist sur deux lignes ; photo dans le formulaire (ajout à la main, par lien, modification).
 
 Tenir cette liste à jour : marquer chaque étape « terminée, fusionnée via la PR #n » avec une ligne de résumé.
 

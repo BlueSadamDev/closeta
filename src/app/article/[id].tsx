@@ -68,7 +68,7 @@ export default function Fiche() {
         style: 'destructive',
         onPress: async () => {
           await supprimerArticle(db, article.id);
-          effacerImage(article.id);
+          effacerImage(article.id, article.imageLocale);
           retour();
         },
       },

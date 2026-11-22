@@ -117,7 +117,8 @@ export default function Wishlist() {
         </View>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtres}>
+      {/* Filtres sur deux lignes (DESIGN.md, « Filtres ») : tout le menu reste visible. */}
+      <View style={styles.filtres}>
         <MotFiltre
           libelle={texts.wishlist.filtres.tout}
           actif={filtre.type === null && filtre.priorite === null && filtre.categorie === null}
@@ -125,16 +126,6 @@ export default function Wishlist() {
             setFiltre((f) => ({ ...FILTRE_VIDE, recherche: f.recherche }));
             setSousMenu(null);
           }}
-        />
-        <MotFiltre
-          libelle={texts.wishlist.filtres.vetements}
-          actif={filtre.type === 'vetement'}
-          onPress={() => setFiltre((f) => ({ ...f, type: f.type === 'vetement' ? null : 'vetement' }))}
-        />
-        <MotFiltre
-          libelle={texts.wishlist.filtres.chaussures}
-          actif={filtre.type === 'chaussures'}
-          onPress={() => setFiltre((f) => ({ ...f, type: f.type === 'chaussures' ? null : 'chaussures' }))}
         />
         <MotFiltre
           libelle={filtre.priorite ? texts.priorites[filtre.priorite] : texts.wishlist.filtres.priorite}
@@ -146,7 +137,19 @@ export default function Wishlist() {
           actif={filtre.categorie !== null || sousMenu === 'categorie'}
           onPress={() => setSousMenu(sousMenu === 'categorie' ? null : 'categorie')}
         />
-      </ScrollView>
+      </View>
+      <View style={styles.filtresTypes}>
+        <MotFiltre
+          libelle={texts.wishlist.filtres.vetements}
+          actif={filtre.type === 'vetement'}
+          onPress={() => setFiltre((f) => ({ ...f, type: f.type === 'vetement' ? null : 'vetement' }))}
+        />
+        <MotFiltre
+          libelle={texts.wishlist.filtres.chaussures}
+          actif={filtre.type === 'chaussures'}
+          onPress={() => setFiltre((f) => ({ ...f, type: f.type === 'chaussures' ? null : 'chaussures' }))}
+        />
+      </View>
 
       {sousMenu === 'priorite' ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sousFiltres}>
@@ -313,7 +316,8 @@ const styles = StyleSheet.create({
   ligneTitre: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 10 },
   titre: { color: colors.ink, paddingTop: 6 },
   blocTotal: { alignItems: 'flex-end', paddingBottom: 4 },
-  filtres: { gap: 18, marginTop: 22 },
+  filtres: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 18, marginTop: 22 },
+  filtresTypes: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 18 },
   sousFiltres: { gap: 18 },
   zoneFiltre: { minHeight: spacing.touchTarget, justifyContent: 'center' },
   motFiltre: { paddingBottom: 4, borderBottomWidth: spacing.hairline, borderBottomColor: 'transparent' },
