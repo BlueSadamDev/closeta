@@ -56,7 +56,7 @@ Une étape = une branche `lot-1-<n>-<nom>` et un APK testé.
 ## Découpage en étapes (lot 2 : Vestiaire)
 Une étape = une branche et un APK testé. Détail : docs/SPEC.md, « Lot 2 — Vestiaire ».
 1. Écran Vestiaire et accès : bascule « WISHLIST · VESTIAIRE », grille, total, état vide ; fiche adaptée (date d'achat, sans « Je l'ai acheté »). **Terminée, fusionnée via la PR #10** : bascule « WISHLIST · VESTIAIRE », écran Vestiaire (mois d'achat sur les cartes, total), fiche avec la date d'achat.
-2. Filtres, recherche, tri et vue par catégorie du Vestiaire ; barre de filtres repliable et collante (Wishlist et Vestiaire).
+2. Filtres, recherche, tri et vue par catégorie du Vestiaire ; barre de filtres repliable et collante (Wishlist et Vestiaire). **Terminée, fusionnée via la PR #11** : recherche, filtres, tri et vue par catégorie du Vestiaire ; barre « FILTRER » repliable (panneau à sélections pleines) qui reste en haut au défilement.
 3. « Remettre dans la Wishlist » depuis la fiche → fin du lot 2.
 
 Tenir ces listes à jour : marquer chaque étape « terminée, fusionnée via la PR #n » avec une ligne de résumé.
