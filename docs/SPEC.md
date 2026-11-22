@@ -66,7 +66,7 @@ Règles :
 - En-tête : logo, recherche texte dans la wishlist
 - « Ma sélection · N pièces », titre « La Wishlist », total en euros
 - Filtres : Tout, Vêtements, Chaussures, Priorité, Catégorie ; tri par date d'ajout (défaut), prix, priorité
-  - Barre de filtres repliée par défaut (« FILTRER · TOUT » et « GRILLE · RÉCENTS ») ; un toucher déplie le panneau : Pièces (Tout, Vêtements, Chaussures), Choix (Priorité, Catégorie), Vue (Grille, Catégories), Tri. La barre reste visible en haut quand on fait défiler. Retour d'usage du 22 novembre 2026 (filtres pas assez démarqués), voir DESIGN.md « Barre de filtres ».
+  - Barre de filtres repliée par défaut (« FILTRER · TOUT » et « RÉCENTS ») ; un toucher déplie le panneau : Pièces (Tout, Vêtements, Chaussures), Choix (Priorité, Catégorie), Vue (Grille, Catégories), Tri. La barre reste visible en haut quand on fait défiler. Retour d'usage du 22 novembre 2026 (filtres pas assez démarqués), voir DESIGN.md « Barre de filtres ».
 - Bascule entre la grille et la vue par catégorie (sections par catégorie, sous-total par section ; articles sans catégorie regroupés à la fin)
   - Sections dans l'ordre alphabétique, titre au singulier tel que saisi (« VESTE · 2 PIÈCES »), sous-total à droite ; section « À classer » pour les pièces sans catégorie. Filtres, recherche et tri s'appliquent aussi (le tri dans chaque section). La vue choisie n'est pas mémorisée.
 - Grille 2 colonnes : photo, étiquette de priorité, marque, nom, prix
@@ -188,7 +188,7 @@ L'APK est construit par GitHub Actions (expo prebuild puis Gradle), avec la clé
 - Design, Wishlist : la ligne de filtres déborde (« PRIORITÉ » coupé à droite). Demande : placer « Vêtements » et « Chaussures » en dessous de « Tout », pour que tout le menu soit visible. Choix retenu : ligne 1 « TOUT · PRIORITÉ · CATÉGORIE », ligne 2 « VÊTEMENTS · CHAUSSURES ».
 - Formulaire : pouvoir ajouter une photo (appareil photo ou galerie) quand on ajoute une pièce à la main ou par lien, sans passer par la recherche par photo.
 
-**Retours d'usage à corriger plus tard** (notés pendant les tests de l'étape 2 du lot 2, 22 novembre 2026)
+**Retours d'usage de l'étape 2 du lot 2** (22 novembre 2026), corrigés à l'étape 3 : la première section n'a plus de filet ; la barre repliée n'affiche plus que le tri à droite et garde la sélection sur une ligne.
 
 - Barre de filtres, vue par catégorie : double filet. Le filet bas de la barre de filtres et le filet haut de la première section (« MANTEAU · 1 PIÈCE ») se suivent, avec un petit espace entre les deux. Il ne doit en rester qu'un.
 - Barre de filtres repliée : quand la vue « Catégories » est choisie, « FILTRER · TOUT » passe sur deux lignes, faute de place à côté de « CATÉGORIES · RÉCENTS ».

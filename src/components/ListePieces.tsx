@@ -88,7 +88,9 @@ export function ListePieces({
           contentContainerStyle={[styles.sections, { paddingBottom: margeBas }]}
           keyboardShouldPersistTaps="handled"
           stickySectionHeadersEnabled={false}
-          renderSectionHeader={({ section }) => <EnTeteSection section={section.section} />}
+          renderSectionHeader={({ section }) => (
+            <EnTeteSection section={section.section} premiere={section === sections[0]} />
+          )}
           renderItem={({ item: paire }) => (
             <View style={styles.rangee}>
               {paire.map((article) => (
@@ -123,10 +125,11 @@ export function ListePieces({
 }
 
 /** En-tête d'une section de la vue par catégorie : filet, catégorie et nombre de pièces, sous-total. */
-function EnTeteSection({ section }: { section: Section }) {
+function EnTeteSection({ section, premiere }: { section: Section; premiere: boolean }) {
   const { categorie, total } = section;
+  // La première section suit directement le filet de la barre de filtres : pas de second filet.
   return (
-    <View style={styles.enTeteSection}>
+    <View style={[styles.enTeteSection, premiere && styles.premiereSection]}>
       <Etiquette
         style={styles.titreSection}
       >{`${categorie ?? texts.wishlist.aClasser} · ${texts.wishlist.pieces(total.pieces)}`}</Etiquette>
@@ -164,6 +167,7 @@ const styles = StyleSheet.create({
     marginTop: 14,
     marginBottom: 16,
   },
+  premiereSection: { borderTopWidth: 0, marginTop: 0 },
   titreSection: {
     color: colors.ink,
     flexShrink: 1,

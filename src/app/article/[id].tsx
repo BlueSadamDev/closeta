@@ -11,7 +11,7 @@ import { Etiquette } from '@/components/Etiquette';
 import { PhotoArticle } from '@/components/PhotoArticle';
 import { RichText } from '@/components/RichText';
 import { enregistrerArticle, lireArticle, supprimerArticle } from '@/db/articles';
-import { marquerAchete, type Article } from '@/domain/article';
+import { marquerAchete, remettreEnWishlist, type Article } from '@/domain/article';
 import { formaterPrix } from '@/domain/prix';
 import { texts } from '@/domain/texts';
 import { dateAchatLongue } from '@/domain/vestiaire';
@@ -54,6 +54,20 @@ export default function Fiche() {
         text: c.achat.confirmer,
         onPress: async () => {
           await enregistrerArticle(db, marquerAchete(article, new Date()));
+          retour();
+        },
+      },
+    ]);
+  };
+
+  const remettre = () => {
+    const c = texts.confirmations;
+    Alert.alert(c.remise.titre, c.remise.message, [
+      { text: c.annuler, style: 'cancel' },
+      {
+        text: c.remise.confirmer,
+        onPress: async () => {
+          await enregistrerArticle(db, remettreEnWishlist(article, new Date()));
           retour();
         },
       },
@@ -135,6 +149,7 @@ export default function Fiche() {
         <View style={styles.actions}>
           {achete ? null : <Bouton libelle={texts.fiche.acheter} onPress={acheter} />}
           <Bouton libelle={texts.fiche.modifier} variante="secondaire" onPress={() => router.push(`/formulaire?id=${article.id}`)} />
+          {achete ? <Bouton libelle={texts.fiche.remettre} variante="secondaire" onPress={remettre} /> : null}
           <Bouton libelle={texts.fiche.supprimer} variante="danger" onPress={supprimer} />
         </View>
       </ScrollView>

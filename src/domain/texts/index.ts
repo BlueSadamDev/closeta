@@ -87,6 +87,7 @@ export const texts = {
     notes: 'Notes',
     voirEnBoutique: 'Voir en boutique',
     acheter: 'Je l’ai acheté',
+    remettre: 'Remettre dans la Wishlist',
     modifier: 'Modifier',
     supprimer: 'Supprimer',
     acheteLe: (date: string) => `Acheté le ${date}`,
@@ -100,6 +101,11 @@ export const texts = {
       titre: 'Tu l’as acheté ?',
       message: 'Belle pièce. Elle quitte ta Wishlist pour rejoindre ton Vestiaire.',
       confirmer: 'Oui, acheté',
+    },
+    remise: {
+      titre: 'Remettre dans la Wishlist ?',
+      message: 'Elle quitte ton Vestiaire.',
+      confirmer: 'Remettre',
     },
     suppression: {
       titre: 'Supprimer cette pièce ?',
