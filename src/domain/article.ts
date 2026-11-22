@@ -45,3 +45,8 @@ export function marquerAchete(article: Article, maintenant: Date): Article {
   const date = maintenant.toISOString();
   return { ...article, statut: 'achete', dateAchat: date, dateMaj: date };
 }
+
+/** « Remettre dans la Wishlist » : l'article redevient souhaité et perd sa date d'achat. */
+export function remettreEnWishlist(article: Article, maintenant: Date): Article {
+  return { ...article, statut: 'souhaite', dateAchat: null, dateMaj: maintenant.toISOString() };
+}

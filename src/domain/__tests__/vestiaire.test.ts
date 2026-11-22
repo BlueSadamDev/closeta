@@ -1,4 +1,4 @@
-import { marquerAchete } from '../article';
+import { marquerAchete, remettreEnWishlist } from '../article';
 import { articleFictif, WISHLIST_FICTIVE } from '../__fixtures__/articles';
 import { FILTRE_VIDE, filtrer, regrouperParCategorie, totalWishlist } from '../wishlist';
 import { articlesDuVestiaire, dateAchatLongue, moisAchat, trierParAchat, trierVestiaire } from '../vestiaire';
@@ -13,6 +13,13 @@ describe('Vestiaire', () => {
   it('accueille une pièce dès « Je l’ai acheté »', () => {
     const achetee = marquerAchete(WISHLIST_FICTIVE[0], new Date('2026-04-01T12:00:00.000Z'));
     expect(ids(articlesDuVestiaire([...WISHLIST_FICTIVE, achetee]))).toEqual(['f', 'a']);
+  });
+
+  it('rend une pièce à la Wishlist, sans date d’achat, le reste intact', () => {
+    const achetee = marquerAchete(WISHLIST_FICTIVE[0], new Date('2026-04-01T12:00:00.000Z'));
+    const rendue = remettreEnWishlist(achetee, new Date('2026-05-02T12:00:00.000Z'));
+    expect(rendue).toEqual({ ...WISHLIST_FICTIVE[0], dateMaj: '2026-05-02T12:00:00.000Z' });
+    expect(articlesDuVestiaire([rendue])).toEqual([]);
   });
 
   it('ignore les pièces abandonnées', () => {

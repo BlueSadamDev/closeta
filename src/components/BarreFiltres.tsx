@@ -51,11 +51,13 @@ export function BarreFiltres<T extends string>(props: PropsBarreFiltres<T>) {
       >
         <View style={styles.gauche}>
           <Icone nom="filtre" taille={18} />
-          <Etiquette style={styles.resume}>{`${f.filtrer} · ${resumeDuFiltre(filtre)}`}</Etiquette>
+          <Etiquette style={styles.resume} lignes={1}>
+            {`${f.filtrer} · ${resumeDuFiltre(filtre)}`}
+          </Etiquette>
         </View>
         <View style={styles.droite}>
           <Etiquette style={ouvert ? styles.actionFermer : undefined}>
-            {ouvert ? f.fermer : `${texts.wishlist.vue[vue]} · ${libellesTri[tri]}`}
+            {ouvert ? f.fermer : libellesTri[tri]}
           </Etiquette>
           <Icone
             nom={ouvert ? 'basculeHaut' : 'basculeBas'}
@@ -211,7 +213,7 @@ const styles = StyleSheet.create({
   },
   gauche: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
   resume: { color: colors.ink, flexShrink: 1 },
-  droite: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  droite: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 0 },
   actionFermer: { color: colors.ink },
   panneau: { paddingTop: 4, paddingBottom: 10 },
   rubrique: { flexDirection: 'row', alignItems: 'center' },
