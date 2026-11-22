@@ -1,6 +1,6 @@
 import { marquerAchete, remettreEnWishlist } from '../article';
 import { articleFictif, WISHLIST_FICTIVE } from '../__fixtures__/articles';
-import { FILTRE_VIDE, filtrer, regrouperParCategorie, totalWishlist } from '../wishlist';
+import { FILTRE_VIDE, filtrer, regrouperParCategorie, regrouperParMarque, totalWishlist } from '../wishlist';
 import { articlesDuVestiaire, dateAchatLongue, moisAchat, trierParAchat, trierVestiaire } from '../vestiaire';
 
 const ids = (articles: { id: string }[]) => articles.map((a) => a.id);
@@ -68,7 +68,7 @@ describe('filtres et tri du Vestiaire', () => {
 
   it('regroupe par catégorie avec sous-totaux, dans l’ordre du tri choisi', () => {
     const sections = regrouperParCategorie(trierVestiaire(VESTIAIRE_FICTIF, 'achat'));
-    expect(sections.map((s) => [s.categorie, ids(s.articles), s.total.euros, s.total.sansPrix])).toEqual([
+    expect(sections.map((s) => [s.titre, ids(s.articles), s.total.euros, s.total.sansPrix])).toEqual([
       ['Derbies', ['v2'], 250, 0],
       ['veste', ['v3', 'v1'], 300, 1],
       [null, ['v4'], 90, 0],
@@ -90,5 +90,27 @@ describe('dates d’achat', () => {
   it('ne fabrique pas de date quand elle manque ou est illisible', () => {
     expect(moisAchat(null)).toBeNull();
     expect(dateAchatLongue('pas une date')).toBeNull();
+  });
+});
+
+describe('tri et vue par marque du Vestiaire', () => {
+  const liste = [
+    articleFictif({ id: 'p1', statut: 'achete', marque: 'Maison Fictive', prix: 300, dateAchat: '2026-03-10T12:00:00.000Z' }),
+    articleFictif({ id: 'p2', statut: 'achete', marque: null, prix: 90, dateAchat: '2026-06-10T12:00:00.000Z' }),
+    articleFictif({ id: 'p3', statut: 'achete', marque: 'maison fictive', prix: 120, dateAchat: '2026-05-10T12:00:00.000Z' }),
+    articleFictif({ id: 'p4', statut: 'achete', marque: 'Atelier Test', prix: null, dateAchat: '2026-01-10T12:00:00.000Z' }),
+  ];
+
+  it('trie par marque, puis par achat le plus récent, sans marque à la fin', () => {
+    expect(ids(trierVestiaire(liste, 'marque'))).toEqual(['p4', 'p3', 'p1', 'p2']);
+  });
+
+  it('regroupe par marque avec sous-totaux, « Sans marque » à la fin', () => {
+    const sections = regrouperParMarque(trierVestiaire(liste, 'achat'));
+    expect(sections.map((s) => [s.titre, ids(s.articles), s.total.euros, s.total.sansPrix])).toEqual([
+      ['Atelier Test', ['p4'], 0, 1],
+      ['maison fictive', ['p3', 'p1'], 420, 0],
+      [null, ['p2'], 90, 0],
+    ]);
   });
 });

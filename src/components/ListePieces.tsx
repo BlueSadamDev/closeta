@@ -15,15 +15,15 @@ import {
 import type { Article } from '@/domain/article';
 import { formaterPrix } from '@/domain/prix';
 import { texts } from '@/domain/texts';
-import { parPaires, regrouperParCategorie, type Section, type Vue } from '@/domain/wishlist';
+import { parPaires, regrouperParCategorie, regrouperParMarque, type Section, type Vue } from '@/domain/wishlist';
 import { colors, fonts, spacing, type } from '@/theme';
 
 import { Etiquette } from './Etiquette';
 import { RichText } from './RichText';
 
 /**
- * Les pièces en grille de 2 colonnes, ou regroupées par catégorie avec sous-totaux
- * (docs/SPEC.md, « Vue par catégorie »). Commun à la Wishlist et au Vestiaire.
+ * Les pièces en grille de 2 colonnes, ou regroupées par catégorie ou par marque avec sous-totaux
+ * (docs/SPEC.md, « Vue par catégorie » et « Tri et vue par marque »). Commun à la Wishlist et au Vestiaire.
  * La barre de filtres suit l'en-tête ; en faisant défiler, une copie reste fixée en haut
  * (DESIGN.md, « Barre collante »).
  */
@@ -48,12 +48,12 @@ export function ListePieces({
   const largeur = (width - 2 * spacing.screen - spacing.gridColumnGap) / 2;
   const sections = useMemo(
     () =>
-      vue === 'categories'
-        ? regrouperParCategorie(articles).map((section) => ({
+      vue === 'grille'
+        ? []
+        : (vue === 'marques' ? regrouperParMarque : regrouperParCategorie)(articles).map((section) => ({
             section,
             data: parPaires(section.articles),
-          }))
-        : [],
+          })),
     [vue, articles],
   );
   const aucunResultat = <RichText style={styles.aucunResultat}>{texts.wishlist.aucunResultat}</RichText>;
@@ -75,7 +75,7 @@ export function ListePieces({
   );
   const barreCollee = collee ? <View style={styles.barreCollee}>{barre}</View> : null;
 
-  if (vue === 'categories') {
+  if (vue !== 'grille') {
     return (
       <View style={styles.conteneur}>
         <SectionList
@@ -89,7 +89,11 @@ export function ListePieces({
           keyboardShouldPersistTaps="handled"
           stickySectionHeadersEnabled={false}
           renderSectionHeader={({ section }) => (
-            <EnTeteSection section={section.section} premiere={section === sections[0]} />
+            <EnTeteSection
+              section={section.section}
+              sansTitre={vue === 'marques' ? texts.wishlist.sansMarque : texts.wishlist.aClasser}
+              premiere={section === sections[0]}
+            />
           )}
           renderItem={({ item: paire }) => (
             <View style={styles.rangee}>
@@ -124,15 +128,15 @@ export function ListePieces({
   );
 }
 
-/** En-tête d'une section de la vue par catégorie : filet, catégorie et nombre de pièces, sous-total. */
-function EnTeteSection({ section, premiere }: { section: Section; premiere: boolean }) {
-  const { categorie, total } = section;
+/** En-tête d'une section (catégorie ou marque) : filet, titre et nombre de pièces, sous-total. */
+function EnTeteSection({ section, sansTitre, premiere }: { section: Section; sansTitre: string; premiere: boolean }) {
+  const { titre, total } = section;
   // La première section suit directement le filet de la barre de filtres : pas de second filet.
   return (
     <View style={[styles.enTeteSection, premiere && styles.premiereSection]}>
       <Etiquette
         style={styles.titreSection}
-      >{`${categorie ?? texts.wishlist.aClasser} · ${texts.wishlist.pieces(total.pieces)}`}</Etiquette>
+      >{`${titre ?? sansTitre} · ${texts.wishlist.pieces(total.pieces)}`}</Etiquette>
       <View style={styles.blocTotal}>
         <Text style={[styles.sousTotal, { color: colors.ink }]}>{formaterPrix(total.euros)}</Text>
         {total.sansPrix > 0 ? (

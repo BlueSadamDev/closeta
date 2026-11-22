@@ -65,8 +65,8 @@ Règles :
 
 - En-tête : logo, recherche texte dans la wishlist
 - « Ma sélection · N pièces », titre « La Wishlist », total en euros
-- Filtres : Tout, Vêtements, Chaussures, Priorité, Catégorie ; tri par date d'ajout (défaut), prix, priorité
-  - Barre de filtres repliée par défaut (« FILTRER · TOUT » et « RÉCENTS ») ; un toucher déplie le panneau : Pièces (Tout, Vêtements, Chaussures), Choix (Priorité, Catégorie), Vue (Grille, Catégories), Tri. La barre reste visible en haut quand on fait défiler. Retour d'usage du 22 novembre 2026 (filtres pas assez démarqués), voir DESIGN.md « Barre de filtres ».
+- Filtres : Tout, Vêtements, Chaussures, Priorité, Catégorie ; tri par date d'ajout (défaut), prix, priorité, marque (lot 2)
+  - Barre de filtres repliée par défaut (« FILTRER · TOUT » et « RÉCENTS ») ; un toucher déplie le panneau : Pièces (Tout, Vêtements, Chaussures), Choix (Priorité, Catégorie), Vue (Grille, Catégories, Marques), Tri. La barre reste visible en haut quand on fait défiler. Retour d'usage du 22 novembre 2026 (filtres pas assez démarqués), voir DESIGN.md « Barre de filtres ».
 - Bascule entre la grille et la vue par catégorie (sections par catégorie, sous-total par section ; articles sans catégorie regroupés à la fin)
   - Sections dans l'ordre alphabétique, titre au singulier tel que saisi (« VESTE · 2 PIÈCES »), sous-total à droite ; section « À classer » pour les pièces sans catégorie. Filtres, recherche et tri s'appliquent aussi (le tri dans chaque section). La vue choisie n'est pas mémorisée.
 - Grille 2 colonnes : photo, étiquette de priorité, marque, nom, prix
@@ -209,7 +209,7 @@ Le Vestiaire montre les pièces passées en « acheté » (`statut = achete`). A
 - Ordre par défaut : date d'achat, la plus récente d'abord.
 - Pas de bouton « Ajouter » : une pièce entre au Vestiaire par « Je l'ai acheté ».
 - État vide : une phrase qui explique comment une pièce y entre.
-- Filtres : Tout, Vêtements, Chaussures, Catégorie (pas de Priorité) ; recherche texte ; tri par date d'achat (défaut) ou prix ; bascule Grille / Catégories avec sous-totaux, mêmes règles que la Wishlist, dans la même barre de filtres repliable et collante.
+- Filtres : Tout, Vêtements, Chaussures, Catégorie (pas de Priorité) ; recherche texte ; tri par date d'achat (défaut), prix ou marque ; bascule Grille / Catégories / Marques avec sous-totaux, mêmes règles que la Wishlist, dans la même barre de filtres repliable et collante.
 
 **Tri et vue par marque (Wishlist et Vestiaire)**
 

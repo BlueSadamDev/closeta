@@ -36,14 +36,17 @@ export const texts = {
       date: 'Récents',
       prix: 'Prix',
       priorite: 'Priorité',
+      marque: 'Marque',
     },
     vue: {
       intitule: 'Vue',
       grille: 'Grille',
       categories: 'Catégories',
+      marques: 'Marques',
     },
     pieces,
     aClasser: 'À classer',
+    sansMarque: 'Sans marque',
     recherche: 'Une pièce, une marque, une couleur',
     ajouter: 'Ajouter',
   },
@@ -56,6 +59,7 @@ export const texts = {
     tri: {
       achat: 'Achats récents',
       prix: 'Prix',
+      marque: 'Marque',
     },
   },
 

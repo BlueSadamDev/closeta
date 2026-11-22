@@ -8,6 +8,7 @@ import {
   indiceAplat,
   parPaires,
   regrouperParCategorie,
+  regrouperParMarque,
   totalWishlist,
   trier,
 } from '../wishlist';
@@ -104,7 +105,7 @@ describe('aplat sans photo', () => {
 
 describe('vue par catégorie', () => {
   const resume = (articles: Parameters<typeof regrouperParCategorie>[0]) =>
-    regrouperParCategorie(articles).map((s) => [s.categorie, ids(s.articles)]);
+    regrouperParCategorie(articles).map((s) => [s.titre, ids(s.articles)]);
 
   it('fait une section par catégorie, dans l’ordre alphabétique', () => {
     expect(resume(wishlist)).toEqual([
@@ -156,5 +157,45 @@ describe('vue par catégorie', () => {
   it('range les pièces par deux, la dernière seule si le nombre est impair', () => {
     expect(parPaires(['a', 'b', 'c'])).toEqual([['a', 'b'], ['c']]);
     expect(parPaires([])).toEqual([]);
+  });
+});
+
+describe('tri et vue par marque', () => {
+  // Marques fictives : « atelier test » et « Atelier Test » sont la même marque ; « Écume » se range à « E ».
+  const liste = [
+    articleFictif({ id: 'm1', marque: 'Maison Fictive', prix: 200, dateAjout: '2026-03-01T10:00:00.000Z' }),
+    articleFictif({ id: 'm2', marque: null, prix: 50, dateAjout: '2026-03-02T10:00:00.000Z' }),
+    articleFictif({ id: 'm3', marque: 'atelier test', prix: 100, dateAjout: '2026-03-03T10:00:00.000Z' }),
+    articleFictif({ id: 'm4', marque: 'Écume', prix: null, dateAjout: '2026-03-04T10:00:00.000Z' }),
+    articleFictif({ id: 'm5', marque: 'Atelier Test', prix: 30, dateAjout: '2026-03-05T10:00:00.000Z' }),
+    articleFictif({ id: 'm6', marque: '  ', prix: 10, dateAjout: '2026-03-06T10:00:00.000Z' }),
+  ];
+
+  it('trie par marque, sans tenir compte des majuscules ni des accents, sans marque à la fin', () => {
+    expect(ids(trier(liste, 'marque'))).toEqual(['m5', 'm3', 'm4', 'm1', 'm6', 'm2']);
+  });
+
+  it('fait une section par marque, dans l’ordre alphabétique, puis « Sans marque »', () => {
+    const sections = regrouperParMarque(trier(liste, 'date'));
+    expect(sections.map((s) => [s.titre, ids(s.articles), s.total.euros, s.total.sansPrix])).toEqual([
+      ['Atelier Test', ['m5', 'm3'], 130, 0],
+      ['Écume', ['m4'], 0, 1],
+      ['Maison Fictive', ['m1'], 200, 0],
+      [null, ['m6', 'm2'], 60, 0],
+    ]);
+  });
+
+  it('garde le tri choisi à l’intérieur de chaque section', () => {
+    const sections = regrouperParMarque(trier(liste, 'prix'));
+    expect(sections.map((s) => ids(s.articles))).toEqual([['m5', 'm3'], ['m4'], ['m1'], ['m6', 'm2']]);
+  });
+
+  it('applique les filtres avant le regroupement', () => {
+    const sections = regrouperParMarque(filtrer(liste, { ...FILTRE_VIDE, recherche: 'atelier' }));
+    expect(sections.map((s) => [s.titre, ids(s.articles)])).toEqual([['atelier test', ['m3', 'm5']]]);
+  });
+
+  it('ne crée aucune section pour une liste vide', () => {
+    expect(regrouperParMarque([])).toEqual([]);
   });
 });
