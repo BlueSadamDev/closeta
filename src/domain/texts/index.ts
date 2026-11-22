@@ -141,6 +141,7 @@ export const texts = {
       image: 'Photo de la pièce',
       maPhoto: 'Ma photo',
       boutique: 'Celle de la boutique',
+      changer: 'Changer la photo',
     },
     enregistrer: 'Enregistrer',
     annuler: 'Annuler',

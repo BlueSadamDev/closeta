@@ -28,14 +28,16 @@ export async function copierImage(source: string, idArticle: string): Promise<st
 }
 
 /**
- * Range dans le stockage de l'app la photo prise par l'utilisateur (ajout par photo).
+ * Range dans le stockage de l'app la photo prise par l'utilisateur.
+ * `nomFichier` : l'identifiant de l'article, suivi d'un suffixe quand la photo en remplace une autre
+ * (un nouveau nom évite que le téléphone affiche l'ancienne photo gardée en mémoire).
  * Renvoie son chemin, ou null si la copie échoue.
  */
-export async function rangerPhoto(source: string, idArticle: string): Promise<string | null> {
+export async function rangerPhoto(source: string, nomFichier: string): Promise<string | null> {
   try {
     const dossier = dossierImages();
     if (!dossier.exists) dossier.create({ intermediates: true });
-    const destination = new File(dossier, idArticle);
+    const destination = new File(dossier, nomFichier);
     if (destination.exists) destination.delete();
     await new File(source).copy(destination);
     return destination.uri;
@@ -46,13 +48,25 @@ export async function rangerPhoto(source: string, idArticle: string): Promise<st
 
 /**
  * Efface la copie locale de l'image d'un article (sans effet s'il n'y en a pas).
- * On passe par l'identifiant : une copie arrivée après le délai est effacée elle aussi.
+ * On passe par l'identifiant : une copie arrivée après le délai est effacée elle aussi ;
+ * et par le chemin enregistré, pour une photo remplacée (rangée sous un autre nom).
  */
-export function effacerImage(idArticle: string): void {
+export function effacerImage(idArticle: string, imageLocale?: string | null): void {
   try {
     const fichier = new File(dossierImages(), idArticle);
     if (fichier.exists) fichier.delete();
   } catch {
     // Une image déjà absente ne doit pas empêcher la suppression de la pièce.
+  }
+  if (imageLocale) effacerFichier(imageLocale);
+}
+
+/** Efface une photo rangée dans le dossier des photos de l'app (jamais ailleurs). */
+export function effacerFichier(uri: string): void {
+  try {
+    const fichier = new File(uri);
+    if (fichier.uri.startsWith(dossierImages().uri) && fichier.exists) fichier.delete();
+  } catch {
+    // Photo déjà absente : rien à faire.
   }
 }
