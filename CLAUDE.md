@@ -56,8 +56,9 @@ Une étape = une branche `lot-1-<n>-<nom>` et un APK testé.
 ## Découpage en étapes (lot 2 : Vestiaire)
 Une étape = une branche et un APK testé. Détail : docs/SPEC.md, « Lot 2 — Vestiaire ».
 1. Écran Vestiaire et accès : bascule « WISHLIST · VESTIAIRE », grille, total, état vide ; fiche adaptée (date d'achat, sans « Je l'ai acheté »). **Terminée, fusionnée via la PR #10** : bascule « WISHLIST · VESTIAIRE », écran Vestiaire (mois d'achat sur les cartes, total), fiche avec la date d'achat.
-2. Filtres, recherche, tri et vue par catégorie du Vestiaire ; barre de filtres repliable et collante (Wishlist et Vestiaire). **Terminée, fusionnée via la PR #11** : recherche, filtres, tri et vue par catégorie du Vestiaire ; barre « FILTRER » repliable (panneau à sélections pleines) qui reste en haut au défilement. Le tri et la vue groupée par marque (Wishlist et Vestiaire), ajoutés à cette étape par la PR #12 après sa fusion, restent à faire : mêmes règles que la vue par catégorie, sections alphabétiques, sous-totaux, section « Sans marque » à la fin.
-3. « Remettre dans la Wishlist » depuis la fiche → fin du lot 2.
+2. Filtres, recherche, tri et vue par catégorie du Vestiaire ; barre de filtres repliable et collante (Wishlist et Vestiaire). **Terminée, fusionnée via la PR #11** : recherche, filtres, tri et vue par catégorie du Vestiaire ; barre « FILTRER » repliable (panneau à sélections pleines) qui reste en haut au défilement. Le tri et la vue groupée par marque, ajoutés à cette étape par la PR #12 après sa fusion, sont reportés à l'étape 4.
+3. « Remettre dans la Wishlist » depuis la fiche. **Terminée, fusionnée via la PR #13** : bouton « Remettre dans la Wishlist » sur la fiche d'une pièce achetée, corrections de la barre de filtres.
+4. Tri et vue par marque (Wishlist et Vestiaire) → fin du lot 2.
 
 ## Lots suivants
 Lots 3 à 7 (prix et alternatives, numériser, bien tailler, plan d'achat, style) : voir [docs/ROADMAP.md](docs/ROADMAP.md). Chaque lot sera détaillé dans docs/SPEC.md avant son développement.
