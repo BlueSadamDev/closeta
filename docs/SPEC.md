@@ -188,6 +188,11 @@ L'APK est construit par GitHub Actions (expo prebuild puis Gradle), avec la clé
 - Design, Wishlist : la ligne de filtres déborde (« PRIORITÉ » coupé à droite). Demande : placer « Vêtements » et « Chaussures » en dessous de « Tout », pour que tout le menu soit visible. Choix retenu : ligne 1 « TOUT · PRIORITÉ · CATÉGORIE », ligne 2 « VÊTEMENTS · CHAUSSURES ».
 - Formulaire : pouvoir ajouter une photo (appareil photo ou galerie) quand on ajoute une pièce à la main ou par lien, sans passer par la recherche par photo.
 
+**Retours d'usage à corriger plus tard** (notés pendant les tests de l'étape 2 du lot 2, 22 novembre 2026)
+
+- Barre de filtres, vue par catégorie : double filet. Le filet bas de la barre de filtres et le filet haut de la première section (« MANTEAU · 1 PIÈCE ») se suivent, avec un petit espace entre les deux. Il ne doit en rester qu'un.
+- Barre de filtres repliée : quand la vue « Catégories » est choisie, « FILTRER · TOUT » passe sur deux lignes, faute de place à côté de « CATÉGORIES · RÉCENTS ».
+
 ## Lot 2 — Vestiaire
 
 Le Vestiaire montre les pièces passées en « acheté » (`statut = achete`). Aucun changement de la base : `date_achat` existe déjà. Aucune dépendance ni permission Android nouvelle.
