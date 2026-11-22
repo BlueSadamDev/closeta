@@ -27,9 +27,11 @@ export const settings = {
   /** Pays et langue des recherches Google (prix en euros). */
   pays: 'fr',
   langue: 'fr',
-  /** Sites qui ne vendent rien : leurs correspondances Lens sont ignorées. */
+  /** Sites qui ne vendent pas de vêtements (réseaux sociaux, banques d'images) : leurs correspondances Lens sont ignorées. */
   sitesIgnores: [
     'pinterest.', 'instagram.com', 'facebook.com', 'tiktok.com', 'youtube.com', 'reddit.com',
     'x.com', 'twitter.com', 'wikipedia.org', 'tumblr.com', 'flickr.com',
+    'stock.adobe.com', 'shutterstock.com', 'istockphoto.com', 'gettyimages.', 'freepik.com', 'magnific.com',
+    'dreamstime.com', 'alamy.', 'vecteezy.com', '123rf.com', 'depositphotos.com', 'pngtree.com', 'canva.com',
   ],
 } as const;

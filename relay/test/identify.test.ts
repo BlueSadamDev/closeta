@@ -59,7 +59,7 @@ describe('description par l’IA', () => {
 });
 
 describe('lecture des résultats SerpApi', () => {
-  it('garde les correspondances Lens en boutique, sans doublon ni réseau social, prix d’abord', () => {
+  it('garde les correspondances Lens en boutique, sans doublon, réseau social ni banque d’images, prix d’abord', () => {
     const r = lireLens(lens);
     expect(r.map((p) => p.url)).toEqual(['https://boutique.exemple.test/veste-fictive', 'https://autre.exemple.test/veste']);
     expect(r[0]).toEqual({

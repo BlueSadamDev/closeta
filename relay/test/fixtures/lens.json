@@ -42,6 +42,13 @@
       "title": "Veste Fictive en velours côtelé – Maison Exemple",
       "link": "https://boutique.exemple.test/veste-fictive",
       "source": "Boutique Exemple"
+    },
+    {
+      "position": 6,
+      "title": "Veste velours – image libre de droits",
+      "link": "https://stock.adobe.com/fr/search?k=veste",
+      "source": "Adobe Stock",
+      "thumbnail": "https://images.exemple.test/stock.jpg"
     }
   ]
 }
