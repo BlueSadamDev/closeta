@@ -15,11 +15,12 @@ import { RichText } from '@/components/RichText';
 import { enregistrerArticle, lireArticle } from '@/db/articles';
 import { CATEGORIES, PRIORITES, type Article, type TypeArticle } from '@/domain/article';
 import { brouillonDepuisLien, listeFrancaise, nomDuSite, preremplir, type ChampManquant } from '@/domain/lien';
+import { brouillonDepuisDescription, lireParametresPhoto, preremplirDepuisProposition, type Proposition } from '@/domain/photo';
 import { prixPourSaisie } from '@/domain/prix';
 import { texts } from '@/domain/texts';
 import { BROUILLON_VIDE, validerBrouillon, type Brouillon, type Erreurs } from '@/domain/validation';
 import { extraire } from '@/relay/client';
-import { copierImage } from '@/relay/image';
+import { copierImage, rangerPhoto } from '@/relay/image';
 import { lireJeton } from '@/relay/jeton';
 import { colors, fonts, spacing, type } from '@/theme';
 
@@ -42,19 +43,50 @@ const versBrouillon = (a: Article): Brouillon => ({
   notes: a.notes ?? '',
 });
 
+/** Formulaire de départ d'un ajout par photo : proposition choisie, ou seulement ce que l'IA a vu. */
+function departPhoto(description: string | undefined, proposition: string | undefined) {
+  const lu = lireParametresPhoto(description, proposition);
+  if (lu.proposition) {
+    const p = preremplirDepuisProposition(lu.proposition, lu.description);
+    return {
+      proposition: lu.proposition,
+      brouillon: p.brouillon,
+      manquants: p.manquants,
+      annonce: lu.proposition.alternative ? texts.formulaire.photo.alternative : texts.formulaire.photo.proposition,
+    };
+  }
+  return {
+    proposition: null as Proposition | null,
+    brouillon: brouillonDepuisDescription(lu.description),
+    manquants: [] as ChampManquant[],
+    annonce: texts.formulaire.photo.depuisPhoto,
+  };
+}
+
 /** Formulaire de saisie (ajout manuel et modification) — docs/SPEC.md, « 4. Formulaire de validation ». */
 export default function Formulaire() {
-  const { id, lien } = useLocalSearchParams<{ id?: string; lien?: string }>();
+  const { id, lien, photo, description, proposition } = useLocalSearchParams<{
+    id?: string;
+    lien?: string;
+    photo?: string;
+    description?: string;
+    proposition?: string;
+  }>();
   const db = useSQLiteContext();
   const [existant, setExistant] = useState<Article | null>(null);
-  const [brouillon, setBrouillon] = useState<Brouillon>(BROUILLON_VIDE);
+  // Ajout par photo : formulaire préparé une fois, à l'ouverture, depuis la photo et la proposition choisie.
+  const [depart] = useState(() => (!id && photo ? departPhoto(description, proposition) : null));
+  const [brouillon, setBrouillon] = useState<Brouillon>(depart?.brouillon ?? BROUILLON_VIDE);
   const [erreurs, setErreurs] = useState<Erreurs>({});
   const [enCours, setEnCours] = useState(false);
   // Ajout par lien : lecture de la page, photo trouvée, message et champs à compléter.
   const [lecture, setLecture] = useState(!id && !!lien);
-  const [imageSource, setImageSource] = useState<string | null>(null);
-  const [annonce, setAnnonce] = useState<string | null>(null);
-  const [manquants, setManquants] = useState<ChampManquant[]>([]);
+  const [imageSource, setImageSource] = useState<string | null>(depart?.proposition?.image ?? null);
+  const [annonce, setAnnonce] = useState<string | null>(depart?.annonce ?? null);
+  const [manquants, setManquants] = useState<ChampManquant[]>(depart?.manquants ?? []);
+  // Ajout par photo : photo gardée (la mienne ou celle de la boutique).
+  const choisie = depart?.proposition ?? null;
+  const [photoGardee, setPhotoGardee] = useState<'maPhoto' | 'boutique'>(choisie?.image ? 'boutique' : 'maPhoto');
 
   useEffect(() => {
     if (!id) return;
@@ -108,7 +140,16 @@ export default function Formulaire() {
     const maintenant = new Date().toISOString();
     const nouvelId = randomUUID();
     // La photo trouvée sur la boutique est copiée sur le téléphone ; en cas d'échec, on garde son adresse.
-    const imageLocale = !existant && imageSource ? await copierImage(imageSource, nouvelId) : null;
+    // Ajout par photo avec « Ma photo » : la photo prise est rangée dans le stockage de l'app.
+    const garderMaPhoto = !!photo && photoGardee === 'maPhoto';
+    const source = garderMaPhoto ? null : imageSource;
+    const imageLocale = existant
+      ? null
+      : garderMaPhoto
+        ? await rangerPhoto(photo, nouvelId)
+        : source
+          ? await copierImage(source, nouvelId)
+          : null;
     const article: Article = existant
       ? { ...existant, ...r.champs, dateMaj: maintenant }
       : {
@@ -116,10 +157,10 @@ export default function Formulaire() {
           ...r.champs,
           devise: 'EUR',
           imageLocale,
-          imageSource,
+          imageSource: source,
           statut: 'souhaite',
-          origine: lien ? 'lien' : 'manuel',
-          estAlternative: false,
+          origine: photo ? 'photo' : lien ? 'lien' : 'manuel',
+          estAlternative: choisie?.alternative ?? false,
           dateAjout: maintenant,
           dateAchat: null,
           dateMaj: maintenant,
@@ -172,7 +213,32 @@ export default function Formulaire() {
             </View>
           ) : null}
 
-          {imageSource && !existant ? (
+          {photo && !existant ? (
+            <>
+              <PhotoArticle
+                article={{
+                  id: 'apercu',
+                  nom: brouillon.nom || ' ',
+                  imageLocale: photoGardee === 'maPhoto' ? photo : null,
+                  imageSource: photoGardee === 'boutique' ? imageSource : null,
+                }}
+                hauteur={240}
+                style={styles.photo}
+              />
+              {imageSource ? (
+                <Champ libelle={f.photo.image}>
+                  <Choix
+                    options={[
+                      { valeur: 'maPhoto', libelle: f.photo.maPhoto },
+                      { valeur: 'boutique', libelle: f.photo.boutique },
+                    ]}
+                    valeur={photoGardee}
+                    onChange={setPhotoGardee}
+                  />
+                </Champ>
+              ) : null}
+            </>
+          ) : imageSource && !existant ? (
             <PhotoArticle article={{ id: 'apercu', nom: brouillon.nom || ' ', imageLocale: null, imageSource }} hauteur={240} style={styles.photo} />
           ) : null}
 

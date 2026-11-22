@@ -1,7 +1,7 @@
 # Relais ClosetA (Cloudflare Worker).
 # L'identifiant du compte Cloudflare n'est PAS ici : il vient de la variable CLOUDFLARE_ACCOUNT_ID
 # (secret GitHub utilisé par le workflow de mise en ligne).
-# Le jeton RELAY_TOKEN est un secret Cloudflare, saisi dans le tableau de bord, jamais dans ce fichier.
+# Les secrets RELAY_TOKEN et SERPAPI_KEY sont saisis dans le tableau de bord Cloudflare, jamais dans ce fichier.
 name = "closeta-relay"
 main = "src/index.ts"
 compatibility_date = "2026-10-01"
@@ -12,3 +12,14 @@ workers_dev = true
 name = "LIMITEUR"
 namespace_id = "1001"
 simple = { limit = 30, period = 60 }
+
+# IA de Cloudflare (Workers AI) qui décrit les photos de /identify. Offre gratuite : quota quotidien,
+# arrêt net une fois atteint (aucune facture possible sur l'offre Workers gratuite).
+[ai]
+binding = "AI"
+
+# Stockage temporaire des photos, le temps de la recherche Google Lens (supprimées aussitôt après).
+# Le bucket est créé une fois par l'utilisateur (voir README), avec une règle de suppression après 1 jour.
+[[r2_buckets]]
+binding = "PHOTOS"
+bucket_name = "closeta-photos-temp"

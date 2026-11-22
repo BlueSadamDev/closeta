@@ -249,6 +249,10 @@ export default function Wishlist() {
           setFeuilleOuverte(false);
           router.push('/lien');
         }}
+        onPhoto={() => {
+          setFeuilleOuverte(false);
+          router.push('/photo');
+        }}
         onManuel={() => {
           setFeuilleOuverte(false);
           router.push('/formulaire');

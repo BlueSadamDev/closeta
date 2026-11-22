@@ -15,6 +15,7 @@
 - `src/domain/settings.ts` : tous les réglages (délais, taille des photos, limites), jamais en dur dans le code.
 - `src/db/` : base SQLite locale et migrations.
 - `src/relay/` : client du relais (seul endroit de l'app qui fait des appels réseau).
+- `src/photo/` : prise de la photo (appareil photo ou galerie) et réduction avant l'envoi au relais.
 - `src/components/` : composants d'interface réutilisables.
 - `src/theme.ts` : couleurs, polices, espacements (voir DESIGN.md).
 - `relay/` : le Cloudflare Worker (routes `/extract` et `/identify`), avec ses propres tests.

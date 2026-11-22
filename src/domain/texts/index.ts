@@ -133,6 +133,15 @@ export const texts = {
         injoignable: 'Le relais ne répond pas. *Complète la fiche* à la main.',
       },
     },
+    /** Formulaire ouvert après une photo. */
+    photo: {
+      proposition: 'Fiche remplie depuis la proposition. *Vérifie-la* avant d’enregistrer.',
+      alternative: 'C’est une alternative, pas l’article exact. *Vérifie la fiche* avant d’enregistrer.',
+      depuisPhoto: 'Fiche commencée depuis ta photo. *Complète-la* avant d’enregistrer.',
+      image: 'Photo de la pièce',
+      maPhoto: 'Ma photo',
+      boutique: 'Celle de la boutique',
+    },
     enregistrer: 'Enregistrer',
     annuler: 'Annuler',
   },
@@ -143,9 +152,40 @@ export const texts = {
       libelle: 'Coller un lien',
       phrase: 'La fiche se remplit depuis la boutique.',
     },
+    photo: {
+      libelle: 'Prendre ou choisir une photo',
+      phrase: 'On cherche la pièce en ligne.',
+    },
     manuel: {
       libelle: 'Saisir à la main',
       phrase: 'Tu remplis la fiche toi-même.',
+    },
+  },
+
+  /** Écran « Ajouter par photo » (docs/SPEC.md, « Parcours par photo »). */
+  photo: {
+    titre: 'Par photo',
+    conseil: 'Cadre la pièce seule, en pleine lumière. *Une étiquette lisible* aide à trouver la marque.',
+    prendre: 'Prendre une photo',
+    choisir: 'Choisir dans la galerie',
+    recherche: 'On cherche ta pièce…',
+    resultats: 'Voici ce qu’on a trouvé. *Choisis la bonne pièce*.',
+    seulementAlternatives: 'Pas l’article exact, mais des *pièces proches*.',
+    aucun: 'Rien de trouvé pour cette photo. *Essaie un autre angle* ou saisis l’article.',
+    propositions: (n: number) => (n <= 1 ? `${n} proposition` : `${n} propositions`),
+    alternative: 'Alternative',
+    alternativeAccessible: 'Alternative, pas l’article exact',
+    autrePhoto: 'Une autre photo',
+    saisir: 'Saisir à la main',
+    cameraRefusee: 'L’appareil photo n’est pas autorisé. *Autorise-le dans les réglages d’Android*, ou choisis une photo.',
+    photoIllisible: 'Cette photo ne s’ouvre pas. *Essaie-en une autre*.',
+    echecs: {
+      jeton_absent: 'Aucun jeton pour l’instant. *Ajoute-le dans les Réglages*, ou saisis l’article.',
+      jeton_refuse: 'Le relais ne te reconnaît pas. *Vérifie ton jeton* dans les Réglages.',
+      limite: 'Trop de demandes en une minute. *Réessaie dans un instant*.',
+      injoignable: 'Le relais ne répond pas. *Vérifie ta connexion*, ou saisis l’article.',
+      indisponible: 'La recherche est indisponible pour l’instant. *Saisis l’article* à la main.',
+      photo_refusee: 'Cette photo ne passe pas. *Essaie-en une autre*.',
     },
   },
 

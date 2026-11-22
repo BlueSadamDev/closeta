@@ -58,10 +58,11 @@ Cormorant Garamond et Jost, sous licence SIL Open Font License (fichiers de lice
 
 ## Relais Cloudflare (dossier `relay/`)
 
-Petit programme hébergé chez Cloudflare (gratuit). L'app lui envoie un lien produit ; il lit la page de la boutique et renvoie nom, marque, image, prix et devise (une information introuvable reste vide). Il ne conserve rien.
+Petit programme hébergé chez Cloudflare (gratuit). L'app lui envoie un lien produit ou une photo ; il renvoie ce qu'il a trouvé (une information introuvable reste vide). Il ne conserve rien.
 
-- Route : `POST /extract`, corps `{ "url": "https://…" }`, en-tête `Authorization: Bearer <jeton>`.
-- Refuse toute requête sans le bon jeton, limite à 30 requêtes par minute, n'accepte que des liens `https` publics.
+- `POST /extract`, corps `{ "url": "https://…" }` : lit la page de la boutique et renvoie nom, marque, image, prix et devise. N'accepte que des liens `https` publics.
+- `POST /identify`, corps = la photo JPEG (`Content-Type: image/jpeg`, 2 Mo au plus) : l'IA de Cloudflare décrit la pièce, Google Lens (via SerpApi) cherche l'article, Google Shopping complète avec des alternatives. Renvoie de 0 à 5 résultats. La photo est déposée un instant dans le stockage R2 (Lens a besoin d'une adresse pour la lire, `GET /photo/<id>`), puis supprimée.
+- En-tête `Authorization: Bearer <jeton>` obligatoire ; limite de 30 requêtes par minute.
 - Tests : `cd relay && npm ci && npm test`.
 
 ### Mise en ligne
@@ -69,3 +70,10 @@ Petit programme hébergé chez Cloudflare (gratuit). L'app lui envoie un lien pr
 1. Une fois : secrets GitHub `CLOUDFLARE_API_TOKEN` et `CLOUDFLARE_ACCOUNT_ID` (Settings > Secrets and variables > Actions).
 2. Onglet **Actions** > **Mettre en ligne le relais** > **Run workflow**.
 3. Une fois, après la première mise en ligne : dans le tableau de bord Cloudflare, Workers & Pages > `closeta-relay` > Settings > Variables and Secrets, ajouter le secret `RELAY_TOKEN` (le jeton à saisir ensuite dans l'app). Il est conservé lors des mises en ligne suivantes.
+
+### Ajout par photo (`/identify`) : à préparer une fois, avant la mise en ligne
+
+1. **Stockage R2** : tableau de bord Cloudflare > R2 > Create bucket, nom `closeta-photos-temp`. Puis dans le bucket : Settings > Object lifecycle rules > supprimer les objets après 1 jour (filet de sécurité).
+2. **Jeton GitHub → Cloudflare** : le jeton du secret `CLOUDFLARE_API_TOKEN` doit avoir les droits « Workers R2 Storage : Edit » et « Workers AI : Read ».
+3. **SerpApi** : créer un compte sur serpapi.com (offre gratuite), puis ajouter sa clé comme secret Cloudflare `SERPAPI_KEY` (même chemin que `RELAY_TOKEN`).
+4. L'IA (Cloudflare Workers AI) ne demande ni compte ni clé : offre gratuite avec quota quotidien, qui s'arrête net une fois atteint. Le modèle se change dans `relay/src/settings.ts` (`modeleIA`).

@@ -12,11 +12,12 @@ type Props = {
   visible: boolean;
   onFermer: () => void;
   onLien: () => void;
+  onPhoto: () => void;
   onManuel: () => void;
 };
 
 /** Feuille du bas « Ajouter une pièce » : une ligne par mode d'ajout (DESIGN.md, « Feuille du bas »). */
-export function FeuilleAjout({ visible, onFermer, onLien, onManuel }: Props) {
+export function FeuilleAjout({ visible, onFermer, onLien, onPhoto, onManuel }: Props) {
   const { bottom } = useSafeAreaInsets();
   return (
     <Modal visible={visible} transparent animationType="slide" statusBarTranslucent navigationBarTranslucent onRequestClose={onFermer}>
@@ -27,6 +28,7 @@ export function FeuilleAjout({ visible, onFermer, onLien, onManuel }: Props) {
           <BoutonIcone nom="fermer" libelle={texts.accessibilite.fermerAjout} onPress={onFermer} />
         </View>
         <LigneMode icone="lien" {...texts.ajout.lien} onPress={onLien} />
+        <LigneMode icone="photo" {...texts.ajout.photo} onPress={onPhoto} />
         <LigneMode icone="crayon" {...texts.ajout.manuel} onPress={onManuel} />
       </View>
     </Modal>

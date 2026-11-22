@@ -1,0 +1,48 @@
+{
+  "search_metadata": {
+    "status": "Success"
+  },
+  "shopping_results": [
+    {
+      "position": 1,
+      "title": "Veste en velours côtelé marron",
+      "product_link": "https://www.google.fr/shopping/product/1",
+      "source": "Magasin Fictif",
+      "price": "89,99 €",
+      "extracted_price": 89.99,
+      "thumbnail": "https://images.exemple.test/s1.jpg"
+    },
+    {
+      "position": 2,
+      "title": "Veste velours homme Maison Exemple",
+      "link": "https://magasin2.exemple.test/veste",
+      "source": "Magasin Deux",
+      "price": "120 €",
+      "extracted_price": 120,
+      "thumbnail": "https://images.exemple.test/s2.jpg"
+    },
+    {
+      "position": 3,
+      "title": "Veste camel",
+      "link": "https://magasin3.exemple.test/veste",
+      "source": "Magasin Trois",
+      "thumbnail": "https://images.exemple.test/s3.jpg"
+    },
+    {
+      "position": 4,
+      "title": "Veste velours côtelé",
+      "link": "https://magasin4.exemple.test/v",
+      "source": "Magasin Quatre",
+      "price": "75 €",
+      "extracted_price": 75
+    },
+    {
+      "position": 5,
+      "title": "Veste velours vintage",
+      "link": "https://magasin5.exemple.test/v",
+      "source": "Magasin Cinq",
+      "price": "60 €",
+      "extracted_price": 60
+    }
+  ]
+}

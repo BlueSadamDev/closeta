@@ -6,7 +6,12 @@ import shopify from './fixtures/shopify.html?raw';
 const JETON = 'jeton-fictif-de-test';
 
 function env(autorise = true): Env {
-  return { RELAY_TOKEN: JETON, LIMITEUR: { limit: async () => ({ success: autorise }) } };
+  return {
+    RELAY_TOKEN: JETON,
+    LIMITEUR: { limit: async () => ({ success: autorise }) },
+    AI: { run: async () => ({}) },
+    PHOTOS: { put: async () => null, get: async () => null, delete: async () => undefined },
+  };
 }
 
 function demande(corps: unknown, jeton: string | null = JETON, chemin = '/extract', methode = 'POST') {
@@ -63,7 +68,7 @@ describe('relais : sécurité', () => {
     expect(r.status).toBe(502);
   });
 
-  it('ne répond qu’à POST /extract', async () => {
+  it('ne répond qu’à POST /extract et /identify', async () => {
     expect((await relais.fetch(demande(null, JETON, '/', 'GET'), env())).status).toBe(404);
     expect((await relais.fetch(demande({}, JETON, '/autre'), env())).status).toBe(404);
   });
