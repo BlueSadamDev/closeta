@@ -1,7 +1,10 @@
 /**
  * Client du relais : seul endroit de l'app qui fait des appels réseau.
  */
+import { File, UploadType } from 'expo-file-system';
+
 import { lireExtraction, type ResultatExtraction } from '@/domain/lien';
+import { lireIdentification, type ResultatIdentification } from '@/domain/photo';
 import { lireTestConnexion, type EtatConnexion } from '@/domain/relais';
 import { settings } from '@/domain/settings';
 
@@ -42,6 +45,35 @@ export async function extraire(lien: string, jeton: string): Promise<ResultatExt
     return lireExtraction(reponse.status, corps, lien);
   } catch {
     return lireExtraction(null, null, lien);
+  } finally {
+    clearTimeout(minuteur);
+  }
+}
+
+/**
+ * Envoie la photo (JPEG déjà réduite, sur le téléphone) au relais /identify.
+ * Ne lève jamais d'exception : un échec est renvoyé comme résultat.
+ */
+export async function identifier(photo: string, jeton: string): Promise<ResultatIdentification> {
+  if (!jeton) return { ok: false, raison: 'jeton_absent' };
+  let minuteur: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const envoi = new File(photo).createUploadTask(`${settings.relayUrl}/identify`, {
+      httpMethod: 'POST',
+      uploadType: UploadType.BINARY_CONTENT,
+      headers: { Authorization: `Bearer ${jeton}`, 'Content-Type': 'image/jpeg' },
+    });
+    minuteur = setTimeout(() => envoi.cancel(), settings.identifyTimeoutMs);
+    const reponse = await envoi.uploadAsync();
+    let corps: unknown = null;
+    try {
+      corps = JSON.parse(reponse.body);
+    } catch {
+      corps = null;
+    }
+    return lireIdentification(reponse.status, corps);
+  } catch {
+    return lireIdentification(null, null);
   } finally {
     clearTimeout(minuteur);
   }

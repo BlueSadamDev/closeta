@@ -15,4 +15,10 @@ export const settings = {
   imageDownloadTimeoutMs: 15_000,
   /** Dossier (dans le stockage de l'app) où sont rangées les photos des pièces. */
   imagesDirectory: 'images',
+  /** Ajout par photo : plus grand côté de la photo envoyée au relais (docs/SPEC.md : 1024 px). */
+  photoMaxDimension: 1024,
+  /** Qualité JPEG de la photo envoyée (0 à 1) : légère à envoyer, assez nette pour la recherche. */
+  photoCompression: 0.8,
+  /** Temps maximal d'attente de /identify (IA puis recherches Google enchaînées). */
+  identifyTimeoutMs: 30_000,
 } as const;
