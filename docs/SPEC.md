@@ -181,3 +181,8 @@ L'APK est construit par GitHub Actions (expo prebuild puis Gradle), avec la clé
 - ~~Quelles 5 boutiques test pour le critère d'extraction ?~~ Réponse :
   Scavini (WooCommerce), Suitsupply, Hast (Shopify), Aspen, Couturier Parisien (Shopify).
   Les liens produits exacts ne sont pas dans le dépôt (dépôt public) : ils sont testés à la main sur le relais.
+
+**Retours d'usage à planifier** (notés pendant les tests de l'étape 7, 22 novembre 2026)
+
+- Design, Wishlist : la ligne de filtres déborde (« PRIORITÉ » coupé à droite). Demande : placer « Vêtements » et « Chaussures » en dessous de « Tout », pour que tout le menu soit visible.
+- Formulaire : pouvoir ajouter une photo (appareil photo ou galerie) quand on ajoute une pièce à la main ou par lien, sans passer par la recherche par photo.
