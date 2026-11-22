@@ -8,6 +8,7 @@
  */
 import { DESCRIPTION_VIDE, decrirePhoto, type Description, type IA } from './ia';
 import { adresseLens, adresseShopping, appelerSerpApi, lireLens, lireShopping, type Proposition } from './recherche';
+import { classer } from './pertinence';
 import { settings } from './settings';
 
 /** Stockage temporaire Cloudflare R2 (déclaré dans wrangler.toml). */
@@ -17,7 +18,7 @@ export interface Stockage {
   delete(cle: string): Promise<void>;
 }
 
-export type Identification = { description: Description; resultats: Proposition[] };
+export type Identification = { description: Description; resultats: Proposition[]; incidents?: string[] };
 
 /** Une photo JPEG commence toujours par les octets FF D8 FF. */
 export const estJpeg = (o: Uint8Array) => o.length > 3 && o[0] === 0xff && o[1] === 0xd8 && o[2] === 0xff;
@@ -34,11 +35,16 @@ export function avecMarque(p: Proposition, marque: string | null): Proposition {
   return simplifie(p.nom).includes(simplifie(marque)) ? { ...p, marque } : p;
 }
 
-/** Assemble la liste finale : propositions Lens d'abord, alternatives ensuite, au plus 5. */
-export function assembler(lens: Proposition[], shopping: Proposition[], marque: string | null): Proposition[] {
+/**
+ * Assemble la liste finale : propositions Lens d'abord (les plus proches de ce que l'IA a vu en tête),
+ * alternatives ensuite, au plus 5.
+ */
+export function assembler(lens: Proposition[], shopping: Proposition[], description: Description): Proposition[] {
   const urls = new Set(lens.map((p) => p.url));
   const alternatives = lens.length >= settings.resultatsMin ? [] : shopping.filter((p) => !urls.has(p.url));
-  return [...lens, ...alternatives].slice(0, settings.resultatsMax).map((p) => avecMarque(p, marque));
+  return [...classer(lens, description), ...classer(alternatives, description)]
+    .slice(0, settings.resultatsMax)
+    .map((p) => avecMarque(p, description.marque));
 }
 
 export class RechercheIndisponible extends Error {
@@ -112,5 +118,7 @@ export async function identifier(
   // Aucune recherche n'a fonctionné : ce n'est pas « rien trouvé », c'est une panne.
   if (trouves === null && shopping === null) throw new RechercheIndisponible(incidents);
 
-  return { description, resultats: assembler(trouves ?? [], shopping ?? [], description.marque) };
+  const resultats = assembler(trouves ?? [], shopping ?? [], description);
+  // Les étapes en échec (IA trop lente, Shopping en panne…) accompagnent la réponse : utile au diagnostic.
+  return incidents.length > 0 ? { description, resultats, incidents } : { description, resultats };
 }

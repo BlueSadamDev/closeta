@@ -17,10 +17,13 @@ export const settings = {
   tailleMaxPhoto: 2_000_000,
   /** Modèle d'IA de Cloudflare Workers AI qui décrit la photo (gratuit dans le quota quotidien). */
   modeleIA: '@cf/google/gemma-4-26b-a4b-it',
-  /** Temps maximal accordé à l'IA, à Google Lens et à Google Shopping (l'app attend 30 s au total). */
-  delaiIAMs: 15_000,
+  /**
+   * Temps maximal accordé à l'IA, à Google Lens et à Google Shopping (l'app attend 30 s au total).
+   * IA et Lens travaillent en même temps ; Shopping vient après, d'où 20 + 8 = 28 s au pire.
+   */
+  delaiIAMs: 20_000,
   delaiLensMs: 15_000,
-  delaiShoppingMs: 10_000,
+  delaiShoppingMs: 8_000,
   /** Nombre de résultats renvoyés à l'app : au moins 3 quand c'est possible, au plus 5. */
   resultatsMin: 3,
   resultatsMax: 5,

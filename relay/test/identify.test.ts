@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { enBase64, lireDescription } from '../src/ia';
+import { DESCRIPTION_VIDE, enBase64, lireDescription } from '../src/ia';
 import { assembler, avecMarque, estJpeg } from '../src/identify';
 import relais, { type Env } from '../src/index';
 import { lireDevise, lireLens, lireShopping, type Proposition } from '../src/recherche';
@@ -99,13 +99,13 @@ describe('lecture des résultats SerpApi', () => {
 describe('assemblage des propositions', () => {
   it('3 correspondances Lens ou plus : pas d’alternative, au plus 5', () => {
     const l = ['a', 'b', 'c', 'd', 'e', 'f'].map((x) => prop(`https://${x}.test/`));
-    const r = assembler(l, [prop('https://z.test/', true)], null);
+    const r = assembler(l, [prop('https://z.test/', true)], DESCRIPTION_VIDE);
     expect(r).toHaveLength(5);
     expect(r.some((p) => p.alternative)).toBe(false);
   });
 
   it('moins de 3 correspondances Lens : complété par des alternatives, sans doublon', () => {
-    const r = assembler([prop('https://a.test/')], [prop('https://a.test/', true), prop('https://b.test/', true)], null);
+    const r = assembler([prop('https://a.test/')], [prop('https://a.test/', true), prop('https://b.test/', true)], DESCRIPTION_VIDE);
     expect(r.map((p) => [p.url, p.alternative])).toEqual([
       ['https://a.test/', false],
       ['https://b.test/', true],
@@ -210,7 +210,7 @@ describe('relais : /identify', () => {
     expect(corps.resultats).toHaveLength(5);
     expect(corps.resultats.map((p) => p.alternative)).toEqual([false, false, true, true, true]);
     expect(corps.resultats[0].marque).toBe('Maison Exemple');
-    expect(corps.resultats[3].marque).toBe('Maison Exemple');
+    expect(corps.resultats.find((p) => p.nom === 'Veste velours homme Maison Exemple')?.marque).toBe('Maison Exemple');
     expect(photoLueParLens).toBe(true);
     expect(appels).toEqual(['google_lens', 'google_shopping']);
     expect(photos.put).toHaveBeenCalledTimes(1);
