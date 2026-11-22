@@ -53,9 +53,10 @@ Contraste : tout texte atteint 4,5:1 sur son fond. `inkMuted` et `tobacco` le re
 
 ## Composants
 - **En-tête** : icône menu, mot-symbole centré, icône recherche ; filet `ink` dessous.
-- **Sur-titre + titre** : « MA SÉLECTION · N PIÈCES » (étiquette), puis « La Wishlist » à gauche et le total à droite, alignés sur la ligne de base.
+- **Sur-titre + titre** : « MA SÉLECTION · N PIÈCES » (étiquette), puis « La Wishlist » (dans le Vestiaire : « MON VESTIAIRE · N PIÈCES », « Le Vestiaire ») à gauche et le total à droite, alignés sur la ligne de base.
 - **Filtres** : mots en capitales sur deux lignes, pour que tout le menu reste visible : « TOUT · PRIORITÉ · CATÉGORIE », puis « VÊTEMENTS · CHAUSSURES » ; les choix de priorité ou de catégorie s'ouvrent en dessous. Actif = `ink` souligné d'un filet 1 px ; inactifs = `inkMuted`.
-- **Carte article** : photo, étiquette de priorité en bas à droite de la photo (fond `paper`, texte `ink`), puis marque (étiquette), nom, prix. Pas de cadre autour de la carte.
+- **Bascule Wishlist / Vestiaire** : sous l'en-tête, « WISHLIST · VESTIAIRE » en capitales, même style que les filtres (actif = `ink` souligné, inactif = `inkMuted`), cibles de 44 px.
+- **Carte article** : photo, étiquette de priorité en bas à droite de la photo (fond `paper`, texte `ink`), puis marque (étiquette), nom, prix. Pas de cadre autour de la carte. Dans le Vestiaire, l'étiquette porte le mois d'achat (« ACHETÉ EN NOV. 2026 ») à la place de la priorité.
 - **Article sans prix** : « Prix à compléter » en `inkMuted` à la place du prix ; il n'entre pas dans le total, et le total le signale.
 - **Article sans photo** : aplat `photo1` à `photo3` (selon l'article) avec la première lettre du nom en Cormorant Garamond.
 - **Bouton principal** : fond `ink`, texte `paper`, 52 px de haut.
@@ -66,7 +67,7 @@ Contraste : tout texte atteint 4,5:1 sur son fond. `inkMuted` et `tobacco` le re
 - **Chargement** : texte en italique Cormorant Garamond (« On lit la page… »), sans roue qui tourne plein écran.
 
 ## États à toujours prévoir
-- Wishlist vide, filtre sans résultat, image qui ne charge pas, relais injoignable, jeton absent ou refusé, extraction partielle, aucune proposition trouvée.
+- Wishlist vide, Vestiaire vide, filtre sans résultat, image qui ne charge pas, relais injoignable, jeton absent ou refusé, extraction partielle, aucune proposition trouvée.
 
 ## Textes
 

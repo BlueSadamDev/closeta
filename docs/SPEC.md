@@ -1,6 +1,6 @@
-# ClosetA — Spécification du lot 1 (Wishlist)
+# ClosetA — Spécification (lot 1 Wishlist, lot 2 Vestiaire)
 
-Version du 20 novembre 2026. Copie de travail de la spec rédigée dans claude.ai : en cas d'écart, signaler et proposer la mise à jour.
+Version du 22 novembre 2026 (lot 2 ajouté). Copie de travail de la spec rédigée dans claude.ai : en cas d'écart, signaler et proposer la mise à jour.
 
 ## Vision et périmètre
 
@@ -22,7 +22,7 @@ ClosetA est une app Android personnelle qui suit un vêtement de l'envie à l'ac
 
 **Hors lot 1**
 
-- Affichage du vestiaire (lot 2)
+- Affichage du vestiaire (lot 2, voir « Lot 2 — Vestiaire » en fin de document)
 - Suivi des prix, tenues, statistiques, budget plafond
 
 ## Modèle de données
@@ -186,3 +186,41 @@ L'APK est construit par GitHub Actions (expo prebuild puis Gradle), avec la clé
 
 - Design, Wishlist : la ligne de filtres déborde (« PRIORITÉ » coupé à droite). Demande : placer « Vêtements » et « Chaussures » en dessous de « Tout », pour que tout le menu soit visible. Choix retenu : ligne 1 « TOUT · PRIORITÉ · CATÉGORIE », ligne 2 « VÊTEMENTS · CHAUSSURES ».
 - Formulaire : pouvoir ajouter une photo (appareil photo ou galerie) quand on ajoute une pièce à la main ou par lien, sans passer par la recherche par photo.
+
+## Lot 2 — Vestiaire
+
+Le Vestiaire montre les pièces passées en « acheté » (`statut = achete`). Aucun changement de la base : `date_achat` existe déjà. Aucune dépendance ni permission Android nouvelle.
+
+**Accès**
+
+- Sous l'en-tête de la Wishlist et du Vestiaire, deux mots en capitales : « WISHLIST · VESTIAIRE », au style des filtres (actif = `ink` souligné). Un toucher passe d'un écran à l'autre ; le retour Android ramène du Vestiaire à la Wishlist.
+
+**Écran Vestiaire**
+
+- Même structure que la Wishlist : sur-titre « MON VESTIAIRE · N PIÈCES », titre « Le Vestiaire », total à droite.
+- Total : somme des prix des pièces achetées ; pièces sans prix exclues et signalées (même règle que la Wishlist). Le prix est celui relevé à l'ajout ; un prix payé différent se corrige avec « Modifier ».
+- Grille 2 colonnes : photo, marque, nom, prix. À la place de l'étiquette de priorité : le mois d'achat (« ACHETÉ EN NOV. 2026 »).
+- Ordre par défaut : date d'achat, la plus récente d'abord.
+- Pas de bouton « Ajouter » : une pièce entre au Vestiaire par « Je l'ai acheté ».
+- État vide : une phrase qui explique comment une pièce y entre.
+- Filtres : Tout, Vêtements, Chaussures, Catégorie (pas de Priorité) ; recherche texte ; tri par date d'achat (défaut) ou prix ; bascule Grille / Catégories avec sous-totaux, mêmes règles que la Wishlist.
+
+**Fiche d'une pièce achetée**
+
+- Affiche « Acheté le 22 novembre 2026 » ; pas de bouton « Je l'ai acheté ».
+- Actions : Modifier, Supprimer, « Remettre dans la Wishlist » (confirmation ; statut `souhaite`, `date_achat` effacée).
+
+**Hors lot 2** : statut `abandonne` (prévu en base, inutilisé), statistiques, tenues, budget.
+
+**Découpage**
+
+1. Écran Vestiaire et accès : bascule « WISHLIST · VESTIAIRE », grille, total, état vide ; fiche adaptée (date d'achat, sans « Je l'ai acheté »)
+2. Filtres, recherche, tri et vue par catégorie du Vestiaire
+3. « Remettre dans la Wishlist » depuis la fiche → **fin du lot 2**
+
+**Critères d'acceptation**
+
+- [ ] Une pièce marquée « Je l'ai acheté » apparaît dans le Vestiaire, avec son mois d'achat, et le total du Vestiaire se met à jour
+- [ ] Le Vestiaire ne montre jamais une pièce de la Wishlist, et inversement
+- [ ] Les filtres type et catégorie, la recherche et le tri fonctionnent et se combinent dans le Vestiaire
+- [ ] « Remettre dans la Wishlist » ramène la pièce dans la Wishlist, sans date d'achat
