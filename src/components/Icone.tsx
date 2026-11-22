@@ -12,6 +12,9 @@ const TRACES = {
   lien: 'M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1',
   crayon: 'M4 20h4L19 9l-4-4L4 16v4ZM13 7l4 4',
   photo: 'M4 8h4l2-3h4l2 3h4v11H4V8ZM12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z',
+  filtre: 'M4 7h16M7 12h10M10 17h4',
+  basculeBas: 'M7 10l5 5 5-5',
+  basculeHaut: 'M7 14l5-5 5 5',
 } as const;
 
 export type NomIcone = keyof typeof TRACES;

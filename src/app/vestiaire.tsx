@@ -29,6 +29,7 @@ export default function Vestiaire() {
   const [tri, setTri] = useState<TriVestiaire>('achat');
   const [vue, setVue] = useState<Vue>('grille');
   const [rechercheOuverte, setRechercheOuverte] = useState(false);
+  const [filtresOuverts, setFiltresOuverts] = useState(false);
 
   // Relit la base à chaque retour sur l'écran (après une modification, une suppression…).
   useFocusEffect(
@@ -65,35 +66,47 @@ export default function Vestiaire() {
         <View style={styles.blocTotal}>
           <Text style={[type.total, { color: colors.ink }]}>{formaterPrix(total.euros)}</Text>
           {total.sansPrix > 0 ? (
-            <Text style={[type.gridPrice, { color: colors.inkMuted }]}>{texts.wishlist.prixACompleter(total.sansPrix)}</Text>
+            <Text style={[type.gridPrice, { color: colors.inkMuted }]}>
+              {texts.wishlist.prixACompleter(total.sansPrix)}
+            </Text>
           ) : null}
         </View>
       </View>
-
-      <BarreFiltres
-        filtre={filtre}
-        onFiltre={setFiltre}
-        avecPriorite={false}
-        categories={categories}
-        tri={tri}
-        tris={TRIS_VESTIAIRE}
-        libellesTri={texts.vestiaire.tri}
-        onTri={setTri}
-        vue={vue}
-        onVue={setVue}
-      />
     </View>
+  );
+
+  const barreFiltres = (
+    <BarreFiltres
+      filtre={filtre}
+      onFiltre={setFiltre}
+      avecPriorite={false}
+      categories={categories}
+      tri={tri}
+      tris={TRIS_VESTIAIRE}
+      libellesTri={texts.vestiaire.tri}
+      onTri={setTri}
+      vue={vue}
+      onVue={setVue}
+      ouvert={filtresOuverts}
+      onBasculer={() => setFiltresOuverts((o) => !o)}
+    />
   );
 
   return (
     <SafeAreaView style={styles.ecran} edges={['top', 'bottom']}>
       <Entete
-        gauche={<BoutonIcone nom="menu" libelle={texts.accessibilite.reglages} onPress={() => router.push('/reglages')} />}
+        gauche={
+          <BoutonIcone nom="menu" libelle={texts.accessibilite.reglages} onPress={() => router.push('/reglages')} />
+        }
         droite={
           rechercheOuverte ? (
             <BoutonIcone nom="fermer" libelle={texts.accessibilite.fermerRecherche} onPress={fermerRecherche} />
           ) : (
-            <BoutonIcone nom="recherche" libelle={texts.accessibilite.rechercher} onPress={() => setRechercheOuverte(true)} />
+            <BoutonIcone
+              nom="recherche"
+              libelle={texts.accessibilite.rechercher}
+              onPress={() => setRechercheOuverte(true)}
+            />
           )
         }
       />
@@ -108,6 +121,7 @@ export default function Vestiaire() {
           articles={visibles}
           vue={vue}
           enTete={enTeteDeListe}
+          barre={barreFiltres}
           margeBas={48}
           carte={(article, largeur) => (
             <CarteArticle
@@ -126,9 +140,24 @@ export default function Vestiaire() {
 const styles = StyleSheet.create({
   ecran: { flex: 1, backgroundColor: colors.paper },
   surTitre: { marginTop: 16 },
-  ligneTitre: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 10 },
+  ligneTitre: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginTop: 10,
+  },
   titre: { color: colors.ink, paddingTop: 6 },
   blocTotal: { alignItems: 'flex-end', paddingBottom: 4 },
-  vide: { flex: 1, justifyContent: 'center', paddingHorizontal: spacing.screen },
-  phrase: { ...type.body, fontSize: 22, lineHeight: 30, color: colors.ink, textAlign: 'center' },
+  vide: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.screen,
+  },
+  phrase: {
+    ...type.body,
+    fontSize: 22,
+    lineHeight: 30,
+    color: colors.ink,
+    textAlign: 'center',
+  },
 });

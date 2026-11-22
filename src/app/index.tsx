@@ -40,6 +40,7 @@ export default function Wishlist() {
   const [tri, setTri] = useState<Tri>('date');
   const [vue, setVue] = useState<Vue>('grille');
   const [rechercheOuverte, setRechercheOuverte] = useState(false);
+  const [filtresOuverts, setFiltresOuverts] = useState(false);
   const [feuilleOuverte, setFeuilleOuverte] = useState(false);
 
   // Relit la base à chaque retour sur l'écran (après un ajout, une modification, un achat…).
@@ -72,35 +73,47 @@ export default function Wishlist() {
         <View style={styles.blocTotal}>
           <Text style={[type.total, { color: colors.ink }]}>{formaterPrix(total.euros)}</Text>
           {total.sansPrix > 0 ? (
-            <Text style={[type.gridPrice, { color: colors.inkMuted }]}>{texts.wishlist.prixACompleter(total.sansPrix)}</Text>
+            <Text style={[type.gridPrice, { color: colors.inkMuted }]}>
+              {texts.wishlist.prixACompleter(total.sansPrix)}
+            </Text>
           ) : null}
         </View>
       </View>
-
-      <BarreFiltres
-        filtre={filtre}
-        onFiltre={setFiltre}
-        avecPriorite
-        categories={categories}
-        tri={tri}
-        tris={TRIS}
-        libellesTri={texts.wishlist.tri}
-        onTri={setTri}
-        vue={vue}
-        onVue={setVue}
-      />
     </View>
+  );
+
+  const barreFiltres = (
+    <BarreFiltres
+      filtre={filtre}
+      onFiltre={setFiltre}
+      avecPriorite
+      categories={categories}
+      tri={tri}
+      tris={TRIS}
+      libellesTri={texts.wishlist.tri}
+      onTri={setTri}
+      vue={vue}
+      onVue={setVue}
+      ouvert={filtresOuverts}
+      onBasculer={() => setFiltresOuverts((o) => !o)}
+    />
   );
 
   return (
     <SafeAreaView style={styles.ecran} edges={['top', 'bottom']}>
       <Entete
-        gauche={<BoutonIcone nom="menu" libelle={texts.accessibilite.reglages} onPress={() => router.push('/reglages')} />}
+        gauche={
+          <BoutonIcone nom="menu" libelle={texts.accessibilite.reglages} onPress={() => router.push('/reglages')} />
+        }
         droite={
           rechercheOuverte ? (
             <BoutonIcone nom="fermer" libelle={texts.accessibilite.fermerRecherche} onPress={fermerRecherche} />
           ) : (
-            <BoutonIcone nom="recherche" libelle={texts.accessibilite.rechercher} onPress={() => setRechercheOuverte(true)} />
+            <BoutonIcone
+              nom="recherche"
+              libelle={texts.accessibilite.rechercher}
+              onPress={() => setRechercheOuverte(true)}
+            />
           )
         }
       />
@@ -116,6 +129,7 @@ export default function Wishlist() {
             articles={visibles}
             vue={vue}
             enTete={enTeteDeListe}
+            barre={barreFiltres}
             margeBas={120}
             carte={(article, largeur) => (
               <CarteArticle article={article} largeur={largeur} onPress={() => router.push(`/article/${article.id}`)} />
@@ -151,10 +165,29 @@ const styles = StyleSheet.create({
   ecran: { flex: 1, backgroundColor: colors.paper },
   corps: { flex: 1 },
   surTitre: { marginTop: 16 },
-  ligneTitre: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 10 },
+  ligneTitre: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginTop: 10,
+  },
   titre: { color: colors.ink, paddingTop: 6 },
   blocTotal: { alignItems: 'flex-end', paddingBottom: 4 },
-  vide: { flex: 1, justifyContent: 'center', paddingHorizontal: spacing.screen },
-  phrase: { ...type.body, fontSize: 22, lineHeight: 30, color: colors.ink, textAlign: 'center' },
-  ajouter: { position: 'absolute', right: spacing.screen, bottom: spacing.screen },
+  vide: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.screen,
+  },
+  phrase: {
+    ...type.body,
+    fontSize: 22,
+    lineHeight: 30,
+    color: colors.ink,
+    textAlign: 'center',
+  },
+  ajouter: {
+    position: 'absolute',
+    right: spacing.screen,
+    bottom: spacing.screen,
+  },
 });
