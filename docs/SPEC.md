@@ -66,6 +66,7 @@ Règles :
 - En-tête : logo, recherche texte dans la wishlist
 - « Ma sélection · N pièces », titre « La Wishlist », total en euros
 - Filtres : Tout, Vêtements, Chaussures, Priorité, Catégorie ; tri par date d'ajout (défaut), prix, priorité
+  - Barre de filtres repliée par défaut (« FILTRER · TOUT » et « GRILLE · RÉCENTS ») ; un toucher déplie le panneau : Pièces (Tout, Vêtements, Chaussures), Choix (Priorité, Catégorie), Vue (Grille, Catégories), Tri. La barre reste visible en haut quand on fait défiler. Retour d'usage du 22 novembre 2026 (filtres pas assez démarqués), voir DESIGN.md « Barre de filtres ».
 - Bascule entre la grille et la vue par catégorie (sections par catégorie, sous-total par section ; articles sans catégorie regroupés à la fin)
   - Sections dans l'ordre alphabétique, titre au singulier tel que saisi (« VESTE · 2 PIÈCES »), sous-total à droite ; section « À classer » pour les pièces sans catégorie. Filtres, recherche et tri s'appliquent aussi (le tri dans chaque section). La vue choisie n'est pas mémorisée.
 - Grille 2 colonnes : photo, étiquette de priorité, marque, nom, prix
@@ -187,6 +188,11 @@ L'APK est construit par GitHub Actions (expo prebuild puis Gradle), avec la clé
 - Design, Wishlist : la ligne de filtres déborde (« PRIORITÉ » coupé à droite). Demande : placer « Vêtements » et « Chaussures » en dessous de « Tout », pour que tout le menu soit visible. Choix retenu : ligne 1 « TOUT · PRIORITÉ · CATÉGORIE », ligne 2 « VÊTEMENTS · CHAUSSURES ».
 - Formulaire : pouvoir ajouter une photo (appareil photo ou galerie) quand on ajoute une pièce à la main ou par lien, sans passer par la recherche par photo.
 
+**Retours d'usage à corriger plus tard** (notés pendant les tests de l'étape 2 du lot 2, 22 novembre 2026)
+
+- Barre de filtres, vue par catégorie : double filet. Le filet bas de la barre de filtres et le filet haut de la première section (« MANTEAU · 1 PIÈCE ») se suivent, avec un petit espace entre les deux. Il ne doit en rester qu'un.
+- Barre de filtres repliée : quand la vue « Catégories » est choisie, « FILTRER · TOUT » passe sur deux lignes, faute de place à côté de « CATÉGORIES · RÉCENTS ».
+
 ## Lot 2 — Vestiaire
 
 Le Vestiaire montre les pièces passées en « acheté » (`statut = achete`). Aucun changement de la base : `date_achat` existe déjà. Aucune dépendance ni permission Android nouvelle.
@@ -203,7 +209,7 @@ Le Vestiaire montre les pièces passées en « acheté » (`statut = achete`). A
 - Ordre par défaut : date d'achat, la plus récente d'abord.
 - Pas de bouton « Ajouter » : une pièce entre au Vestiaire par « Je l'ai acheté ».
 - État vide : une phrase qui explique comment une pièce y entre.
-- Filtres : Tout, Vêtements, Chaussures, Catégorie (pas de Priorité) ; recherche texte ; tri par date d'achat (défaut) ou prix ; bascule Grille / Catégories avec sous-totaux, mêmes règles que la Wishlist.
+- Filtres : Tout, Vêtements, Chaussures, Catégorie (pas de Priorité) ; recherche texte ; tri par date d'achat (défaut) ou prix ; bascule Grille / Catégories avec sous-totaux, mêmes règles que la Wishlist, dans la même barre de filtres repliable et collante.
 
 **Fiche d'une pièce achetée**
 
@@ -215,7 +221,7 @@ Le Vestiaire montre les pièces passées en « acheté » (`statut = achete`). A
 **Découpage**
 
 1. Écran Vestiaire et accès : bascule « WISHLIST · VESTIAIRE », grille, total, état vide ; fiche adaptée (date d'achat, sans « Je l'ai acheté »)
-2. Filtres, recherche, tri et vue par catégorie du Vestiaire
+2. Filtres, recherche, tri et vue par catégorie du Vestiaire ; barre de filtres repliable et collante (Wishlist et Vestiaire)
 3. « Remettre dans la Wishlist » depuis la fiche → **fin du lot 2**
 
 **Critères d'acceptation**

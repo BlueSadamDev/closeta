@@ -21,6 +21,15 @@ export const texts = {
       priorite: 'Priorité',
       categorie: 'Catégorie',
       aucuneCategorie: 'Aucune catégorie pour l’instant',
+      filtrer: 'Filtrer',
+      fermer: 'Fermer',
+      /** Rubriques du panneau déplié (DESIGN.md, « Panneau de filtres »). */
+      rubriques: {
+        pieces: 'Pièces',
+        choix: 'Choix',
+        vue: 'Vue',
+        tri: 'Tri',
+      },
     },
     tri: {
       intitule: 'Tri',
@@ -44,6 +53,10 @@ export const texts = {
     titre: 'Le Vestiaire',
     vide: 'Ton Vestiaire est vide. Sur une fiche, *Je l’ai acheté* y range la pièce.',
     acheteEn: (mois: string) => `Acheté en ${mois}`,
+    tri: {
+      achat: 'Achats récents',
+      prix: 'Prix',
+    },
   },
 
   /** Bascule sous l'en-tête (DESIGN.md, « Bascule Wishlist / Vestiaire »). */
@@ -241,6 +254,8 @@ export const texts = {
     fermerAjout: 'Fermer',
     rechercher: 'Rechercher',
     fermerRecherche: 'Fermer la recherche',
+    ouvrirFiltres: 'Ouvrir les filtres',
+    fermerFiltres: 'Fermer les filtres',
     retour: 'Retour',
   },
 } as const;
