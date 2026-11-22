@@ -224,6 +224,12 @@ Le Vestiaire montre les pièces passées en « acheté » (`statut = achete`). A
 2. Filtres, recherche, tri et vue par catégorie du Vestiaire ; barre de filtres repliable et collante (Wishlist et Vestiaire)
 3. « Remettre dans la Wishlist » depuis la fiche → **fin du lot 2**
 
+**Retours d'usage à planifier** (notés pendant les tests de l'étape 3 du lot 2, 22 novembre 2026)
+
+- Navigation : la Wishlist et le Vestiaire deviennent deux onglets distincts, dans une barre fixée en bas de l'écran (à la place de la bascule « WISHLIST · VESTIAIRE » sous l'en-tête).
+- Menu (icône en haut à gauche) : il devient un vrai menu qui propose Wishlist, Vestiaire et Réglages, au lieu d'ouvrir directement les Réglages.
+- À détailler (forme de la barre d'onglets, place du bouton « Ajouter ») et à découper en étape avant tout développement.
+
 **Critères d'acceptation**
 
 - [ ] Une pièce marquée « Je l'ai acheté » apparaît dans le Vestiaire, avec son mois d'achat, et le total du Vestiaire se met à jour
