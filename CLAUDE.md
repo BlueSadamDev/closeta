@@ -64,7 +64,7 @@ Une étape = une branche et un APK testé. Détail : docs/SPEC.md, « Lot 2 — 
 Une étape = une branche, validée sur l'APK de développement ; **un seul APK de production testé**, à l'étape 9. Deux pistes indépendantes, menables dans deux sessions (voir « Travail en parallèle »). Détail : docs/SPEC.md, « Lot 3 — Prix, alternatives et numérisation ».
 
 Piste A · Relais et Wishlist :
-1. Compteur SerpApi et historique des prix : compteur mensuel au relais (seuil réglable, `quota_atteint`), route `GET /quota`, ligne dans Réglages ; migration (`releve_prix`, nouveaux champs de `article`) et reprise des données.
+1. Compteur SerpApi et historique des prix : compteur mensuel au relais (seuil réglable, `quota_atteint`), route `GET /quota`, ligne dans Réglages ; migration (`releve_prix`, nouveaux champs de `article`) et reprise des données. **Terminée, fusionnée via la PR #17** : compteur SerpApi dans Cloudflare KV (mois du calendrier, seuil dans `wrangler.toml`), `GET /quota`, ligne « Recherches ce mois » dans Réglages (mise en garde à 80 %), message « quota atteint » sur Par photo ; migration v2 (`releve_prix` avec `source`), relevés à l'ajout par lien ou photo et à chaque prix modifié à la main.
 2. Alternatives depuis une fiche de la Wishlist : route `POST /alternatives` (ressemblance), « Voir des alternatives », ajout d'une alternative liée à la pièce d'origine.
 3. Prix et disponibilité actualisés : `/extract` renvoie la disponibilité ; relecture à l'ouverture d'une fiche (plus de 24 h) ; baisse, disponibilité, historique ; étiquettes « BAISSE » et « ÉPUISÉ » sur les cartes.
 4. Pièce épuisée → bandeau « Voir des alternatives » (recherche lancée seulement au toucher).
