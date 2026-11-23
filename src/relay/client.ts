@@ -49,8 +49,11 @@ export async function lireQuotaRelais(jeton: string): Promise<Quota | null> {
   }
 }
 
-/** Demande au relais de lire la page d'une boutique (nom, marque, image, prix). Ne lève jamais d'exception. */
-export async function extraire(lien: string, jeton: string): Promise<ResultatExtraction> {
+/**
+ * Demande au relais de lire la page d'une boutique (nom, marque, image, prix, disponibilité).
+ * `taille` : taille de la pièce, pour sa disponibilité. Ne lève jamais d'exception.
+ */
+export async function extraire(lien: string, jeton: string, taille: string | null = null): Promise<ResultatExtraction> {
   if (!jeton) return { ok: false, raison: 'jeton_absent' };
   const arret = new AbortController();
   const minuteur = setTimeout(() => arret.abort(), settings.relayTimeoutMs);
@@ -58,7 +61,7 @@ export async function extraire(lien: string, jeton: string): Promise<ResultatExt
     const reponse = await fetch(`${settings.relayUrl}/extract`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${jeton}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: lien }),
+      body: JSON.stringify(taille ? { url: lien, taille } : { url: lien }),
       signal: arret.signal,
     });
     const corps: unknown = await reponse.json().catch(() => null);

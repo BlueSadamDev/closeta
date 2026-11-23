@@ -1,6 +1,7 @@
+import { randomUUID } from 'expo-crypto';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -10,13 +11,16 @@ import { Entete } from '@/components/Entete';
 import { Etiquette } from '@/components/Etiquette';
 import { PhotoArticle } from '@/components/PhotoArticle';
 import { RichText } from '@/components/RichText';
-import { enregistrerArticle, lireArticle, supprimerArticle } from '@/db/articles';
+import { enregistrerArticle, lireArticle, lireReleves, supprimerArticle } from '@/db/articles';
+import { appliquerLecture, aRelire, disponibiliteAffichee, variationPrix } from '@/domain/actualisation';
 import { marquerAchete, remettreEnWishlist, type Article } from '@/domain/article';
 import { formaterPrix } from '@/domain/prix';
 import { niveauQuota, type Quota } from '@/domain/relais';
+import type { RelevePrix } from '@/domain/releve';
+import { settings } from '@/domain/settings';
 import { texts } from '@/domain/texts';
 import { dateAchatLongue } from '@/domain/vestiaire';
-import { lireQuotaRelais } from '@/relay/client';
+import { extraire, lireQuotaRelais } from '@/relay/client';
 import { effacerImage } from '@/relay/image';
 import { lireJeton } from '@/relay/jeton';
 import { colors, spacing, type } from '@/theme';
@@ -31,17 +35,52 @@ export default function Fiche() {
   const [origine, setOrigine] = useState<Article | null>(null);
   // Recherches SerpApi du mois, affichées avant « Voir des alternatives » (null = pas de réponse).
   const [quota, setQuota] = useState<Quota | null>(null);
+  // Historique des prix, du plus récent au plus ancien.
+  const [releves, setReleves] = useState<RelevePrix[]>([]);
+  // Vrai si la relecture de la page boutique vient d'échouer : la fiche indique alors la date de la dernière vérification.
+  const [echecLecture, setEchecLecture] = useState(false);
+  // Une seule tentative de relecture par ouverture de la fiche (pas de nouvel essai à chaque retour sur l'écran).
+  const relectureTentee = useRef(false);
+
+  /**
+   * Relecture de la page boutique (docs/SPEC.md, lot 3, étape 3) : la fiche est déjà affichée, elle se met à jour ensuite.
+   * La pièce est relue juste avant l'enregistrement, pour ne pas écraser une modification faite entre-temps.
+   */
+  const relire = useCallback(
+    async (a: Article, estActif: () => boolean) => {
+      if (relectureTentee.current || !a.urlBoutique || !aRelire(a, new Date(), settings.relectureDelaiH)) return;
+      relectureTentee.current = true;
+      const lu = await extraire(a.urlBoutique, await lireJeton(), a.taille);
+      if (!lu.ok) {
+        if (estActif()) setEchecLecture(true);
+        return;
+      }
+      const frais = await lireArticle(db, a.id);
+      if (!frais || !aRelire(frais, new Date(), settings.relectureDelaiH)) return;
+      const { article: maj, releve } = appliquerLecture(frais, lu.extraction, new Date(), randomUUID());
+      await enregistrerArticle(db, maj, releve);
+      if (!estActif()) return;
+      setArticle(maj);
+      setEchecLecture(false);
+      setReleves(await lireReleves(db, a.id));
+    },
+    [db],
+  );
 
   useFocusEffect(
     useCallback(() => {
       let actif = true;
+      const estActif = () => actif;
       lireArticle(db, id).then(async (a) => {
         if (!actif) return;
         setArticle(a);
-        const o = a?.alternativeDe ? await lireArticle(db, a.alternativeDe) : null;
+        if (!a) return;
+        setReleves(await lireReleves(db, a.id));
+        const o = a.alternativeDe ? await lireArticle(db, a.alternativeDe) : null;
         if (actif) setOrigine(o);
         // Le compteur ne sert qu'aux pièces de la Wishlist ; le lire ne consomme aucune recherche.
-        if (a?.statut === 'souhaite') {
+        if (a.statut === 'souhaite') {
+          relire(a, estActif);
           const q = await lireQuotaRelais(await lireJeton());
           if (actif) setQuota(q);
         }
@@ -49,7 +88,7 @@ export default function Fiche() {
       return () => {
         actif = false;
       };
-    }, [db, id]),
+    }, [db, id, relire]),
   );
 
   const retour = () => (router.canGoBack() ? router.back() : router.replace('/'));
@@ -121,6 +160,10 @@ export default function Fiche() {
 
   const achete = article.statut === 'achete';
   const enWishlist = article.statut === 'souhaite';
+  // Prix et disponibilité actualisés : Wishlist seulement (le Vestiaire garde le prix payé).
+  const variation = enWishlist ? variationPrix(article) : null;
+  const dispo = enWishlist ? disponibiliteAffichee(article) : null;
+  const verifieLe = enWishlist && echecLecture ? dateAchatLongue(article.dateVerif) : null;
   const quotaAtteint = quota !== null && niveauQuota(quota) === 'atteint';
   const dateAchat = dateAchatLongue(article.dateAchat);
   const details: [string, string | null][] = [
@@ -144,8 +187,30 @@ export default function Fiche() {
         {article.prix === null ? (
           <Text style={[type.body, { color: colors.inkMuted }]}>{texts.fiche.prixACompleter}</Text>
         ) : (
-          <Text style={[type.sheetPrice, { color: colors.ink }]}>{formaterPrix(article.prix)}</Text>
+          <View style={styles.prixLigne}>
+            <Text style={[type.sheetPrice, { color: colors.ink }]}>{formaterPrix(article.prix)}</Text>
+            {variation?.sens === 'baisse' && article.prixAjout !== null ? (
+              <Text style={[type.body, styles.prixBarre]}>{formaterPrix(article.prixAjout)}</Text>
+            ) : null}
+          </View>
         )}
+        {variation ? (
+          variation.sens === 'baisse' ? (
+            <RichText style={[type.body, styles.texteFort]}>{texts.fiche.baisse(formaterPrix(variation.euros))}</RichText>
+          ) : (
+            <Text style={[type.body, styles.discret]}>{texts.fiche.hausse(formaterPrix(variation.euros))}</Text>
+          )
+        ) : null}
+        {dispo ? (
+          <Text style={[type.body, dispo.etat === 'epuise' ? styles.texteFort : styles.discret]}>
+            {dispo.taille
+              ? dispo.etat === 'epuise'
+                ? texts.fiche.epuiseEn(dispo.taille)
+                : texts.fiche.enStockEn(dispo.taille)
+              : texts.fiche.epuise}
+          </Text>
+        ) : null}
+        {verifieLe ? <Text style={[type.body, styles.discret]}>{texts.fiche.verifieLe(verifieLe)}</Text> : null}
 
         {origine ? (
           <Pressable accessibilityRole="link" onPress={() => router.push(`/article/${origine.id}`)} style={styles.origine}>
@@ -169,6 +234,22 @@ export default function Fiche() {
           <View style={styles.notes}>
             <Etiquette>{texts.fiche.notes}</Etiquette>
             <Text style={[type.body, styles.texteNotes]}>{article.notes}</Text>
+          </View>
+        ) : null}
+
+        {enWishlist && releves.length > 0 ? (
+          <View style={styles.historique}>
+            <Etiquette>{texts.fiche.historique}</Etiquette>
+            <View style={[styles.details, styles.sansMarge]}>
+              {releves.map((r) => (
+                <View key={r.id} style={styles.ligne}>
+                  <Text style={[type.body, styles.discret]}>{dateAchatLongue(r.date) ?? ''}</Text>
+                  <Text style={[type.body, { color: r.prix === null ? colors.inkMuted : colors.ink }]}>
+                    {r.prix === null ? texts.fiche.sansPrix : formaterPrix(r.prix)}
+                  </Text>
+                </View>
+              ))}
+            </View>
           </View>
         ) : null}
 
@@ -228,6 +309,11 @@ const styles = StyleSheet.create({
   texteLien: { color: colors.ink, textDecorationLine: 'underline' },
   actions: { marginTop: 32, gap: 12 },
   alternatives: { gap: 8 },
+  prixLigne: { flexDirection: 'row', alignItems: 'baseline', gap: 12 },
+  prixBarre: { color: colors.inkMuted, textDecorationLine: 'line-through' },
+  texteFort: { color: colors.ink },
+  historique: { marginTop: 24, gap: 8 },
+  sansMarge: { marginTop: 0 },
   discret: { color: colors.inkMuted },
   origine: {
     marginTop: 12,

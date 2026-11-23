@@ -45,6 +45,11 @@ export const texts = {
       marques: 'Marques',
     },
     pieces,
+    /** Étiquettes des cartes, d'après le dernier relevé. */
+    alertes: {
+      baisse: 'Baisse',
+      epuise: 'Épuisé',
+    },
     aClasser: 'À classer',
     sansMarque: 'Sans marque',
     recherche: 'Une pièce, une marque, une couleur',
@@ -99,6 +104,15 @@ export const texts = {
     modifier: 'Modifier',
     supprimer: 'Supprimer',
     acheteLe: (date: string) => `Acheté le ${date}`,
+    /** Prix et disponibilité actualisés (docs/SPEC.md, lot 3, étape 3). Le montant arrive déjà écrit (« 25 € »). */
+    baisse: (montant: string) => `*−${montant}* depuis l’ajout`,
+    hausse: (montant: string) => `+${montant} depuis l’ajout`,
+    enStockEn: (taille: string) => `En stock en ${taille}`,
+    epuiseEn: (taille: string) => `Épuisé en ${taille}`,
+    epuise: 'Épuisé',
+    verifieLe: (date: string) => `Vérifié le ${date}`,
+    historique: 'Historique des prix',
+    sansPrix: 'Sans prix',
     /** Fiche d'une pièce ajoutée comme alternative : « Alternative à : <nom> ». */
     alternativeA: 'Alternative à :',
     nonDate: 'Non daté',

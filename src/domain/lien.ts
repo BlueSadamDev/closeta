@@ -2,6 +2,7 @@
  * Ajout par lien : lecture du lien saisi ou partagé, lecture de la réponse du relais /extract,
  * et préparation du formulaire pré-rempli. Logique pure, sans réseau.
  */
+import type { Disponibilite } from './article';
 import { prixPourSaisie } from './prix';
 import { BROUILLON_VIDE, type Brouillon } from './validation';
 
@@ -13,6 +14,9 @@ export type Extraction = {
   prix: number | null;
   devise: string | null;
   url: string;
+  /** Disponibilité publiée par la boutique (globale, et pour la taille demandée) ; `inconnue` sinon. */
+  disponibilite: Disponibilite;
+  dispoTaille: Disponibilite;
 };
 
 /** Raisons pour lesquelles le relais n'a rien rendu d'utilisable. */
@@ -57,6 +61,7 @@ export function nomDuSite(lien: string): string {
 }
 
 const texteOuNull = (v: unknown): string | null => (typeof v === 'string' && v.trim() !== '' ? v.trim() : null);
+const dispo = (v: unknown): Disponibilite => (v === 'en_stock' || v === 'epuise' ? v : 'inconnue');
 
 /**
  * Lit la réponse du relais /extract.
@@ -81,6 +86,8 @@ export function lireExtraction(statut: number | null, corps: unknown, lienDemand
     prix,
     devise: texteOuNull(c.devise)?.toUpperCase() ?? null,
     url: texteOuNull(c.url) ?? lienDemande,
+    disponibilite: dispo(c.disponibilite),
+    dispoTaille: dispo(c.dispo_taille),
   };
   // Une page dont on n'a rien tiré compte comme illisible.
   if (!extraction.nom && !extraction.marque && !extraction.image && extraction.prix === null) {
