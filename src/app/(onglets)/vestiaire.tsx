@@ -5,11 +5,13 @@ import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BarreFiltres } from '@/components/BarreFiltres';
+import { Bouton } from '@/components/Bouton';
 import { BoutonIcone } from '@/components/BoutonIcone';
 import { CarteArticle } from '@/components/CarteArticle';
 import { ChampRecherche } from '@/components/ChampRecherche';
 import { Entete } from '@/components/Entete';
 import { Etiquette } from '@/components/Etiquette';
+import { FeuilleAjout } from '@/components/FeuilleAjout';
 import { ListePieces } from '@/components/ListePieces';
 import { useOuvrirMenu } from '@/components/MenuLateral';
 import { RichText } from '@/components/RichText';
@@ -31,6 +33,7 @@ export default function Vestiaire() {
   const [vue, setVue] = useState<Vue>('grille');
   const [rechercheOuverte, setRechercheOuverte] = useState(false);
   const [filtresOuverts, setFiltresOuverts] = useState(false);
+  const [feuilleOuverte, setFeuilleOuverte] = useState(false);
 
   // Relit la base à chaque retour sur l'écran (après une modification, une suppression…).
   useFocusEffect(
@@ -50,9 +53,16 @@ export default function Vestiaire() {
     setFiltre((f) => ({ ...f, recherche: '' }));
   };
 
+  // Sans date d'achat : « ACHAT NON DATÉ » à la place du mois.
   const etiquette = (a: Article) => {
     const mois = moisAchat(a.dateAchat);
-    return mois ? texts.vestiaire.acheteEn(mois) : null;
+    return mois ? texts.vestiaire.acheteEn(mois) : texts.vestiaire.nonDate;
+  };
+
+  // Ajout direct au Vestiaire : même feuille que la Wishlist, la destination suit jusqu'au formulaire.
+  const ouvrir = (pathname: '/lien' | '/photo' | '/formulaire') => {
+    setFeuilleOuverte(false);
+    router.push({ pathname, params: { destination: 'vestiaire' } });
   };
 
   const enTeteDeListe = (
@@ -122,7 +132,7 @@ export default function Vestiaire() {
           vue={vue}
           enTete={enTeteDeListe}
           barre={barreFiltres}
-          margeBas={48}
+          margeBas={120}
           carte={(article, largeur) => (
             <CarteArticle
               article={article}
@@ -133,6 +143,17 @@ export default function Vestiaire() {
           )}
         />
       )}
+
+      <View style={styles.ajouter}>
+        <Bouton libelle={texts.vestiaire.ajouter} icone="plus" onPress={() => setFeuilleOuverte(true)} />
+      </View>
+      <FeuilleAjout
+        visible={feuilleOuverte}
+        onFermer={() => setFeuilleOuverte(false)}
+        onLien={() => ouvrir('/lien')}
+        onPhoto={() => ouvrir('/photo')}
+        onManuel={() => ouvrir('/formulaire')}
+      />
     </SafeAreaView>
   );
 }
@@ -159,5 +180,10 @@ const styles = StyleSheet.create({
     lineHeight: 30,
     color: colors.ink,
     textAlign: 'center',
+  },
+  ajouter: {
+    position: 'absolute',
+    right: spacing.screen,
+    bottom: spacing.screen,
   },
 });

@@ -24,12 +24,13 @@ export type RelevePrix = {
  * Le relevé à créer quand on enregistre une pièce, ou null s'il n'y en a pas.
  * - Ajout par lien ou par photo, avec un prix : relevé « ajout ».
  * - Prix modifié à la main sur une pièce de la Wishlist : relevé « manuel ».
- * Pas de relevé sans prix, ni pour un ajout à la main, ni pour une pièce du Vestiaire (prix payé).
+ * Pas de relevé sans prix, ni pour un ajout à la main, ni pour une pièce du Vestiaire (prix payé),
+ * y compris ajoutée directement au Vestiaire par lien ou photo : le Vestiaire n'est jamais actualisé.
  */
 export function releveAEnregistrer(avant: Article | null, apres: Article, id: string): RelevePrix | null {
   if (apres.prix === null) return null;
   const source: SourceReleve | null = !avant
-    ? apres.origine === 'manuel'
+    ? apres.origine === 'manuel' || apres.statut !== 'souhaite'
       ? null
       : 'ajout'
     : apres.statut === 'souhaite' && avant.prix !== apres.prix

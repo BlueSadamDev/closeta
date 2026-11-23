@@ -1,7 +1,16 @@
 import { marquerAchete, remettreEnWishlist } from '../article';
 import { articleFictif, WISHLIST_FICTIVE } from '../__fixtures__/articles';
 import { FILTRE_VIDE, filtrer, regrouperParCategorie, regrouperParMarque, totalWishlist } from '../wishlist';
-import { articlesDuVestiaire, dateAchatLongue, moisAchat, trierParAchat, trierVestiaire } from '../vestiaire';
+import {
+  articlesDuVestiaire,
+  dateAchatLongue,
+  dateAchatPourSaisie,
+  etatDeDepart,
+  lireDateAchat,
+  moisAchat,
+  trierParAchat,
+  trierVestiaire,
+} from '../vestiaire';
 
 const ids = (articles: { id: string }[]) => articles.map((a) => a.id);
 
@@ -112,5 +121,54 @@ describe('tri et vue par marque du Vestiaire', () => {
       ['maison fictive', ['p3', 'p1'], 420, 0],
       [null, ['p2'], 90, 0],
     ]);
+  });
+});
+
+describe('ajout direct au Vestiaire', () => {
+  const MAINTENANT = '2026-11-23T09:00:00.000Z';
+
+  it('crée la pièce achetée, jamais relue auprès de la boutique, quelle que soit l’origine', () => {
+    for (const origine of ['lien', 'photo', 'manuel'] as const) {
+      expect(etatDeDepart('vestiaire', origine, MAINTENANT)).toEqual({ statut: 'achete', dateVerif: null });
+    }
+  });
+
+  it('garde la règle de la Wishlist : souhaitée, page lue seulement pour un ajout par lien', () => {
+    expect(etatDeDepart('wishlist', 'lien', MAINTENANT)).toEqual({ statut: 'souhaite', dateVerif: MAINTENANT });
+    expect(etatDeDepart('wishlist', 'photo', MAINTENANT)).toEqual({ statut: 'souhaite', dateVerif: null });
+  });
+
+  it('lit la date d’achat saisie, au jour près, quel que soit le fuseau', () => {
+    const maintenant = new Date(2026, 10, 23, 9);
+    expect(lireDateAchat('  ', maintenant)).toBeNull();
+    for (const saisie of ['14/11/2026', '1/2/2026', '29/02/2024', '23/11/2026']) {
+      const iso = lireDateAchat(saisie, maintenant);
+      expect(typeof iso).toBe('string');
+      const [j, m, a] = saisie.split('/');
+      expect(dateAchatPourSaisie(iso as string)).toBe(`${j.padStart(2, '0')}/${m.padStart(2, '0')}/${a}`);
+    }
+    expect(lireDateAchat('14.11.2026', maintenant)).toBe(lireDateAchat('14/11/2026', maintenant));
+    expect(moisAchat(lireDateAchat('1/11/2026', maintenant) as string)).toBe('nov. 2026');
+  });
+
+  it('refuse une date qui n’existe pas, mal écrite ou à venir', () => {
+    const maintenant = new Date(2026, 10, 23, 9);
+    for (const saisie of ['31/11/2026', '29/02/2026', '14/13/2026', 'hier', '14/11/26', '24/11/2026']) {
+      expect(lireDateAchat(saisie, maintenant)).toBe('invalide');
+    }
+  });
+
+  it('prépare le champ de saisie depuis une date rangée, vide sans date', () => {
+    expect(dateAchatPourSaisie(null)).toBe('');
+    expect(dateAchatPourSaisie(new Date(2026, 2, 5, 18).toISOString())).toBe('05/03/2026');
+  });
+
+  it('range en dernier les pièces non datées, aussi au tri par marque', () => {
+    const vestiaire = [
+      articleFictif({ id: 'sans', statut: 'achete', marque: 'Alpha', dateAchat: null }),
+      articleFictif({ id: 'date', statut: 'achete', marque: 'Alpha', dateAchat: '2026-01-10T12:00:00.000Z' }),
+    ];
+    expect(ids(trierVestiaire(vestiaire, 'achat'))).toEqual(['date', 'sans']);
+    expect(ids(trierVestiaire(vestiaire, 'marque'))).toEqual(['date', 'sans']);
   });
 });

@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -27,6 +27,8 @@ type Etat =
 
 /** Écran « Par photo » (docs/SPEC.md, « Parcours par photo »). */
 export default function ParPhoto() {
+  // destination : « vestiaire » pour un ajout direct au Vestiaire, transmise au formulaire.
+  const { destination } = useLocalSearchParams<{ destination?: string }>();
   const [etat, setEtat] = useState<Etat>({ etape: 'choix', message: null });
   // Évite d'afficher le résultat d'une recherche abandonnée (« Une autre photo » pendant l'attente).
   const recherche = useRef(0);
@@ -65,6 +67,7 @@ export default function ParPhoto() {
         photo,
         description: JSON.stringify(description),
         ...(proposition ? { proposition: JSON.stringify(proposition) } : {}),
+        ...(destination ? { destination } : {}),
       },
     });
 

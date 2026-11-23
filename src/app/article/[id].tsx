@@ -106,7 +106,7 @@ export default function Fiche() {
     [texts.fiche.categorie, article.categorie],
     // Pièce achetée : la date d'achat remplace la priorité (docs/SPEC.md, « Fiche d'une pièce achetée »).
     achete
-      ? [texts.fiche.achat, dateAchat ? texts.fiche.acheteLe(dateAchat) : null]
+      ? [texts.fiche.achat, dateAchat ? texts.fiche.acheteLe(dateAchat) : texts.fiche.nonDate]
       : [texts.fiche.priorite, texts.priorites[article.priorite]],
   ];
 
