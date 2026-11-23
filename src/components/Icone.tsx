@@ -8,6 +8,7 @@ const TRACES = {
   fermer: 'M6 6l12 12M18 6 6 18',
   plus: 'M12 5v14M5 12h14',
   retour: 'M15 5l-7 7 7 7',
+  suivant: 'M9 5l7 7-7 7',
   menu: 'M4 7h16M4 12h16M4 17h16',
   lien: 'M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1',
   crayon: 'M4 20h4L19 9l-4-4L4 16v4ZM13 7l4 4',

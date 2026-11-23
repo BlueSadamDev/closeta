@@ -9,10 +9,11 @@ import { Bouton } from '@/components/Bouton';
 import { BoutonIcone } from '@/components/BoutonIcone';
 import { Entete } from '@/components/Entete';
 import { Etiquette } from '@/components/Etiquette';
+import { Icone } from '@/components/Icone';
 import { PhotoArticle } from '@/components/PhotoArticle';
 import { RichText } from '@/components/RichText';
 import { enregistrerArticle, lireArticle, lireReleves, supprimerArticle } from '@/db/articles';
-import { appliquerLecture, aRelire, disponibiliteAffichee, variationPrix } from '@/domain/actualisation';
+import { appliquerLecture, aRelire, bandeauEpuise, disponibiliteAffichee, variationPrix } from '@/domain/actualisation';
 import { marquerAchete, remettreEnWishlist, type Article } from '@/domain/article';
 import { formaterPrix } from '@/domain/prix';
 import { niveauQuota, type Quota } from '@/domain/relais';
@@ -165,6 +166,9 @@ export default function Fiche() {
   const dispo = enWishlist ? disponibiliteAffichee(article) : null;
   const verifieLe = enWishlist && echecLecture ? dateAchatLongue(article.dateVerif) : null;
   const quotaAtteint = quota !== null && niveauQuota(quota) === 'atteint';
+  // Pièce épuisée : bandeau en tête de fiche ; la recherche n'est lancée qu'au toucher (économie du quota).
+  const bandeau = bandeauEpuise(article);
+  const voirAlternatives = () => router.push(`/alternatives?id=${article.id}`);
   const dateAchat = dateAchatLongue(article.dateAchat);
   const details: [string, string | null][] = [
     [texts.fiche.taille, article.taille],
@@ -180,6 +184,20 @@ export default function Fiche() {
     <SafeAreaView style={styles.ecran} edges={['top', 'bottom']}>
       <Entete gauche={<BoutonIcone nom="retour" libelle={texts.accessibilite.retour} onPress={retour} />} />
       <ScrollView contentContainerStyle={styles.contenu}>
+        {bandeau ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: quotaAtteint }}
+            disabled={quotaAtteint}
+            onPress={voirAlternatives}
+            style={styles.bandeau}
+          >
+            <RichText style={[type.body, styles.texteBandeau, quotaAtteint && styles.discret]}>
+              {bandeau.taille ? texts.fiche.bandeauEpuiseEn(bandeau.taille) : texts.fiche.bandeauEpuise}
+            </RichText>
+            {quotaAtteint ? null : <Icone nom="suivant" taille={18} />}
+          </Pressable>
+        ) : null}
         <PhotoArticle article={article} hauteur={420} tailleLettre={120} />
 
         {article.marque ? <Etiquette style={styles.marque}>{article.marque}</Etiquette> : null}
@@ -201,7 +219,8 @@ export default function Fiche() {
             <Text style={[type.body, styles.discret]}>{texts.fiche.hausse(formaterPrix(variation.euros))}</Text>
           )
         ) : null}
-        {dispo ? (
+        {/* « Épuisé » est déjà dit par le bandeau : seul « En stock en M » reste sous le prix. */}
+        {dispo && !bandeau ? (
           <Text style={[type.body, dispo.etat === 'epuise' ? styles.texteFort : styles.discret]}>
             {dispo.taille
               ? dispo.etat === 'epuise'
@@ -267,7 +286,7 @@ export default function Fiche() {
                 libelle={texts.alternatives.voir}
                 variante="secondaire"
                 desactive={quotaAtteint}
-                onPress={() => router.push(`/alternatives?id=${article.id}`)}
+                onPress={voirAlternatives}
               />
               {quota ? (
                 <Text style={[type.body, styles.discret]}>
@@ -293,6 +312,18 @@ const styles = StyleSheet.create({
   ecran: { flex: 1, backgroundColor: colors.paper },
   contenu: { padding: spacing.screen, paddingBottom: 48 },
   marque: { marginTop: 24 },
+  bandeau: {
+    minHeight: spacing.touchTarget,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    borderTopWidth: spacing.hairline,
+    borderBottomWidth: spacing.hairline,
+    borderColor: colors.ink,
+  },
+  texteBandeau: { flexShrink: 1, color: colors.ink, fontSize: 14 },
   nom: { color: colors.ink, marginTop: 6, marginBottom: 6 },
   details: { marginTop: 24, borderTopWidth: spacing.hairline, borderTopColor: colors.ink },
   ligne: {

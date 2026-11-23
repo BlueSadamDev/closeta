@@ -1,5 +1,5 @@
 import { articleFictif } from '../__fixtures__/articles';
-import { appliquerLecture, aRelire, disponibiliteAffichee, etiquetteAlerte, variationPrix, type Lecture } from '../actualisation';
+import { appliquerLecture, aRelire, bandeauEpuise, disponibiliteAffichee, etiquetteAlerte, variationPrix, type Lecture } from '../actualisation';
 
 const MAINTENANT = new Date('2026-11-23T12:00:00.000Z');
 
@@ -95,5 +95,27 @@ describe('etiquetteAlerte', () => {
     expect(etiquetteAlerte({ ...PIECE, prix: 450 })).toBeNull();
     expect(etiquetteAlerte(PIECE)).toBeNull();
     expect(etiquetteAlerte({ ...PIECE, prix: 395, statut: 'achete' })).toBeNull();
+  });
+});
+
+describe('bandeauEpuise', () => {
+  it('signale une pièce de la Wishlist épuisée dans sa taille', () => {
+    expect(bandeauEpuise({ ...PIECE, disponibilite: 'en_stock', dispoTaille: 'epuise' })).toEqual({ taille: 'M' });
+  });
+
+  it('signale une pièce épuisée partout, sans taille connue ou sans information sur la taille', () => {
+    expect(bandeauEpuise({ ...PIECE, disponibilite: 'epuise', dispoTaille: 'inconnue' })).toEqual({ taille: null });
+    expect(bandeauEpuise({ ...PIECE, taille: null, disponibilite: 'epuise' })).toEqual({ taille: null });
+  });
+
+  it('ne montre rien quand la disponibilité est inconnue ou en stock', () => {
+    expect(bandeauEpuise({ ...PIECE, disponibilite: 'inconnue', dispoTaille: 'inconnue' })).toBeNull();
+    expect(bandeauEpuise({ ...PIECE, disponibilite: 'en_stock', dispoTaille: 'en_stock' })).toBeNull();
+    // Épuisée ailleurs mais en stock dans sa taille : la fiche dit « En stock en M ».
+    expect(bandeauEpuise({ ...PIECE, disponibilite: 'epuise', dispoTaille: 'en_stock' })).toBeNull();
+  });
+
+  it('ne montre rien pour une pièce du Vestiaire', () => {
+    expect(bandeauEpuise({ ...PIECE, statut: 'achete', disponibilite: 'epuise', dispoTaille: 'epuise' })).toBeNull();
   });
 });

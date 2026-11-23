@@ -110,6 +110,9 @@ export const texts = {
     enStockEn: (taille: string) => `En stock en ${taille}`,
     epuiseEn: (taille: string) => `Épuisé en ${taille}`,
     epuise: 'Épuisé',
+    /** Bandeau en tête de fiche d'une pièce épuisée (docs/SPEC.md, lot 3, étape 4). */
+    bandeauEpuiseEn: (taille: string) => `Épuisé en ${taille}. *Voir des alternatives*`,
+    bandeauEpuise: 'Épuisé. *Voir des alternatives*',
     verifieLe: (date: string) => `Vérifié le ${date}`,
     historique: 'Historique des prix',
     sansPrix: 'Sans prix',

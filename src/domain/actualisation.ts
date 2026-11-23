@@ -92,3 +92,17 @@ export function etiquetteAlerte(a: Article): 'epuise' | 'baisse' | null {
   if (a.disponibilite === 'epuise' || a.dispoTaille === 'epuise') return 'epuise';
   return variationPrix(a)?.sens === 'baisse' ? 'baisse' : null;
 }
+
+/**
+ * Bandeau « Épuisé en M. Voir des alternatives » en tête de fiche (docs/SPEC.md, lot 3, étape 4) :
+ * pièce de la Wishlist épuisée, d'après ce que la fiche affiche (la taille passe d'abord).
+ * Rien pour le Vestiaire, ni quand la disponibilité est inconnue ou en stock.
+ * Renvoie la taille à citer (null : « Épuisé » sans taille), ou null s'il n'y a pas de bandeau.
+ */
+export function bandeauEpuise(
+  a: Pick<Article, 'statut' | 'taille' | 'disponibilite' | 'dispoTaille'>,
+): { taille: string | null } | null {
+  if (a.statut !== 'souhaite') return null;
+  const dispo = disponibiliteAffichee(a);
+  return dispo?.etat === 'epuise' ? { taille: dispo.taille } : null;
+}
