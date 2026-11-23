@@ -4,6 +4,8 @@ export const settings = {
   delaiPageMs: 12_000,
   /** Taille maximale lue d'une page (au-delà, on s'arrête : les données produit sont dans l'en-tête). */
   tailleMaxPage: 3_000_000,
+  /** Longueur maximale de la taille envoyée à /extract (« M », « 42 », « 9,5 UK »). */
+  tailleMaxTaille: 20,
   /** Nombre maximal de redirections suivies. */
   redirectionsMax: 5,
   /** Pays et devise demandés aux boutiques qui adaptent le prix au pays (sinon : dollars selon le serveur). */

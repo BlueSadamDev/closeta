@@ -60,7 +60,7 @@ Cormorant Garamond et Jost, sous licence SIL Open Font License (fichiers de lice
 
 Petit programme hébergé chez Cloudflare (gratuit). L'app lui envoie un lien produit ou une photo ; il renvoie ce qu'il a trouvé (une information introuvable reste vide). Il ne conserve rien.
 
-- `POST /extract`, corps `{ "url": "https://…" }` : lit la page de la boutique et renvoie nom, marque, image, prix et devise. N'accepte que des liens `https` publics.
+- `POST /extract`, corps `{ "url": "https://…", "taille": "M" }` (`taille` facultative) : lit la page de la boutique et renvoie nom, marque, image, prix, devise, `disponibilite` et `dispo_taille` (`en_stock`, `epuise` ou `inconnue` si la boutique ne publie rien). N'accepte que des liens `https` publics.
 - `POST /identify`, corps = la photo JPEG (`Content-Type: image/jpeg`, 2 Mo au plus) : l'IA de Cloudflare décrit la pièce, Google Lens (via SerpApi) cherche l'article, Google Shopping complète avec des alternatives. Renvoie de 0 à 5 résultats. La photo est déposée un instant dans le stockage R2 (Lens a besoin d'une adresse pour la lire, `GET /photo/<id>`), puis supprimée.
 - `POST /alternatives`, corps JSON `{ image_url?, photo?, nom, marque, categorie, couleur, url_exclue }` (`photo` = JPEG en base64, seulement si la pièce n'a pas d'image de boutique) : Google Lens cherche des pièces qui ressemblent, classées par ressemblance (jamais par prix) ; la page d'origine, les réseaux sociaux et les résultats sans boutique sont écartés ; sous 3 résultats, Google Shopping complète. Renvoie de 0 à 5 résultats ; 1 ou 2 recherches SerpApi par appel.
 - `GET /quota` : recherches SerpApi du mois, `{ "utilise": 37, "limite": 250, "mois": "2026-11" }` (affiché dans les Réglages de l'app).

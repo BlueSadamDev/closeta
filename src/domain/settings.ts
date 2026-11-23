@@ -29,6 +29,8 @@ export const settings = {
   identifyTimeoutMs: 30_000,
   /** Temps maximal d'attente de /alternatives (Google Lens puis Google Shopping enchaînés). */
   alternativesTimeoutMs: 30_000,
+  /** Relecture du prix et de la disponibilité à l'ouverture d'une fiche, si la dernière date de plus de 24 h. */
+  relectureDelaiH: 24,
   /** Recherches SerpApi du mois : mise en garde dans les Réglages à partir de 80 % du seuil. */
   quotaAlerte: 0.8,
 } as const;

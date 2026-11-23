@@ -15,7 +15,7 @@ import { PriseDeVue } from '@/components/PriseDeVue';
 import { RichText } from '@/components/RichText';
 import { enregistrerArticle, lireArticle } from '@/db/articles';
 import { lireParametreAlternative, preremplirDepuisAlternative } from '@/domain/alternatives';
-import { CATEGORIES, PRIORITES, type Article, type TypeArticle } from '@/domain/article';
+import { CATEGORIES, PRIORITES, type Article, type Disponibilite, type TypeArticle } from '@/domain/article';
 import { brouillonDepuisLien, listeFrancaise, nomDuSite, preremplir, type ChampManquant } from '@/domain/lien';
 import { brouillonDepuisDescription, lireParametresPhoto, preremplirDepuisProposition, type Proposition } from '@/domain/photo';
 import { prixPourSaisie } from '@/domain/prix';
@@ -117,6 +117,8 @@ export default function Formulaire() {
   const [imageSource, setImageSource] = useState<string | null>(depart?.proposition?.image ?? null);
   const [annonce, setAnnonce] = useState<string | null>(depart?.annonce ?? null);
   const [manquants, setManquants] = useState<ChampManquant[]>(depart?.manquants ?? []);
+  // Ajout par lien : disponibilité lue sur la page (la taille n'est pas encore connue).
+  const [dispoLue, setDispoLue] = useState<Disponibilite>('inconnue');
   // Ajout par photo : proposition choisie.
   const choisie = depart?.proposition ?? null;
   // Photo prise ou choisie par l'utilisateur (parcours photo, ou ajoutée depuis le formulaire),
@@ -157,6 +159,7 @@ export default function Formulaire() {
         setBrouillon(p.brouillon);
         setImageSource(p.image);
         setManquants(p.manquants);
+        setDispoLue(resultat.extraction.disponibilite);
         setAnnonce(texts.formulaire.lien.trouve);
       } else {
         // Un échec ne bloque jamais l'ajout : formulaire vide, lien conservé.
@@ -249,7 +252,8 @@ export default function Formulaire() {
           dateAchat,
           dateMaj: maintenant,
           prixAjout: r.champs.prix,
-          disponibilite: 'inconnue',
+          // Le Vestiaire n'est jamais actualisé : sa disponibilité reste inconnue.
+          disponibilite: pourVestiaire ? 'inconnue' : dispoLue,
           dispoTaille: 'inconnue',
           // Statut ; page boutique lue (ajout par lien dans la Wishlist), jamais pour le Vestiaire.
           ...etatDeDepart(pourVestiaire ? 'vestiaire' : 'wishlist', origine, maintenant),

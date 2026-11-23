@@ -9,7 +9,21 @@ const REPONSE_COMPLETE = {
   prix: 289.9,
   devise: 'EUR',
   url: LIEN,
+  disponibilite: 'en_stock',
+  dispo_taille: 'epuise',
 };
+/** La même réponse, une fois lue par l'app. */
+const EXTRACTION_COMPLETE = {
+  nom: 'Veste en laine',
+  marque: 'Maison Fictive',
+  image: 'https://cdn.boutique.example/veste.jpg',
+  prix: 289.9,
+  devise: 'EUR',
+  url: LIEN,
+  disponibilite: 'en_stock' as const,
+  dispoTaille: 'epuise' as const,
+};
+const RIEN_DE_PUBLIE = { disponibilite: 'inconnue' as const, dispoTaille: 'inconnue' as const };
 
 describe('trouverLien', () => {
   it('lit un lien seul', () => {
@@ -50,13 +64,17 @@ describe('nomDuSite', () => {
 
 describe('lireExtraction', () => {
   it('réponse complète', () => {
-    expect(lireExtraction(200, REPONSE_COMPLETE, LIEN)).toEqual({ ok: true, extraction: REPONSE_COMPLETE });
+    expect(lireExtraction(200, REPONSE_COMPLETE, LIEN)).toEqual({ ok: true, extraction: EXTRACTION_COMPLETE });
   });
   it('champs absents ou mal formés : null, jamais inventés', () => {
-    const r = lireExtraction(200, { nom: 'Veste', marque: '  ', image: 'http://non-securise.example/a.jpg', prix: -3 }, LIEN);
+    const r = lireExtraction(
+      200,
+      { nom: 'Veste', marque: '  ', image: 'http://non-securise.example/a.jpg', prix: -3, disponibilite: 'peut-être' },
+      LIEN,
+    );
     expect(r).toEqual({
       ok: true,
-      extraction: { nom: 'Veste', marque: null, image: null, prix: null, devise: null, url: LIEN },
+      extraction: { nom: 'Veste', marque: null, image: null, prix: null, devise: null, url: LIEN, ...RIEN_DE_PUBLIE },
     });
   });
   it('page dont rien n’a été tiré : illisible', () => {
@@ -77,18 +95,18 @@ describe('lireExtraction', () => {
 
 describe('preremplir', () => {
   it('remplit nom, marque, prix et lien ; rien à compléter', () => {
-    const r = preremplir(REPONSE_COMPLETE);
+    const r = preremplir(EXTRACTION_COMPLETE);
     expect(r.brouillon).toMatchObject({ nom: 'Veste en laine', marque: 'Maison Fictive', prix: '289,90', urlBoutique: LIEN });
     expect(r.brouillon.type).toBeNull();
-    expect(r.image).toBe(REPONSE_COMPLETE.image);
+    expect(r.image).toBe(EXTRACTION_COMPLETE.image);
     expect(r.manquants).toEqual([]);
   });
   it('signale ce qui manque', () => {
-    const r = preremplir({ nom: 'Veste', marque: null, image: null, prix: null, devise: null, url: LIEN });
+    const r = preremplir({ nom: 'Veste', marque: null, image: null, prix: null, devise: null, url: LIEN, ...RIEN_DE_PUBLIE });
     expect(r.manquants).toEqual(['marque', 'prix', 'image']);
   });
   it('un prix dans une autre devise n’est pas repris', () => {
-    const r = preremplir({ ...REPONSE_COMPLETE, devise: 'USD' });
+    const r = preremplir({ ...EXTRACTION_COMPLETE, devise: 'USD' });
     expect(r.brouillon.prix).toBe('');
     expect(r.manquants).toEqual(['prix']);
   });

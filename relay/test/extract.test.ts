@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { extraireProduit, lireMontant, texteNet } from '../src/extract';
+import { extraireProduit, lireDisponibilite, lireMontant, reunir, tailleNormalisee, texteNet } from '../src/extract';
 import opengraphSeul from './fixtures/opengraph-seul.html?raw';
 import shopifyVendeurInconnu from './fixtures/shopify-vendeur-inconnu.html?raw';
+import shopifyTailles from './fixtures/shopify-tailles.html?raw';
 import shopify from './fixtures/shopify.html?raw';
 import squarespace from './fixtures/squarespace.html?raw';
 import vide from './fixtures/vide.html?raw';
 import wooPrixAffiche from './fixtures/woo-prix-affiche.html?raw';
+import wooTailles from './fixtures/woo-tailles.html?raw';
 import wooVariantes from './fixtures/woo-variantes.html?raw';
 import woocommerce from './fixtures/woocommerce.html?raw';
 
@@ -19,6 +21,8 @@ const PAGES: Record<string, string> = {
   'woo-variantes': wooVariantes,
   'woo-prix-affiche': wooPrixAffiche,
   'shopify-vendeur-inconnu': shopifyVendeurInconnu,
+  'shopify-tailles': shopifyTailles,
+  'woo-tailles': wooTailles,
 };
 const page = (nom: string) => PAGES[nom];
 
@@ -31,6 +35,8 @@ describe('extraction des données produit (pages fictives)', () => {
       prix: 1290,
       devise: 'EUR',
       url: 'https://boutique.exemple.test/products/manteau-fictif',
+      disponibilite: 'en_stock',
+      dispo_taille: 'inconnue',
     });
   });
 
@@ -42,6 +48,8 @@ describe('extraction des données produit (pages fictives)', () => {
       prix: 890,
       devise: 'EUR',
       url: 'https://atelier.exemple.test/produit/blouson/',
+      disponibilite: 'inconnue',
+      dispo_taille: 'inconnue',
     });
   });
 
@@ -63,6 +71,8 @@ describe('extraction des données produit (pages fictives)', () => {
       prix: null,
       devise: null,
       url: 'https://exemple.test/costume',
+      disponibilite: 'inconnue',
+      dispo_taille: 'inconnue',
     });
   });
 
@@ -74,6 +84,8 @@ describe('extraction des données produit (pages fictives)', () => {
       prix: null,
       devise: null,
       url: 'https://exemple.test/rien',
+      disponibilite: 'inconnue',
+      dispo_taille: 'inconnue',
     });
   });
 });
@@ -105,6 +117,58 @@ describe('cas particuliers rencontrés sur de vraies boutiques (pages fictives)'
       marque: 'Tailleur Exemple',
       prix: 130,
     });
+  });
+});
+
+describe('disponibilité (pages fictives)', () => {
+  const veste = new URL('https://boutique.exemple.test/products/veste-fictive');
+
+  it('lit les valeurs de disponibilité, sans rien deviner', () => {
+    expect(lireDisponibilite('http://schema.org/InStock')).toBe('en_stock');
+    expect(lireDisponibilite('https://schema.org/LimitedAvailability')).toBe('en_stock');
+    expect(lireDisponibilite('out of stock')).toBe('epuise');
+    expect(lireDisponibilite('SoldOut')).toBe('epuise');
+    expect(lireDisponibilite(false)).toBe('epuise');
+    expect(lireDisponibilite('https://schema.org/PreOrder')).toBe('inconnue');
+    expect(lireDisponibilite(undefined)).toBe('inconnue');
+  });
+
+  it('réunit les offres : une en stock suffit, épuisé seulement si toutes le sont', () => {
+    expect(reunir(['epuise', 'en_stock'])).toBe('en_stock');
+    expect(reunir(['epuise', 'epuise'])).toBe('epuise');
+    expect(reunir(['epuise', 'inconnue'])).toBe('inconnue');
+    expect(reunir([])).toBe('inconnue');
+  });
+
+  it('écrit les tailles de façon comparable', () => {
+    expect(tailleNormalisee('Taille M')).toBe('m');
+    expect(tailleNormalisee('EU 42')).toBe('42');
+    expect(tailleNormalisee('9,5 UK')).toBe('9.5uk');
+    expect(tailleNormalisee('  ')).toBeNull();
+  });
+
+  it('variantes JSON-LD : en stock globalement, taille M épuisée, taille L épuisée (champ size)', () => {
+    expect(extraireProduit(page('shopify-tailles'), veste, 'M')).toMatchObject({ disponibilite: 'en_stock', dispo_taille: 'epuise', prix: 420 });
+    expect(extraireProduit(page('shopify-tailles'), veste, 'S')).toMatchObject({ dispo_taille: 'en_stock' });
+    expect(extraireProduit(page('shopify-tailles'), veste, 'Taille L')).toMatchObject({ dispo_taille: 'epuise' });
+  });
+
+  it('taille absente des variantes, ou non demandée : inconnue', () => {
+    expect(extraireProduit(page('shopify-tailles'), veste, 'XXL').dispo_taille).toBe('inconnue');
+    expect(extraireProduit(page('shopify-tailles'), veste).dispo_taille).toBe('inconnue');
+  });
+
+  it('variantes WooCommerce : stock par taille', () => {
+    const pull = new URL('https://atelier.exemple.test/produit/pull/');
+    expect(extraireProduit(page('woo-tailles'), pull, 's')).toMatchObject({ disponibilite: 'en_stock', dispo_taille: 'epuise' });
+    expect(extraireProduit(page('woo-tailles'), pull, 'M').dispo_taille).toBe('en_stock');
+  });
+
+  it('balise de partage, ou bloc de stock WooCommerce, quand rien d’autre n’est publié', () => {
+    const meta = '<html><head><meta property="product:availability" content="out of stock"></head></html>';
+    expect(extraireProduit(meta, veste).disponibilite).toBe('epuise');
+    const woo = '<html><body><p class="stock out-of-stock">Rupture de stock</p></body></html>';
+    expect(extraireProduit(woo, veste).disponibilite).toBe('epuise');
   });
 });
 

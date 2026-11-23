@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { etiquetteAlerte } from '@/domain/actualisation';
 import type { Article } from '@/domain/article';
 import { formaterPrix } from '@/domain/prix';
 import { texts } from '@/domain/texts';
@@ -27,10 +28,19 @@ export function CarteArticle({
   format34?: boolean;
 }) {
   const texteEtiquette = etiquette === undefined ? texts.priorites[article.priorite] : etiquette;
+  // Wishlist : « ÉPUISÉ » ou « BAISSE » en haut à gauche de la photo, d'après le dernier relevé.
+  const alerte = etiquetteAlerte(article);
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={{ width: largeur }}>
       <View>
         <PhotoArticle article={article} hauteur={format34 ? Math.round((largeur * 4) / 3) : spacing.gridPhotoHeight} />
+        {alerte ? (
+          <View style={styles.alerte}>
+            <Text style={[type.label, styles.prioriteTexte, alerte === 'baisse' && styles.baisse]}>
+              {texts.wishlist.alertes[alerte]}
+            </Text>
+          </View>
+        ) : null}
         {texteEtiquette ? (
           <View style={styles.priorite}>
             <Text style={[type.label, styles.prioriteTexte]}>{texteEtiquette}</Text>
@@ -53,6 +63,8 @@ export function CarteArticle({
 const styles = StyleSheet.create({
   priorite: { position: 'absolute', right: 0, bottom: 0, backgroundColor: colors.paper, paddingHorizontal: 8, paddingVertical: 5 },
   prioriteTexte: { color: colors.ink, fontSize: 10 },
+  alerte: { position: 'absolute', left: 0, top: 0, backgroundColor: colors.paper, paddingHorizontal: 8, paddingVertical: 5 },
+  baisse: { color: colors.tobacco },
   marque: { marginTop: 10 },
   nom: { color: colors.ink, marginTop: 2, lineHeight: 22 },
 });

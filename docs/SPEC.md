@@ -259,6 +259,11 @@ Décisions du 23 novembre 2026 (plans des étapes 1 et 5) :
 - Barre d'onglets : deux mots en capitales, « WISHLIST » et « VESTIAIRE », sans icône (actif `ink` souligné, inactif `inkMuted`).
 - Le bouton « Ajouter » du Vestiaire n'apparaît qu'à l'étape 6 (ajout direct au Vestiaire).
 
+Décisions du 23 novembre 2026 (plan de l'étape 3) :
+
+- Une relecture par le relais ne crée un relevé que si le prix ou la disponibilité a changé ; la date de vérification, elle, est toujours mise à jour.
+- Étiquettes « ÉPUISÉ » et « BAISSE » : en haut à gauche de la photo, même style que la priorité (« BAISSE » en `tobacco`).
+
 ### Modèle de données (migration)
 
 Nouvelle table `releve_prix` (un relevé = une lecture de la page boutique) :
