@@ -138,6 +138,7 @@ export default function Vestiaire() {
               article={article}
               largeur={largeur}
               etiquette={etiquette(article)}
+              format34
               onPress={() => router.push(`/article/${article.id}`)}
             />
           )}
