@@ -25,6 +25,7 @@ import { dateAchatPourSaisie, etatDeDepart } from '@/domain/vestiaire';
 import { BROUILLON_VIDE, validerBrouillon, type Brouillon, type Erreurs } from '@/domain/validation';
 import { extraire } from '@/relay/client';
 import { prendrePhoto, type Prise, type SourcePhoto } from '@/photo/prise';
+import { habiller } from '@/photo/habillage';
 import { choisirPourVestiaire } from '@/photo/vestiaire';
 import { copierImage, effacerFichier, rangerPhoto } from '@/relay/image';
 import { lireJeton } from '@/relay/jeton';
@@ -88,7 +89,7 @@ function departAlternative(alternative: string | undefined) {
 
 /** Formulaire de saisie (ajout manuel et modification) — docs/SPEC.md, « 4. Formulaire de validation ». */
 export default function Formulaire() {
-  const { id, lien, photo, description, proposition, destination, alternative, alternativeDe } = useLocalSearchParams<{
+  const { id, lien, photo, description, proposition, destination, habillee, alternative, alternativeDe } = useLocalSearchParams<{
     id?: string;
     lien?: string;
     photo?: string;
@@ -96,6 +97,8 @@ export default function Formulaire() {
     proposition?: string;
     /** « vestiaire » : ajout direct au Vestiaire (docs/SPEC.md, « Lot 3 », « Étape 6 »). */
     destination?: string;
+    /** Vestiaire : version habillée de la photo (docs/SPEC.md, « Étape 8 »). */
+    habillee?: string;
     /** Alternative choisie (texte JSON) et identifiant de la pièce d'origine. */
     alternative?: string;
     alternativeDe?: string;
@@ -125,6 +128,10 @@ export default function Formulaire() {
   // et photo gardée quand la boutique en fournit une aussi.
   const [maPhoto, setMaPhoto] = useState<string | null>(!id && photo ? photo : null);
   const [photoGardee, setPhotoGardee] = useState<'maPhoto' | 'boutique'>(choisie?.image ? 'boutique' : 'maPhoto');
+  // Vestiaire : version habillée de ma photo (pièce détourée sur fond uni), gardée par défaut.
+  const [maPhotoHabillee, setMaPhotoHabillee] = useState<string | null>(!id && photo && habillee ? habillee : null);
+  const [habillage, setHabillage] = useState<'habillee' | 'origine'>('habillee');
+  const photoRetenue = maPhotoHabillee && habillage === 'habillee' ? maPhotoHabillee : maPhoto;
   const [choixPhotoOuvert, setChoixPhotoOuvert] = useState(false);
   const [messagePhoto, setMessagePhoto] = useState<string | null>(null);
   // Vestiaire : prise de vue guidée 3:4 pour ajouter ou changer la photo.
@@ -185,6 +192,14 @@ export default function Formulaire() {
   const fermer = () =>
     router.canGoBack() ? router.back() : router.replace(pourVestiaire ? '/vestiaire' : '/');
 
+  const recevoirPhoto = (origine: string, version: string | null) => {
+    setMaPhoto(origine);
+    setMaPhotoHabillee(version);
+    setHabillage('habillee');
+    setPhotoGardee('maPhoto');
+    setChoixPhotoOuvert(false);
+  };
+
   const ajouterPhoto = async (source: SourcePhoto) => {
     setMessagePhoto(null);
     // Vestiaire : appareil photo → prise de vue guidée ; galerie → recadrage 3:4.
@@ -194,9 +209,13 @@ export default function Formulaire() {
     }
     const prise: Prise = pourVestiaire ? await choisirPourVestiaire() : await prendrePhoto(source);
     if (prise.ok) {
-      setMaPhoto(prise.uri);
-      setPhotoGardee('maPhoto');
-      setChoixPhotoOuvert(false);
+      let version: string | null = null;
+      if (pourVestiaire) {
+        setMessagePhoto(texts.photo.guidee.preparation);
+        version = await habiller(prise.uri);
+        setMessagePhoto(version ? null : texts.photo.guidee.sansHabillage);
+      }
+      recevoirPhoto(prise.uri, version);
     } else if (prise.raison !== 'annule') {
       setMessagePhoto(prise.raison === 'camera_refusee' ? texts.photo.cameraRefusee : texts.photo.photoIllisible);
     }
@@ -213,14 +232,14 @@ export default function Formulaire() {
     const nouvelId = randomUUID();
     // La photo trouvée sur la boutique est copiée sur le téléphone ; en cas d'échec, on garde son adresse.
     // « Ma photo » : la photo prise ou choisie est rangée dans le stockage de l'app.
-    const garderMaPhoto = !!maPhoto && (photoGardee === 'maPhoto' || !imageSource);
+    const garderMaPhoto = !!photoRetenue && (photoGardee === 'maPhoto' || !imageSource);
     const source = garderMaPhoto ? null : imageSource;
     // Modification avec une nouvelle photo : rangée sous un nouveau nom, l'ancienne est effacée après l'enregistrement.
-    const remplacee = existant && maPhoto ? await rangerPhoto(maPhoto, `${existant.id}-${Date.now()}`) : null;
+    const remplacee = existant && photoRetenue ? await rangerPhoto(photoRetenue, `${existant.id}-${Date.now()}`) : null;
     const imageLocale = existant
       ? null
-      : garderMaPhoto && maPhoto
-        ? await rangerPhoto(maPhoto, nouvelId)
+      : garderMaPhoto && photoRetenue
+        ? await rangerPhoto(photoRetenue, nouvelId)
         : source
           ? await copierImage(source, nouvelId)
           : null;
@@ -314,8 +333,8 @@ export default function Formulaire() {
 
           <BlocPhoto
             apercu={
-              maPhoto && (photoGardee === 'maPhoto' || !imageSource)
-                ? { imageLocale: maPhoto, imageSource: null }
+              photoRetenue && (photoGardee === 'maPhoto' || !imageSource)
+                ? { imageLocale: photoRetenue, imageSource: null }
                 : !existant && imageSource
                   ? { imageLocale: null, imageSource }
                   : existant && (existant.imageLocale || existant.imageSource)
@@ -324,6 +343,11 @@ export default function Formulaire() {
             }
             nom={brouillon.nom}
             choixBoutique={!!maPhoto && !!imageSource && !existant}
+            choixHabillage={
+              maPhotoHabillee && (photoGardee === 'maPhoto' || !imageSource)
+                ? { valeur: habillage, onChange: setHabillage }
+                : null
+            }
             photoGardee={photoGardee}
             onPhotoGardee={setPhotoGardee}
             choixOuvert={choixPhotoOuvert}
@@ -437,11 +461,10 @@ export default function Formulaire() {
         <PriseDeVue
           visible={guidee}
           onFermer={() => setGuidee(false)}
-          onPhoto={(uri) => {
+          onPhoto={(origine, version) => {
             setGuidee(false);
-            setMaPhoto(uri);
-            setPhotoGardee('maPhoto');
-            setChoixPhotoOuvert(false);
+            recevoirPhoto(origine, version);
+            setMessagePhoto(version ? null : texts.photo.guidee.sansHabillage);
           }}
         />
       ) : null}
@@ -457,6 +480,7 @@ function BlocPhoto({
   apercu,
   nom,
   choixBoutique,
+  choixHabillage,
   photoGardee,
   onPhotoGardee,
   choixOuvert,
@@ -467,6 +491,8 @@ function BlocPhoto({
   apercu: { imageLocale: string | null; imageSource: string | null } | null;
   nom: string;
   choixBoutique: boolean;
+  /** Vestiaire : photo habillée ou d'origine, quand l'habillage a réussi. */
+  choixHabillage: { valeur: 'habillee' | 'origine'; onChange: (v: 'habillee' | 'origine') => void } | null;
   photoGardee: 'maPhoto' | 'boutique';
   onPhotoGardee: (v: 'maPhoto' | 'boutique') => void;
   choixOuvert: boolean;
@@ -488,6 +514,16 @@ function BlocPhoto({
               ]}
               valeur={photoGardee}
               onChange={onPhotoGardee}
+            />
+          ) : null}
+          {choixHabillage ? (
+            <Choix
+              options={[
+                { valeur: 'habillee', libelle: f.photo.habillee },
+                { valeur: 'origine', libelle: f.photo.origine },
+              ]}
+              valeur={choixHabillage.valeur}
+              onChange={choixHabillage.onChange}
             />
           ) : null}
           {apercu && !choixOuvert ? (

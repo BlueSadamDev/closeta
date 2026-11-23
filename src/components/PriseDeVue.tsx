@@ -6,6 +6,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { settings } from '@/domain/settings';
 import { texts } from '@/domain/texts';
+import { habiller } from '@/photo/habillage';
 import { choisirPourVestiaire, recadrerPourVestiaire } from '@/photo/vestiaire';
 import { colors, fonts, spacing, type } from '@/theme';
 
@@ -19,8 +20,8 @@ const RESERVE = 44 + 72 + spacing.buttonHeight * 2 + 12 + 48;
 
 type Props = {
   visible: boolean;
-  /** Photo prête : 3:4, 1200 × 1600 px, JPEG. */
-  onPhoto: (uri: string) => void;
+  /** Photo prête : 3:4, 1200 × 1600 px, JPEG ; et sa version habillée, null si le détourage a échoué. */
+  onPhoto: (origine: string, habillee: string | null) => void;
   onFermer: () => void;
 };
 
@@ -67,7 +68,7 @@ function Contenu({ onPhoto, onFermer }: Omit<Props, 'visible'>) {
     try {
       const photo = await camera.current.takePictureAsync({ quality: 1, exif: false });
       const r = await recadrerPourVestiaire(photo.uri, photo.width, photo.height, settings.cadreMarge);
-      if (r.ok) onPhoto(r.uri);
+      if (r.ok) onPhoto(r.uri, await habiller(r.uri));
       else setMessage(texts.photo.photoIllisible);
     } catch {
       setMessage(texts.photo.photoIllisible);
@@ -80,8 +81,9 @@ function Contenu({ onPhoto, onFermer }: Omit<Props, 'visible'>) {
     setEnCours(true);
     setMessage(null);
     const r = await choisirPourVestiaire();
+    const habillee = r.ok ? await habiller(r.uri) : null;
     setEnCours(false);
-    if (r.ok) onPhoto(r.uri);
+    if (r.ok) onPhoto(r.uri, habillee);
     else if (r.raison !== 'annule') setMessage(texts.photo.photoIllisible);
   };
 
