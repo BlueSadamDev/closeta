@@ -5,9 +5,11 @@ import {
   lireIdentification,
   lireParametresPhoto,
   preremplirDepuisProposition,
+  recadrage34,
   reduction,
   seulementDesAlternatives,
   type Proposition,
+  type Rectangle,
 } from '../photo';
 import { BROUILLON_VIDE } from '../validation';
 
@@ -138,5 +140,42 @@ describe('lireParametresPhoto', () => {
   });
   it('une donnée absente ou abîmée vaut « rien »', () => {
     expect(lireParametresPhoto(undefined, '{oups')).toEqual({ description: DESCRIPTION_VIDE, proposition: null });
+  });
+});
+
+describe('recadrage 3:4 du Vestiaire', () => {
+  const dansLaPhoto = (r: Rectangle, l: number, h: number) =>
+    r.originX >= 0 && r.originY >= 0 && r.originX + r.width <= l && r.originY + r.height <= h;
+
+  it('garde toute une photo déjà en 3:4 portrait', () => {
+    expect(recadrage34(3000, 4000)).toEqual({ originX: 0, originY: 0, width: 3000, height: 4000 });
+  });
+
+  it('coupe les côtés d’une photo plus large, le haut et le bas d’une photo plus haute, au centre', () => {
+    expect(recadrage34(4000, 4000)).toEqual({ originX: 500, originY: 0, width: 3000, height: 4000 });
+    expect(recadrage34(3000, 6000)).toEqual({ originX: 0, originY: 1000, width: 3000, height: 4000 });
+    expect(recadrage34(4000, 3000)).toEqual({ originX: 875, originY: 0, width: 2250, height: 3000 });
+  });
+
+  it('retire la marge du cadre sur chaque bord, en restant au centre', () => {
+    expect(recadrage34(3000, 4000, 0.06)).toEqual({ originX: 180, originY: 240, width: 2640, height: 3520 });
+  });
+
+  it('reste en 3:4, en pixels entiers et dans la photo, pour des tailles quelconques', () => {
+    for (const [l, h] of [[3024, 4032], [1080, 1920], [4000, 3000], [1201, 1599], [7, 9]]) {
+      for (const marge of [0, 0.06]) {
+        const r = recadrage34(l, h, marge) as Rectangle;
+        expect(dansLaPhoto(r, l, h)).toBe(true);
+        expect(Number.isInteger(r.width) && Number.isInteger(r.height)).toBe(true);
+        expect(Math.abs(r.width / r.height - 3 / 4)).toBeLessThan(0.15);
+        if (r.width > 100) expect(Math.abs(r.width / r.height - 3 / 4)).toBeLessThan(0.002);
+      }
+    }
+  });
+
+  it('refuse une taille ou une marge illisible', () => {
+    expect(recadrage34(0, 4000)).toBeNull();
+    expect(recadrage34(Number.NaN, 4000)).toBeNull();
+    expect(recadrage34(3000, 4000, 0.5)).toBeNull();
   });
 });

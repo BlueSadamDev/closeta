@@ -54,6 +54,29 @@ export function reduction(largeur: number, hauteur: number, max: number): { widt
   return largeur >= hauteur ? { width: max } : { height: max };
 }
 
+export type Rectangle = { originX: number; originY: number; width: number; height: number };
+
+/**
+ * Partie de la photo à garder pour le format portrait 3:4 (Vestiaire) : le plus grand rectangle 3:4
+ * centré, puis réduit de `marge` (part de sa largeur et de sa hauteur) sur chaque bord, comme le cadre
+ * dessiné sur l'aperçu. En pixels entiers, toujours dans la photo. null si la taille est illisible.
+ */
+export function recadrage34(largeur: number, hauteur: number, marge = 0): Rectangle | null {
+  if (!(largeur > 0) || !(hauteur > 0) || !(marge >= 0) || !(marge < 0.5)) return null;
+  // Plus grand 3:4 centré : toute la hauteur si la photo est plus large que 3:4, sinon toute la largeur.
+  const pleineHauteur = largeur * 4 >= hauteur * 3;
+  const l = pleineHauteur ? (hauteur * 3) / 4 : largeur;
+  const h = pleineHauteur ? hauteur : (largeur * 4) / 3;
+  const width = Math.max(1, Math.floor(l * (1 - 2 * marge)));
+  const height = Math.max(1, Math.min(Math.floor(h * (1 - 2 * marge)), Math.round((width * 4) / 3)));
+  return {
+    originX: Math.floor((largeur - width) / 2),
+    originY: Math.floor((hauteur - height) / 2),
+    width,
+    height,
+  };
+}
+
 const texte = (v: unknown, max = 200): string | null => {
   if (typeof v !== 'string') return null;
   const t = v.replace(/\s+/g, ' ').trim();

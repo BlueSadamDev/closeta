@@ -11,6 +11,7 @@ import { Champ, Saisie } from '@/components/Champ';
 import { Choix } from '@/components/Choix';
 import { Entete } from '@/components/Entete';
 import { PhotoArticle } from '@/components/PhotoArticle';
+import { PriseDeVue } from '@/components/PriseDeVue';
 import { RichText } from '@/components/RichText';
 import { enregistrerArticle, lireArticle } from '@/db/articles';
 import { lireParametreAlternative, preremplirDepuisAlternative } from '@/domain/alternatives';
@@ -23,7 +24,8 @@ import { texts } from '@/domain/texts';
 import { dateAchatPourSaisie, etatDeDepart } from '@/domain/vestiaire';
 import { BROUILLON_VIDE, validerBrouillon, type Brouillon, type Erreurs } from '@/domain/validation';
 import { extraire } from '@/relay/client';
-import { prendrePhoto, type SourcePhoto } from '@/photo/prise';
+import { prendrePhoto, type Prise, type SourcePhoto } from '@/photo/prise';
+import { choisirPourVestiaire } from '@/photo/vestiaire';
 import { copierImage, effacerFichier, rangerPhoto } from '@/relay/image';
 import { lireJeton } from '@/relay/jeton';
 import { colors, fonts, spacing, type } from '@/theme';
@@ -123,6 +125,8 @@ export default function Formulaire() {
   const [photoGardee, setPhotoGardee] = useState<'maPhoto' | 'boutique'>(choisie?.image ? 'boutique' : 'maPhoto');
   const [choixPhotoOuvert, setChoixPhotoOuvert] = useState(false);
   const [messagePhoto, setMessagePhoto] = useState<string | null>(null);
+  // Vestiaire : prise de vue guidée 3:4 pour ajouter ou changer la photo.
+  const [guidee, setGuidee] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -180,7 +184,12 @@ export default function Formulaire() {
 
   const ajouterPhoto = async (source: SourcePhoto) => {
     setMessagePhoto(null);
-    const prise = await prendrePhoto(source);
+    // Vestiaire : appareil photo → prise de vue guidée ; galerie → recadrage 3:4.
+    if (pourVestiaire && source === 'camera') {
+      setGuidee(true);
+      return;
+    }
+    const prise: Prise = pourVestiaire ? await choisirPourVestiaire() : await prendrePhoto(source);
     if (prise.ok) {
       setMaPhoto(prise.uri);
       setPhotoGardee('maPhoto');
@@ -419,6 +428,19 @@ export default function Formulaire() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {pourVestiaire ? (
+        <PriseDeVue
+          visible={guidee}
+          onFermer={() => setGuidee(false)}
+          onPhoto={(uri) => {
+            setGuidee(false);
+            setMaPhoto(uri);
+            setPhotoGardee('maPhoto');
+            setChoixPhotoOuvert(false);
+          }}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }

@@ -230,6 +230,16 @@ export const texts = {
     saisir: 'Saisir à la main',
     cameraRefusee: 'L’appareil photo n’est pas autorisé. *Autorise-le dans les réglages d’Android*, ou choisis une photo.',
     photoIllisible: 'Cette photo ne s’ouvre pas. *Essaie-en une autre*.',
+    /** Prise de vue guidée du Vestiaire (docs/SPEC.md, « Lot 3 », « Étape 7 »). */
+    guidee: {
+      consigne: 'Suspends la pièce sur un cintre, devant un mur uni. *Entière dans le cadre*, crochet en haut.',
+      prendre: 'Prendre la photo',
+      galerie: 'Choisir dans la galerie',
+      preparation: 'On prépare ta photo…',
+      prete: 'Ta photo est prête. *Identifie la pièce* pour remplir la fiche, ou continue à la main.',
+      identifier: 'Identifier la pièce',
+      continuer: 'Continuer sans identifier',
+    },
     echecs: {
       jeton_absent: 'Aucun jeton pour l’instant. *Ajoute-le dans les Réglages*, ou saisis l’article.',
       jeton_refuse: 'Le relais ne te reconnaît pas. *Vérifie ton jeton* dans les Réglages.',
@@ -321,5 +331,6 @@ export const texts = {
     ouvrirFiltres: 'Ouvrir les filtres',
     fermerFiltres: 'Fermer les filtres',
     retour: 'Retour',
+    fermerPriseDeVue: 'Fermer la prise de vue',
   },
 } as const;

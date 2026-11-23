@@ -19,6 +19,12 @@ export const settings = {
   photoMaxDimension: 1024,
   /** Qualité JPEG de la photo envoyée (0 à 1) : légère à envoyer, assez nette pour la recherche. */
   photoCompression: 0.8,
+  /** Photo d'une pièce du Vestiaire : format portrait 3:4, 1200 × 1600 px (docs/SPEC.md, « Lot 3 », « Étape 7 »). */
+  photoVestiaire: { largeur: 1200, hauteur: 1600 },
+  /** Qualité JPEG de la photo du Vestiaire, gardée sur le téléphone : plus nette que la copie envoyée. */
+  photoVestiaireCompression: 0.9,
+  /** Prise de vue guidée : marge entre le bord de l'aperçu et le cadre 3:4, en part de la largeur et de la hauteur. */
+  cadreMarge: 0.06,
   /** Temps maximal d'attente de /identify (IA puis recherches Google enchaînées). */
   identifyTimeoutMs: 30_000,
   /** Temps maximal d'attente de /alternatives (Google Lens puis Google Shopping enchaînés). */
