@@ -13,9 +13,12 @@ import { RichText } from '@/components/RichText';
 import { enregistrerArticle, lireArticle, supprimerArticle } from '@/db/articles';
 import { marquerAchete, remettreEnWishlist, type Article } from '@/domain/article';
 import { formaterPrix } from '@/domain/prix';
+import { niveauQuota, type Quota } from '@/domain/relais';
 import { texts } from '@/domain/texts';
 import { dateAchatLongue } from '@/domain/vestiaire';
+import { lireQuotaRelais } from '@/relay/client';
 import { effacerImage } from '@/relay/image';
+import { lireJeton } from '@/relay/jeton';
 import { colors, spacing, type } from '@/theme';
 
 /** Fiche article (docs/SPEC.md, « 2. Fiche article »). */
@@ -24,10 +27,28 @@ export default function Fiche() {
   const db = useSQLiteContext();
   // undefined = en cours de lecture, null = introuvable.
   const [article, setArticle] = useState<Article | null | undefined>(undefined);
+  // Pièce dont celle-ci est une alternative (null si aucune, ou si elle a été supprimée).
+  const [origine, setOrigine] = useState<Article | null>(null);
+  // Recherches SerpApi du mois, affichées avant « Voir des alternatives » (null = pas de réponse).
+  const [quota, setQuota] = useState<Quota | null>(null);
 
   useFocusEffect(
     useCallback(() => {
-      lireArticle(db, id).then(setArticle);
+      let actif = true;
+      lireArticle(db, id).then(async (a) => {
+        if (!actif) return;
+        setArticle(a);
+        const o = a?.alternativeDe ? await lireArticle(db, a.alternativeDe) : null;
+        if (actif) setOrigine(o);
+        // Le compteur ne sert qu'aux pièces de la Wishlist ; le lire ne consomme aucune recherche.
+        if (a?.statut === 'souhaite') {
+          const q = await lireQuotaRelais(await lireJeton());
+          if (actif) setQuota(q);
+        }
+      });
+      return () => {
+        actif = false;
+      };
     }, [db, id]),
   );
 
@@ -99,6 +120,8 @@ export default function Fiche() {
   };
 
   const achete = article.statut === 'achete';
+  const enWishlist = article.statut === 'souhaite';
+  const quotaAtteint = quota !== null && niveauQuota(quota) === 'atteint';
   const dateAchat = dateAchatLongue(article.dateAchat);
   const details: [string, string | null][] = [
     [texts.fiche.taille, article.taille],
@@ -124,6 +147,15 @@ export default function Fiche() {
           <Text style={[type.sheetPrice, { color: colors.ink }]}>{formaterPrix(article.prix)}</Text>
         )}
 
+        {origine ? (
+          <Pressable accessibilityRole="link" onPress={() => router.push(`/article/${origine.id}`)} style={styles.origine}>
+            <Etiquette>{texts.fiche.alternativeA}</Etiquette>
+            <Text style={[type.body, styles.texteOrigine]} numberOfLines={1}>
+              {origine.nom}
+            </Text>
+          </Pressable>
+        ) : null}
+
         <View style={styles.details}>
           {details.map(([libelle, valeur]) => (
             <View key={libelle} style={styles.ligne}>
@@ -148,6 +180,25 @@ export default function Fiche() {
 
         <View style={styles.actions}>
           {achete ? null : <Bouton libelle={texts.fiche.acheter} onPress={acheter} />}
+          {enWishlist ? (
+            <View style={styles.alternatives}>
+              <Bouton
+                libelle={texts.alternatives.voir}
+                variante="secondaire"
+                desactive={quotaAtteint}
+                onPress={() => router.push(`/alternatives?id=${article.id}`)}
+              />
+              {quota ? (
+                <Text style={[type.body, styles.discret]}>
+                  {texts.alternatives.recherches
+                    .replace('{utilise}', String(quota.utilise))
+                    .replace('{limite}', String(quota.limite))}
+                  {quotaAtteint ? '' : ` · ${texts.alternatives.cout}`}
+                </Text>
+              ) : null}
+              {quotaAtteint ? <RichText style={[type.body, styles.discret]}>{texts.alternatives.quotaAtteint}</RichText> : null}
+            </View>
+          ) : null}
           <Bouton libelle={texts.fiche.modifier} variante="secondaire" onPress={() => router.push(`/formulaire?id=${article.id}`)} />
           {achete ? <Bouton libelle={texts.fiche.remettre} variante="secondaire" onPress={remettre} /> : null}
           <Bouton libelle={texts.fiche.supprimer} variante="danger" onPress={supprimer} />
@@ -176,6 +227,16 @@ const styles = StyleSheet.create({
   lien: { marginTop: 24, minHeight: spacing.touchTarget, justifyContent: 'center', alignSelf: 'flex-start' },
   texteLien: { color: colors.ink, textDecorationLine: 'underline' },
   actions: { marginTop: 32, gap: 12 },
+  alternatives: { gap: 8 },
+  discret: { color: colors.inkMuted },
+  origine: {
+    marginTop: 12,
+    minHeight: spacing.touchTarget,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  texteOrigine: { flexShrink: 1, color: colors.ink, textDecorationLine: 'underline' },
   introuvable: { flex: 1, justifyContent: 'center', paddingHorizontal: spacing.screen },
   phrase: { ...type.body, fontSize: 22, lineHeight: 30, color: colors.ink, textAlign: 'center' },
 });

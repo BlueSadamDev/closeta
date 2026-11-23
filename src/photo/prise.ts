@@ -36,3 +36,19 @@ export async function prendrePhoto(source: SourcePhoto): Promise<Prise> {
     return { ok: false, raison: 'illisible' };
   }
 }
+
+/**
+ * Photo rangée sur le téléphone, réduite (1024 px au plus) et encodée en base64 (JPEG) pour le relais
+ * /alternatives. null si elle ne se lit pas : la recherche se fait alors sans elle.
+ */
+export async function photoEnBase64(uri: string): Promise<string | null> {
+  try {
+    const image = await ImageManipulator.manipulate(uri).renderAsync();
+    const taille = reduction(image.width, image.height, settings.photoMaxDimension);
+    const finale = taille ? await ImageManipulator.manipulate(image).resize(taille).renderAsync() : image;
+    const enregistree = await finale.saveAsync({ format: SaveFormat.JPEG, compress: settings.photoCompression, base64: true });
+    return enregistree.base64 ?? null;
+  } catch {
+    return null;
+  }
+}

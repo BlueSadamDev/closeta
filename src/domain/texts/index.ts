@@ -99,6 +99,8 @@ export const texts = {
     modifier: 'Modifier',
     supprimer: 'Supprimer',
     acheteLe: (date: string) => `Acheté le ${date}`,
+    /** Fiche d'une pièce ajoutée comme alternative : « Alternative à : <nom> ». */
+    alternativeA: 'Alternative à :',
     nonDate: 'Non daté',
     introuvable: 'Cette pièce n’est plus là. *Retourne à ta Wishlist*.',
     lienIllisible: 'Ce lien ne s’ouvre pas. *Vérifie-le* en modifiant la pièce.',
@@ -236,6 +238,37 @@ export const texts = {
       injoignable: 'Le relais ne répond pas. *Vérifie ta connexion*, ou saisis l’article.',
       indisponible: 'La recherche est indisponible pour l’instant. *Saisis l’article* à la main.',
       photo_refusee: 'Cette photo ne passe pas. *Essaie-en une autre*.',
+    },
+  },
+
+  /** Écran « Alternatives » d'une pièce de la Wishlist (docs/SPEC.md, lot 3, étape 2). */
+  alternatives: {
+    voir: 'Voir des alternatives',
+    titre: 'Alternatives',
+    /** {utilise} et {limite} sont remplacés par les nombres. */
+    recherches: 'Recherches ce mois : {utilise} sur {limite}',
+    cout: 'Une recherche en coûte une ou deux.',
+    quotaAtteint: 'Les recherches du mois sont épuisées. *Elles reviennent le 1er*.',
+    recherche: 'On cherche des pièces proches…',
+    resultats: 'Les plus ressemblantes d’abord. *Touche une pièce* pour l’ajouter.',
+    aucun: 'Rien de proche pour cette pièce. *Réessaie plus tard*.',
+    compte: (n: number) => (n <= 1 ? `${n} alternative` : `${n} alternatives`),
+    /** Écart de prix avec la pièce d'origine ; le montant arrive déjà écrit (« 30 € »). */
+    ecart: {
+      moins: (montant: string) => `${montant} de moins`,
+      plus: (montant: string) => `${montant} de plus`,
+      egal: 'Même prix',
+    },
+    reessayer: 'Réessayer',
+    annonce: 'C’est une alternative à ta pièce. *Vérifie la fiche* avant d’enregistrer.',
+    echecs: {
+      jeton_absent: 'Aucun jeton pour l’instant. *Ajoute-le dans les Réglages*.',
+      jeton_refuse: 'Le relais ne te reconnaît pas. *Vérifie ton jeton* dans les Réglages.',
+      limite: 'Trop de demandes en une minute. *Réessaie dans un instant*.',
+      quota_atteint: 'Les recherches du mois sont épuisées. *Elles reviennent le 1er*.',
+      injoignable: 'Le relais ne répond pas. *Vérifie ta connexion* et réessaie.',
+      indisponible: 'La recherche est indisponible pour l’instant. *Réessaie plus tard*.',
+      photo_refusee: 'La photo de cette pièce ne passe pas. *Change-la* en modifiant la pièce.',
     },
   },
 

@@ -70,7 +70,7 @@ describe('relais : sécurité', () => {
     expect(r.status).toBe(502);
   });
 
-  it('ne répond qu’à POST /extract, POST /identify et GET /quota', async () => {
+  it('ne répond qu’à POST /extract, /identify, /alternatives et GET /quota', async () => {
     expect((await relais.fetch(demande(null, JETON, '/', 'GET'), env())).status).toBe(404);
     expect((await relais.fetch(demande({}, JETON, '/autre'), env())).status).toBe(404);
     expect((await relais.fetch(demande({}, JETON, '/quota'), env())).status).toBe(404);
