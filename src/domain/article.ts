@@ -6,6 +6,8 @@ export type TypeArticle = 'vetement' | 'chaussures';
 export type Priorite = 'forte' | 'moyenne' | 'un_jour';
 export type Statut = 'souhaite' | 'achete' | 'abandonne';
 export type Origine = 'manuel' | 'lien' | 'photo';
+/** Disponibilité lue sur la page boutique : jamais devinée, `inconnue` si rien n'est publié. */
+export type Disponibilite = 'en_stock' | 'epuise' | 'inconnue';
 
 export type Article = {
   id: string;
@@ -30,6 +32,16 @@ export type Article = {
   dateAjout: string;
   dateAchat: string | null;
   dateMaj: string;
+  /** Prix au moment de l'ajout (le champ `prix` est le prix actuel). */
+  prixAjout: number | null;
+  /** Dernier état connu sur la page boutique. */
+  disponibilite: Disponibilite;
+  /** Dernier état connu pour la taille de l'article, si la boutique le publie. */
+  dispoTaille: Disponibilite;
+  /** Dernière lecture de la page boutique, null si jamais lue. */
+  dateVerif: string | null;
+  /** Pièce d'origine, si celle-ci a été ajoutée comme alternative. */
+  alternativeDe: string | null;
 };
 
 export const PRIORITES: readonly Priorite[] = ['forte', 'moyenne', 'un_jour'];

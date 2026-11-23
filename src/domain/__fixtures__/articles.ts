@@ -22,6 +22,11 @@ export function articleFictif(champs: Partial<Article> & Pick<Article, 'id'>): A
     dateAjout: '2026-01-01T10:00:00.000Z',
     dateAchat: null,
     dateMaj: '2026-01-01T10:00:00.000Z',
+    prixAjout: null,
+    disponibilite: 'inconnue',
+    dispoTaille: 'inconnue',
+    dateVerif: null,
+    alternativeDe: null,
     ...champs,
   };
 }

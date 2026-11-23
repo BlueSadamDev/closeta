@@ -1,7 +1,16 @@
 import { marquerAchete } from '@/domain/article';
 import { articleFictif } from '@/domain/__fixtures__/articles';
 
-import { enregistrerArticle, lireArticle, lireVestiaire, lireWishlist, supprimerArticle } from '../articles';
+import type { RelevePrix } from '@/domain/releve';
+
+import {
+  enregistrerArticle,
+  lireArticle,
+  lireReleves,
+  lireVestiaire,
+  lireWishlist,
+  supprimerArticle,
+} from '../articles';
 import { migrer } from '../migrate';
 import { baseDeTest } from '../__fixtures__/baseDeTest';
 
@@ -14,7 +23,18 @@ async function basePrete() {
 describe('articles en base', () => {
   it('relit un article enregistré à l’identique, champs manquants compris', async () => {
     const db = await basePrete();
-    const a = articleFictif({ id: 'x', nom: 'Veste', prix: 129.9, estAlternative: true, marque: null });
+    const a = articleFictif({
+      id: 'x',
+      nom: 'Veste',
+      prix: 129.9,
+      estAlternative: true,
+      marque: null,
+      prixAjout: 150,
+      disponibilite: 'epuise',
+      dispoTaille: 'en_stock',
+      dateVerif: '2026-04-01T12:00:00.000Z',
+      alternativeDe: 'origine',
+    });
     await enregistrerArticle(db, a);
     expect(await lireArticle(db, 'x')).toEqual(a);
   });
@@ -52,5 +72,42 @@ describe('articles en base', () => {
     await enregistrerArticle(db, articleFictif({ id: 'x' }));
     await supprimerArticle(db, 'x');
     expect(await lireArticle(db, 'x')).toBeNull();
+  });
+});
+
+describe('relevés de prix en base', () => {
+  const releve = (id: string, date: string, prix: number, source: RelevePrix['source'] = 'manuel'): RelevePrix => ({
+    id,
+    articleId: 'x',
+    date,
+    prix,
+    devise: 'EUR',
+    disponibilite: 'inconnue',
+    dispoTaille: 'inconnue',
+    source,
+  });
+
+  it('enregistre le relevé avec la pièce et relit l’historique du plus récent au plus ancien', async () => {
+    const db = await basePrete();
+    await enregistrerArticle(db, articleFictif({ id: 'x', prix: 100 }), releve('r1', '2026-03-01T10:00:00.000Z', 100, 'ajout'));
+    await enregistrerArticle(db, articleFictif({ id: 'x', prix: 80 }), releve('r2', '2026-04-01T10:00:00.000Z', 80));
+    expect((await lireReleves(db, 'x')).map((r) => [r.id, r.prix, r.source])).toEqual([
+      ['r2', 80, 'manuel'],
+      ['r1', 100, 'ajout'],
+    ]);
+  });
+
+  it('garde l’historique quand la pièce est modifiée sans relevé', async () => {
+    const db = await basePrete();
+    await enregistrerArticle(db, articleFictif({ id: 'x', prix: 100 }), releve('r1', '2026-03-01T10:00:00.000Z', 100, 'ajout'));
+    await enregistrerArticle(db, articleFictif({ id: 'x', prix: 100, nom: 'Nouveau nom' }));
+    expect(await lireReleves(db, 'x')).toHaveLength(1);
+  });
+
+  it('supprime l’historique avec la pièce', async () => {
+    const db = await basePrete();
+    await enregistrerArticle(db, articleFictif({ id: 'x', prix: 100 }), releve('r1', '2026-03-01T10:00:00.000Z', 100, 'ajout'));
+    await supprimerArticle(db, 'x');
+    expect(await lireReleves(db, 'x')).toEqual([]);
   });
 });
