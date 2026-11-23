@@ -1,8 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-  <application>
-    <!-- Les services Google Play téléchargent le modèle de détourage dès l'installation de l'app. -->
-    <meta-data
-      android:name="com.google.mlkit.vision.DEPENDENCIES"
-      android:value="subject_segment" />
-  </application>
+  <!--
+    Pas de déclaration com.google.mlkit.vision.DEPENDENCIES ici : elle entre en conflit avec celle
+    d'expo-dev-launcher (lecteur de QR code). Le modèle de détourage est donc téléchargé par les services
+    Google Play au premier usage ; s'il n'est pas prêt à temps, l'app garde la photo d'origine.
+  -->
 </manifest>

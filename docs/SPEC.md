@@ -357,7 +357,7 @@ Règles :
 **Étape 8 — Habillage de la photo**
 
 - Exploration (23 novembre 2026) : essai de détourage sur 5 photos réelles, puis décision de l'utilisateur : **intégrer**, avec un **fond uni `photo3`** (#E4DDD2) **sans crochet** (le fond « mur ivoire et crochet laiton » est abandonné).
-- Détourage **sur le téléphone**, gratuit et hors ligne : ML Kit Subject Segmentation (Google), par un petit module natif propre à l'app (`modules/detourage/`), à la taille réelle de la photo. Le modèle est fourni par les services Google Play (téléchargé à l'installation). Aucune photo n'est envoyée.
+- Détourage **sur le téléphone**, gratuit et hors ligne : ML Kit Subject Segmentation (Google), par un petit module natif propre à l'app (`modules/detourage/`), à la taille réelle de la photo. Le modèle est fourni par les services Google Play (téléchargé au premier usage : le premier habillage peut être plus long). Aucune photo n'est envoyée.
 - Habillage : la pièce détourée est **centrée** horizontalement et verticalement sur le fond, avec une marge de 10 % (côtés) et 7,5 % (haut et bas), et une ombre légère ; image finale 1200 × 1600, JPEG. Les taches détachées de la pièce sont ignorées pour le centrage.
 - Dans le Vestiaire, après la prise de vue guidée ou la galerie : habillage automatique (« On prépare ta photo… »). Formulaire : choix « Habillée » (par défaut) ou « D'origine ».
 - Échec (détourage impossible, rien de détecté, pièce trop petite, plus de 30 s) : la photo d'origine 3:4 est gardée, avec un message ; l'ajout n'est jamais bloqué.
