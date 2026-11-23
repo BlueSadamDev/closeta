@@ -60,8 +60,26 @@ Une étape = une branche et un APK testé. Détail : docs/SPEC.md, « Lot 2 — 
 3. « Remettre dans la Wishlist » depuis la fiche. **Terminée, fusionnée via la PR #13** : bouton « Remettre dans la Wishlist » sur la fiche d'une pièce achetée, corrections de la barre de filtres.
 4. Tri et vue par marque (Wishlist et Vestiaire) → fin du lot 2. **Terminée, fusionnée via la PR #14** : tri « Marque » et vue « Marques » (sections alphabétiques, sous-totaux, « Sans marque » à la fin) dans la Wishlist et le Vestiaire.
 
+## Découpage en étapes (lot 3 : Prix, alternatives et numérisation)
+Une étape = une branche, validée sur l'APK de développement ; **un seul APK de production testé**, à l'étape 9. Deux pistes indépendantes, menables dans deux sessions (voir « Travail en parallèle »). Détail : docs/SPEC.md, « Lot 3 — Prix, alternatives et numérisation ».
+
+Piste A · Relais et Wishlist :
+1. Compteur SerpApi et historique des prix : compteur mensuel au relais (seuil réglable, `quota_atteint`), route `GET /quota`, ligne dans Réglages ; migration (`releve_prix`, nouveaux champs de `article`) et reprise des données.
+2. Alternatives depuis une fiche de la Wishlist : route `POST /alternatives` (ressemblance), « Voir des alternatives », ajout d'une alternative liée à la pièce d'origine.
+3. Prix et disponibilité actualisés : `/extract` renvoie la disponibilité ; relecture à l'ouverture d'une fiche (plus de 24 h) ; baisse, disponibilité, historique ; étiquettes « BAISSE » et « ÉPUISÉ » sur les cartes.
+4. Pièce épuisée → bandeau « Voir des alternatives » (recherche lancée seulement au toucher).
+
+Piste B · Vestiaire :
+5. Navigation par onglets : barre en bas (Wishlist, Vestiaire), vrai menu en haut à gauche, bouton « Ajouter » sur chaque onglet.
+6. Ajout direct au Vestiaire : même feuille d'ajout, statut `achete`, date d'achat et prix payé facultatifs.
+7. Prise de vue guidée, format 3:4 (`expo-camera` à valider) : cadre, silhouette de cintre, recadrage 1200 × 1600 ; cartes du Vestiaire en 3:4.
+8. Habillage de la photo (exploration) : essai de détourage sur 5 photos, décision de l'utilisateur avant tout développement.
+
+Fin du lot :
+9. Production : vérifications complètes, APK de production, test unique par l'utilisateur.
+
 ## Lots suivants
-Lots 3 à 7 (prix et alternatives, numériser, bien tailler, plan d'achat, style) : voir [docs/ROADMAP.md](docs/ROADMAP.md). Chaque lot sera détaillé dans docs/SPEC.md avant son développement.
+Lots 4 à 6 (bien tailler, plan d'achat, style) : voir [docs/ROADMAP.md](docs/ROADMAP.md). Chaque lot sera détaillé dans docs/SPEC.md avant son développement.
 
 Tenir ces listes à jour : marquer chaque étape « terminée, fusionnée via la PR #n » avec une ligne de résumé.
 

@@ -229,11 +229,7 @@ Le Vestiaire montre les pièces passées en « acheté » (`statut = achete`). A
 2. Filtres, recherche, tri et vue par catégorie du Vestiaire ; barre de filtres repliable et collante (Wishlist et Vestiaire) ; tri par marque et vue groupée par marque (Wishlist et Vestiaire)
 3. « Remettre dans la Wishlist » depuis la fiche → **fin du lot 2**
 
-**Retours d'usage à planifier** (notés pendant les tests de l'étape 3 du lot 2, 22 novembre 2026)
-
-- Navigation : la Wishlist et le Vestiaire deviennent deux onglets distincts, dans une barre fixée en bas de l'écran (à la place de la bascule « WISHLIST · VESTIAIRE » sous l'en-tête).
-- Menu (icône en haut à gauche) : il devient un vrai menu qui propose Wishlist, Vestiaire et Réglages, au lieu d'ouvrir directement les Réglages.
-- À détailler (forme de la barre d'onglets, place du bouton « Ajouter ») et à découper en étape avant tout développement.
+**Retours d'usage** (notés pendant les tests de l'étape 3 du lot 2, 22 novembre 2026) : onglets Wishlist et Vestiaire en bas de l'écran et vrai menu, planifiés à l'étape 5 du lot 3 (voir « Lot 3 — Prix, alternatives et numérisation », « Étape 5 — Navigation par onglets »).
 
 **Critères d'acceptation**
 
@@ -242,3 +238,131 @@ Le Vestiaire montre les pièces passées en « acheté » (`statut = achete`). A
 - [ ] Les filtres type et catégorie, la recherche et le tri fonctionnent et se combinent dans le Vestiaire
 - [ ] Le tri par marque et la vue groupée par marque fonctionnent dans la Wishlist et le Vestiaire, avec sous-totaux et section « Sans marque » à la fin
 - [ ] « Remettre dans la Wishlist » ramène la pièce dans la Wishlist, sans date d'achat
+
+## Lot 3 — Prix, alternatives et numérisation
+
+Lot fusionné (anciens lots 3 « Prix et alternatives » et 4 « Numériser » de la feuille de route), pour **un seul test d'APK de production**, à la dernière étape. Chaque étape reste validée sur l'APK de développement. Deux pistes indépendantes, menables en parallèle dans deux sessions (voir CLAUDE.md, « Travail en parallèle ») : **A · Relais et Wishlist** (étapes 1 à 4) et **B · Vestiaire** (étapes 5 à 8).
+
+Décisions validées le 23 novembre 2026 :
+
+- Alternatives : les **plus ressemblantes** (pas forcément moins chères), proposées **uniquement depuis la Wishlist**.
+- Prix : **historique complet** conservé.
+- Baisse de prix : signalée **à l'ouverture** seulement (pas de notification, pas de tâche en arrière-plan).
+- Ajout direct au Vestiaire : date d'achat et prix payé **facultatifs**.
+- Photos des pièces possédées : **sur cintre**, **format unique portrait 3:4**.
+
+### Modèle de données (migration)
+
+Nouvelle table `releve_prix` (un relevé = une lecture de la page boutique) :
+
+| Champ | Type | Obligatoire | Remarque |
+| --- | --- | --- | --- |
+| id | UUID | oui | |
+| article_id | UUID | oui | lien vers `article`, supprimé avec lui |
+| date | date-heure | oui | |
+| prix | décimal | non | null si la page ne donne pas de prix |
+| devise | texte | non | |
+| disponibilite | enum | oui | `en_stock`, `epuise`, `inconnue` |
+| dispo_taille | enum | oui | `en_stock`, `epuise`, `inconnue` : pour la taille de l'article, si la boutique la publie |
+
+Nouveaux champs de `article` :
+
+| Champ | Type | Remarque |
+| --- | --- | --- |
+| prix_ajout | décimal | prix au moment de l'ajout (repris de `prix` pour les pièces existantes) |
+| disponibilite | enum | dernier état connu, défaut `inconnue` |
+| dispo_taille | enum | dernier état connu, défaut `inconnue` |
+| date_verif | date-heure | dernière lecture de la page boutique |
+| alternative_de | UUID | non null si la pièce a été ajoutée comme alternative d'une autre |
+
+Règles :
+
+- `prix` reste le **prix actuel** : il est mis à jour par chaque relevé qui en donne un. Le total de la Wishlist utilise donc le prix actuel.
+- Le premier relevé est créé à l'ajout (par lien ou photo), avec le prix d'ajout.
+- Une modification manuelle du prix crée un relevé (source manuelle) pour garder l'historique cohérent.
+- Le Vestiaire n'est jamais actualisé : une pièce achetée garde son prix (prix payé).
+
+### Piste A · Relais et Wishlist
+
+**Étape 1 — Compteur SerpApi et historique des prix**
+
+- Relais : compteur des recherches SerpApi du mois (Cloudflare KV ou équivalent gratuit), remis à zéro chaque mois. Seuil réglable (défaut 250). À 80 % : l'app prévient ; au seuil : les routes qui cherchent répondent `quota_atteint` sans appeler SerpApi.
+- Relais : route `GET /quota` → `{ utilise, limite, mois }`.
+- App, Réglages : ligne « Recherches ce mois : 37 sur 250 ».
+- App : migration (`releve_prix`, nouveaux champs), reprise des données existantes (`prix_ajout` = `prix`, un relevé initial par pièce de la Wishlist qui a un prix).
+
+**Étape 2 — Alternatives depuis une fiche de la Wishlist**
+
+- Relais : route `POST /alternatives`, entrée `{ image_url?, photo?, nom, marque, categorie, couleur, url_exclue }` → `{ resultats: [ { nom, marque, image, prix, devise, boutique, url } ] }`, au plus 5.
+  - Recherche visuelle Google Lens sur l'image de la pièce (URL d'origine si elle existe, sinon photo locale envoyée et déposée un instant dans R2, comme `/identify`).
+  - Classement par **ressemblance** (pertinence Lens puis proximité nom / catégorie / couleur), le prix n'entre pas dans le classement.
+  - Exclus : la page d'origine (`url_exclue`), les réseaux sociaux, les résultats sans boutique.
+  - Moins de 3 résultats : complément Google Shopping à partir de nom + marque + catégorie + couleur.
+- App, fiche d'une pièce de la **Wishlist** seulement : action « Voir des alternatives ». Liste : photo, marque, nom, prix, boutique, et l'écart de prix avec la pièce (« 30 € de moins », « 12 € de plus »).
+- Toucher une alternative : ouvre le formulaire pré-rempli (même parcours que l'ajout par lien), avec `est_alternative = vrai` et `alternative_de` = la pièce d'origine. La fiche de l'alternative mentionne « Alternative à : <nom> ».
+- Chaque appel consomme 1 à 2 recherches SerpApi : la fiche affiche le compteur avant de lancer.
+
+**Étape 3 — Prix et disponibilité actualisés**
+
+- Relais : `/extract` renvoie en plus `disponibilite` (globale) et, si on lui passe `taille`, `dispo_taille`, lus dans les données produit (offres, variantes `hasVariant` avec taille). Rien de publié → `inconnue`, jamais deviné.
+- App : à l'ouverture d'une fiche de la Wishlist avec un lien boutique, si `date_verif` a plus de 24 h → relecture en arrière-plan de l'écran (la fiche s'affiche tout de suite, puis se met à jour). Aucun appel SerpApi.
+- Affichage sur la fiche :
+  - Baisse : « *−25 €* depuis l'ajout » (relief), et prix barré d'ajout ; hausse : mention discrète.
+  - Disponibilité : « En stock en M », « Épuisé en M », « Épuisé », ou rien si inconnue.
+  - Historique : liste des relevés (date, prix), du plus récent au plus ancien.
+- Grille de la Wishlist : petite étiquette « BAISSE » ou « ÉPUISÉ » sur la carte, selon le dernier relevé.
+- Échec de lecture : la fiche garde les dernières valeurs connues et indique la date de la dernière vérification.
+
+**Étape 4 — Pièce épuisée → alternatives**
+
+- Quand la pièce est épuisée (globalement ou dans sa taille) : bandeau en tête de fiche « Épuisé en M. *Voir des alternatives* ». La recherche n'est lancée qu'au toucher (économie du quota).
+
+### Piste B · Vestiaire
+
+**Étape 5 — Navigation par onglets** (retours d'usage du lot 2)
+
+- Barre fixée en bas : deux onglets, Wishlist et Vestiaire (remplace la bascule « WISHLIST · VESTIAIRE »).
+- Icône menu en haut à gauche : vrai menu (Wishlist, Vestiaire, Réglages).
+- Bouton « Ajouter » sur chaque onglet : il ajoute à la liste de l'onglet affiché.
+
+**Étape 6 — Ajout direct au Vestiaire**
+
+- Le bouton « Ajouter » du Vestiaire ouvre la même feuille (lien, photo, à la main). La pièce est créée avec `statut = achete`.
+- Formulaire : champs de la Wishlist sans priorité, plus « Date d'achat » et « Prix payé », tous deux **facultatifs**.
+- Sans date d'achat : la carte affiche « ACHAT NON DATÉ » ; ces pièces viennent en dernier dans le tri par date d'achat.
+- Sans prix : exclue du total et signalée (règle existante).
+
+**Étape 7 — Prise de vue guidée, format 3:4**
+
+- Dans le Vestiaire, « Photo » ouvre une prise de vue guidée (module `expo-camera`, à valider : nouvelle dépendance native, APK de dev à réinstaller ; permission CAMERA déjà présente).
+- À l'écran : cadre 3:4, silhouette de cintre en haut au centre, consignes courtes : « Suspends la pièce sur un cintre, devant un mur uni. Entière dans le cadre, crochet en haut. »
+- Après la prise : recadrage automatique au format **3:4 portrait**, 1200 × 1600 px, JPEG, puis le formulaire (identification par `/identify` proposée, facultative).
+- Une photo choisie dans la galerie passe par le même recadrage (cadre ajustable avant validation).
+- Format cible : pièce entière, centrée, sur cintre, fond uni (exemple de référence fourni par l'utilisateur le 23 novembre 2026).
+- Les cartes du Vestiaire passent au ratio 3:4 (la Wishlist garde son recadrage actuel, les images des boutiques n'étant pas standardisées).
+
+**Étape 8 — Habillage de la photo (exploration, décision avant développement)**
+
+- Objectif : fond identique pour toutes les pièces du Vestiaire : la pièce détourée, posée sur un **fond ClosetA** (mur ivoire, crochet laiton en haut au centre), créé pour l'app.
+- Piste à tester d'abord : détourage sur le téléphone avec ML Kit de Google (segmentation de sujet, gratuit, hors ligne ; module natif à ajouter).
+- Livrable de l'étape : un essai sur 5 photos réelles, présenté à l'utilisateur. Il décide : intégrer, reporter ou abandonner. Sans accord, l'étape s'arrête à l'essai.
+
+**Étape 9 — Production**
+
+- Vérifications complètes (expo-doctor, lint, tsc, jest, tests du relais), APK de production, **test unique** par l'utilisateur, fin du lot.
+
+### Critères d'acceptation
+
+- [ ] Réglages affiche le nombre de recherches SerpApi du mois ; au seuil, l'app explique qu'il faut attendre le mois suivant
+- [ ] « Voir des alternatives » n'apparaît que sur une fiche de la Wishlist et propose jusqu'à 5 pièces ressemblantes, sans la page d'origine
+- [ ] Une alternative ajoutée mentionne la pièce d'origine
+- [ ] Ouvrir une fiche vérifiée il y a plus de 24 h relit la page ; une baisse s'affiche avec son montant ; l'historique liste les relevés
+- [ ] Une disponibilité non publiée par la boutique n'est jamais affichée comme « en stock » ou « épuisé »
+- [ ] Une pièce épuisée propose des alternatives sans lancer de recherche tant qu'on ne touche pas le bandeau
+- [ ] Une pièce ajoutée depuis le Vestiaire y apparaît directement, avec ou sans date et prix
+- [ ] Une photo prise par la prise de vue guidée est enregistrée en 3:4, 1200 × 1600
+- [ ] Les données existantes (Wishlist, Vestiaire, photos) sont intactes après la migration et la mise à jour de l'APK
+
+### Hors lot 3
+
+Notifications de baisse, actualisation des pièces du Vestiaire, alternatives depuis le Vestiaire, habillage si l'étape 8 n'est pas validée, lots suivants (bien tailler, plan d'achat, style : voir ROADMAP.md).
