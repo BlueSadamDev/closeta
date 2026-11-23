@@ -11,23 +11,26 @@ import { PhotoArticle } from './PhotoArticle';
 /**
  * Carte de la grille : photo + étiquette, marque, nom, prix (DESIGN.md, « Carte article »).
  * L'étiquette est la priorité, sauf si une autre est donnée (mois d'achat dans le Vestiaire).
+ * Photo de 196 px de haut, ou au format portrait 3:4 (Vestiaire, docs/SPEC.md, « Lot 3 », « Étape 7 »).
  */
 export function CarteArticle({
   article,
   largeur,
   onPress,
   etiquette,
+  format34 = false,
 }: {
   article: Article;
   largeur: number;
   onPress: () => void;
   etiquette?: string | null;
+  format34?: boolean;
 }) {
   const texteEtiquette = etiquette === undefined ? texts.priorites[article.priorite] : etiquette;
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={{ width: largeur }}>
       <View>
-        <PhotoArticle article={article} hauteur={spacing.gridPhotoHeight} />
+        <PhotoArticle article={article} hauteur={format34 ? Math.round((largeur * 4) / 3) : spacing.gridPhotoHeight} />
         {texteEtiquette ? (
           <View style={styles.priorite}>
             <Text style={[type.label, styles.prioriteTexte]}>{texteEtiquette}</Text>

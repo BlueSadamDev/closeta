@@ -47,7 +47,7 @@ Contraste : tout texte atteint 4,5:1 sur son fond. `inkMuted` et `tobacco` le re
 
 ## Espacements et formes
 - Marges d'écran : 24 px. Grille de la wishlist : 2 colonnes, 14 px entre colonnes, 22 px entre rangées.
-- Photo de la grille : 196 px de haut, recadrée (`cover`).
+- Photo de la grille : 196 px de haut, recadrée (`cover`). Dans le Vestiaire : format portrait 3:4 (hauteur = largeur × 4/3).
 - Angles : 0 partout.
 - **Cibles tactiles ≥ 44 px.**
 
@@ -65,6 +65,7 @@ Contraste : tout texte atteint 4,5:1 sur son fond. `inkMuted` et `tobacco` le re
 - **Bouton principal** : fond `ink`, texte `paper`, 52 px de haut.
 - **Bouton secondaire** : filet 1 px `ink`, fond transparent, texte `ink`.
 - **Bouton « Ajouter »** : bouton principal fixé en bas à droite, 24 px au-dessus de la barre d'onglets et du bord droit, icône + « AJOUTER ».
+- **Prise de vue guidée** (Vestiaire) : écran `paper` ; aperçu de l'appareil photo en 3:4, cadre 3:4 en filet `paper` à 6 % des bords, extérieur voilé `ink` ; silhouette de cintre au trait `paper` en haut au centre du cadre ; consigne dessous, puis « PRENDRE LA PHOTO » (principal) et « CHOISIR DANS LA GALERIE » (secondaire).
 - **Feuille du bas** (choix du mode d'ajout) : fond `paper`, filet `ink` en haut, une ligne par mode (icône + libellé + phrase courte), 64 px par ligne.
 - **Proposition (lot 1b)** : photo + marque + nom + prix + boutique ; une proposition « alternative » porte l'étiquette « ALTERNATIVE » en `tobacco`.
 - **Chargement** : texte en italique Cormorant Garamond (« On lit la page… »), sans roue qui tourne plein écran.

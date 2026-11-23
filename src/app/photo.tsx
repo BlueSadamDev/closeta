@@ -9,10 +9,12 @@ import { CarteProposition } from '@/components/CarteProposition';
 import { Entete } from '@/components/Entete';
 import { Etiquette } from '@/components/Etiquette';
 import { PhotoArticle } from '@/components/PhotoArticle';
+import { PriseDeVue } from '@/components/PriseDeVue';
 import { RichText } from '@/components/RichText';
 import { DESCRIPTION_VIDE, seulementDesAlternatives, type DescriptionPhoto, type Proposition } from '@/domain/photo';
 import { texts } from '@/domain/texts';
 import { prendrePhoto, type SourcePhoto } from '@/photo/prise';
+import { choisirPourVestiaire, copiePourRelais } from '@/photo/vestiaire';
 import { identifier } from '@/relay/client';
 import { lireJeton } from '@/relay/jeton';
 import { colors, fonts, spacing, type } from '@/theme';
@@ -21,6 +23,8 @@ const t = texts.photo;
 
 type Etat =
   | { etape: 'choix'; message: string | null }
+  /** Vestiaire : photo 3:4 prête, identification proposée, facultative. */
+  | { etape: 'prete'; photo: string }
   | { etape: 'recherche'; photo: string }
   | { etape: 'resultats'; photo: string; description: DescriptionPhoto; propositions: Proposition[] }
   | { etape: 'echec'; photo: string; message: string };
@@ -29,13 +33,27 @@ type Etat =
 export default function ParPhoto() {
   // destination : « vestiaire » pour un ajout direct au Vestiaire, transmise au formulaire.
   const { destination } = useLocalSearchParams<{ destination?: string }>();
+  const pourVestiaire = destination === 'vestiaire';
   const [etat, setEtat] = useState<Etat>({ etape: 'choix', message: null });
+  // Vestiaire : la prise de vue guidée s'ouvre d'emblée (docs/SPEC.md, « Lot 3 », « Étape 7 »).
+  const [guidee, setGuidee] = useState(pourVestiaire);
   // Évite d'afficher le résultat d'une recherche abandonnée (« Une autre photo » pendant l'attente).
   const recherche = useRef(0);
 
   const fermer = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
   const choisir = async (source: SourcePhoto) => {
+    // Vestiaire : prise de vue guidée, ou galerie recadrée en 3:4 ; l'identification est ensuite proposée.
+    if (pourVestiaire) {
+      if (source === 'camera') {
+        setGuidee(true);
+        return;
+      }
+      const prise = await choisirPourVestiaire();
+      if (prise.ok) setEtat({ etape: 'prete', photo: prise.uri });
+      else if (prise.raison !== 'annule') setEtat({ etape: 'choix', message: t.photoIllisible });
+      return;
+    }
     const prise = await prendrePhoto(source);
     if (!prise.ok) {
       if (prise.raison !== 'annule') {
@@ -43,20 +61,27 @@ export default function ParPhoto() {
       }
       return;
     }
+    chercher(prise.uri);
+  };
+
+  // Le relais reçoit une copie réduite pour le Vestiaire (1024 px au plus) ; la photo 1200 × 1600 est gardée.
+  const chercher = async (photo: string) => {
     const numero = ++recherche.current;
-    setEtat({ etape: 'recherche', photo: prise.uri });
-    const resultat = await identifier(prise.uri, await lireJeton());
+    setEtat({ etape: 'recherche', photo });
+    const envoi = pourVestiaire ? await copiePourRelais(photo) : photo;
+    const resultat = await identifier(envoi, await lireJeton());
     if (numero !== recherche.current) return;
     setEtat(
       resultat.ok
-        ? { etape: 'resultats', photo: prise.uri, description: resultat.description, propositions: resultat.propositions }
-        : { etape: 'echec', photo: prise.uri, message: t.echecs[resultat.raison] },
+        ? { etape: 'resultats', photo, description: resultat.description, propositions: resultat.propositions }
+        : { etape: 'echec', photo, message: t.echecs[resultat.raison] },
     );
   };
 
   const autrePhoto = () => {
     recherche.current++;
     setEtat({ etape: 'choix', message: null });
+    if (pourVestiaire) setGuidee(true);
   };
 
   // Un échec ne bloque jamais l'ajout : le formulaire s'ouvre avec la photo et ce que l'IA a vu.
@@ -79,10 +104,26 @@ export default function ParPhoto() {
 
         {etat.etape === 'choix' ? (
           <>
-            <RichText style={styles.texte}>{etat.message ?? t.conseil}</RichText>
+            <RichText style={styles.texte}>{etat.message ?? (pourVestiaire ? t.guidee.consigne : t.conseil)}</RichText>
             <View style={styles.actions}>
               <Bouton libelle={t.prendre} onPress={() => choisir('camera')} />
               <Bouton libelle={t.choisir} variante="secondaire" onPress={() => choisir('galerie')} />
+            </View>
+          </>
+        ) : null}
+
+        {etat.etape === 'prete' ? (
+          <>
+            <Apercu photo={etat.photo} />
+            <RichText style={styles.texte}>{t.guidee.prete}</RichText>
+            <View style={styles.actions}>
+              <Bouton libelle={t.guidee.identifier} onPress={() => chercher(etat.photo)} />
+              <Bouton
+                libelle={t.guidee.continuer}
+                variante="secondaire"
+                onPress={() => ouvrirFormulaire(etat.photo, DESCRIPTION_VIDE)}
+              />
+              <Bouton libelle={t.autrePhoto} variante="secondaire" onPress={autrePhoto} />
             </View>
           </>
         ) : null}
@@ -137,6 +178,18 @@ export default function ParPhoto() {
           </>
         ) : null}
       </ScrollView>
+
+      {pourVestiaire ? (
+        <PriseDeVue
+          visible={guidee}
+          onFermer={() => setGuidee(false)}
+          onPhoto={(photo) => {
+            setGuidee(false);
+            recherche.current++;
+            setEtat({ etape: 'prete', photo });
+          }}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }
