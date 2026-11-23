@@ -48,6 +48,13 @@
       ],
       "expo-secure-store",
       [
+        "expo-camera",
+        {
+          "recordAudioAndroid": false,
+          "barcodeScannerEnabled": false
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "microphonePermission": false
