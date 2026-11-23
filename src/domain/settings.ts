@@ -21,6 +21,8 @@ export const settings = {
   photoCompression: 0.8,
   /** Temps maximal d'attente de /identify (IA puis recherches Google enchaînées). */
   identifyTimeoutMs: 30_000,
+  /** Temps maximal d'attente de /alternatives (Google Lens puis Google Shopping enchaînés). */
+  alternativesTimeoutMs: 30_000,
   /** Recherches SerpApi du mois : mise en garde dans les Réglages à partir de 80 % du seuil. */
   quotaAlerte: 0.8,
 } as const;

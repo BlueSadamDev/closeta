@@ -3,6 +3,8 @@
  */
 import { File, UploadType } from 'expo-file-system';
 
+import { demandeAlternatives, lireAlternatives, type ResultatAlternatives } from '@/domain/alternatives';
+import type { Article } from '@/domain/article';
 import { lireExtraction, type ResultatExtraction } from '@/domain/lien';
 import { lireIdentification, type ResultatIdentification } from '@/domain/photo';
 import { lireQuota, lireTestConnexion, type EtatConnexion, type Quota } from '@/domain/relais';
@@ -92,6 +94,30 @@ export async function identifier(photo: string, jeton: string): Promise<Resultat
     return lireIdentification(reponse.status, corps);
   } catch {
     return lireIdentification(null, null);
+  } finally {
+    clearTimeout(minuteur);
+  }
+}
+
+/**
+ * Demande au relais /alternatives des pièces qui ressemblent à `article`.
+ * `photo` : la photo du téléphone en base64 (JPEG), utile seulement si la pièce n'a pas d'image de boutique.
+ * Ne lève jamais d'exception : un échec est renvoyé comme résultat.
+ */
+export async function chercherAlternatives(article: Article, photo: string | null, jeton: string): Promise<ResultatAlternatives> {
+  if (!jeton) return { ok: false, raison: 'jeton_absent' };
+  const arret = new AbortController();
+  const minuteur = setTimeout(() => arret.abort(), settings.alternativesTimeoutMs);
+  try {
+    const reponse = await fetch(`${settings.relayUrl}/alternatives`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${jeton}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(demandeAlternatives(article, photo)),
+      signal: arret.signal,
+    });
+    return lireAlternatives(reponse.status, await reponse.json().catch(() => null));
+  } catch {
+    return lireAlternatives(null, null);
   } finally {
     clearTimeout(minuteur);
   }

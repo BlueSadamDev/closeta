@@ -13,6 +13,7 @@ import { Entete } from '@/components/Entete';
 import { PhotoArticle } from '@/components/PhotoArticle';
 import { RichText } from '@/components/RichText';
 import { enregistrerArticle, lireArticle } from '@/db/articles';
+import { lireParametreAlternative, preremplirDepuisAlternative } from '@/domain/alternatives';
 import { CATEGORIES, PRIORITES, type Article, type TypeArticle } from '@/domain/article';
 import { brouillonDepuisLien, listeFrancaise, nomDuSite, preremplir, type ChampManquant } from '@/domain/lien';
 import { brouillonDepuisDescription, lireParametresPhoto, preremplirDepuisProposition, type Proposition } from '@/domain/photo';
@@ -65,19 +66,43 @@ function departPhoto(description: string | undefined, proposition: string | unde
   };
 }
 
+/**
+ * Formulaire de départ d'une alternative choisie depuis une fiche : pré-rempli avec ce que la recherche a trouvé.
+ * Le type et la catégorie de la pièce d'origine sont ajoutés une fois celle-ci relue.
+ */
+function departAlternative(alternative: string | undefined) {
+  const a = lireParametreAlternative(alternative);
+  if (!a) return null;
+  const p = preremplirDepuisAlternative(a, { type: null, categorie: null });
+  return {
+    proposition: { ...a, alternative: true } as Proposition,
+    brouillon: p.brouillon,
+    manquants: p.manquants,
+    annonce: texts.alternatives.annonce,
+  };
+}
+
 /** Formulaire de saisie (ajout manuel et modification) — docs/SPEC.md, « 4. Formulaire de validation ». */
 export default function Formulaire() {
-  const { id, lien, photo, description, proposition } = useLocalSearchParams<{
+  const { id, lien, photo, description, proposition, alternative, alternativeDe } = useLocalSearchParams<{
     id?: string;
     lien?: string;
     photo?: string;
     description?: string;
     proposition?: string;
+    /** Alternative choisie (texte JSON) et identifiant de la pièce d'origine. */
+    alternative?: string;
+    alternativeDe?: string;
   }>();
   const db = useSQLiteContext();
   const [existant, setExistant] = useState<Article | null>(null);
   // Ajout par photo : formulaire préparé une fois, à l'ouverture, depuis la photo et la proposition choisie.
-  const [depart] = useState(() => (!id && photo ? departPhoto(description, proposition) : null));
+  // Ajout d'une alternative : même principe, depuis l'alternative choisie sur l'écran « Alternatives ».
+  const [depart] = useState(() =>
+    id ? null : photo ? departPhoto(description, proposition) : alternativeDe ? departAlternative(alternative) : null,
+  );
+  // Pièce d'origine, seulement si l'alternative a bien été relue.
+  const lieeA = !id && !photo && alternativeDe && depart ? alternativeDe : null;
   const [brouillon, setBrouillon] = useState<Brouillon>(depart?.brouillon ?? BROUILLON_VIDE);
   const [erreurs, setErreurs] = useState<Erreurs>({});
   const [enCours, setEnCours] = useState(false);
@@ -104,6 +129,14 @@ export default function Formulaire() {
       }
     });
   }, [db, id]);
+
+  // Alternative : type et catégorie repris de la pièce d'origine (même genre de pièce).
+  useEffect(() => {
+    if (!lieeA) return;
+    lireArticle(db, lieeA).then((o) => {
+      if (o) setBrouillon((b) => ({ ...b, type: b.type ?? o.type, categorie: b.categorie || (o.categorie ?? '') }));
+    });
+  }, [db, lieeA]);
 
   useEffect(() => {
     if (id || !lien) return;
@@ -185,7 +218,8 @@ export default function Formulaire() {
           imageLocale,
           imageSource: source,
           statut: 'souhaite',
-          origine: photo ? 'photo' : lien ? 'lien' : 'manuel',
+          // Une alternative vient d'une page de boutique : même origine qu'un ajout par lien.
+          origine: photo ? 'photo' : lien || lieeA ? 'lien' : 'manuel',
           estAlternative: choisie?.alternative ?? false,
           dateAjout: maintenant,
           dateAchat: null,
@@ -195,7 +229,7 @@ export default function Formulaire() {
           dispoTaille: 'inconnue',
           // Ajout par lien : la page boutique vient d'être lue.
           dateVerif: lien && !photo ? maintenant : null,
-          alternativeDe: null,
+          alternativeDe: lieeA,
         };
     try {
       // Historique des prix : relevé à l'ajout par lien ou photo, ou à chaque prix modifié à la main.

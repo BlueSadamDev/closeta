@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Proposition } from '@/domain/photo';
 import { formaterPrix } from '@/domain/prix';
 import { texts } from '@/domain/texts';
-import { colors, spacing, type } from '@/theme';
+import { colors, fonts, spacing, type } from '@/theme';
 
 import { Etiquette } from './Etiquette';
 import { PhotoArticle } from './PhotoArticle';
@@ -14,11 +14,20 @@ const HAUTEUR_PHOTO = 120;
 /**
  * Une proposition de l'ajout par photo : photo, marque, nom, prix, boutique.
  * Une alternative porte l'étiquette « ALTERNATIVE » en tabac (DESIGN.md, « Proposition »).
+ * `ecart` (écran « Alternatives ») : écart de prix avec la pièce d'origine, sous le prix.
  */
-export function CarteProposition({ proposition: p, onPress }: { proposition: Proposition; onPress: () => void }) {
+export function CarteProposition({
+  proposition: p,
+  ecart,
+  onPress,
+}: {
+  proposition: Proposition;
+  ecart?: string | null;
+  onPress: () => void;
+}) {
   const enEuros = p.devise === null || p.devise === 'EUR';
   const prix = p.prix !== null && enEuros ? formaterPrix(p.prix) : null;
-  const accessible = [p.alternative ? texts.photo.alternativeAccessible : null, p.marque, p.nom, prix ?? texts.fiche.prixACompleter, p.boutique]
+  const accessible = [p.alternative ? texts.photo.alternativeAccessible : null, p.marque, p.nom, prix ?? texts.fiche.prixACompleter, ecart, p.boutique]
     .filter(Boolean)
     .join(', ');
   return (
@@ -41,6 +50,7 @@ export function CarteProposition({ proposition: p, onPress }: { proposition: Pro
           {p.nom}
         </Text>
         <Text style={[type.gridPrice, { color: prix ? colors.ink : colors.inkMuted }]}>{prix ?? texts.fiche.prixACompleter}</Text>
+        {ecart ? <Text style={styles.ecart}>{ecart}</Text> : null}
         {p.boutique ? (
           <Text style={[type.gridPrice, styles.boutique]} numberOfLines={1}>
             {p.boutique}
@@ -65,4 +75,6 @@ const styles = StyleSheet.create({
   alternative: { color: colors.tobacco },
   nom: { color: colors.ink, lineHeight: 22 },
   boutique: { color: colors.inkMuted },
+  /** Relief (DESIGN.md) : Cormorant Garamond italique. */
+  ecart: { fontFamily: fonts.serifItalic, fontSize: 16, color: colors.ink },
 });

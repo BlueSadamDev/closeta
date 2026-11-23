@@ -66,7 +66,7 @@ const https = (v: unknown): string | null => {
 const objet = (v: unknown): Record<string, unknown> | null =>
   typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as Record<string, unknown>) : null;
 
-function lireProposition(v: unknown): Proposition | null {
+export function lireProposition(v: unknown): Proposition | null {
   const o = objet(v);
   if (!o) return null;
   const nom = texte(o.nom);
