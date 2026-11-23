@@ -18,7 +18,8 @@ const t = texts.lien;
 
 /** Écran « Coller un lien » (docs/SPEC.md, « Parcours par lien », point 1). */
 export default function CollerUnLien() {
-  const { partage } = useLocalSearchParams<{ partage?: string }>();
+  // destination : « vestiaire » pour un ajout direct au Vestiaire, transmise au formulaire.
+  const { partage, destination } = useLocalSearchParams<{ partage?: string; destination?: string }>();
   const [saisie, setSaisie] = useState('');
   const [copie, setCopie] = useState<string | null>(null);
   const [invalide, setInvalide] = useState(false);
@@ -43,7 +44,7 @@ export default function CollerUnLien() {
       setInvalide(true);
       return;
     }
-    router.replace({ pathname: '/formulaire', params: { lien } });
+    router.replace({ pathname: '/formulaire', params: { lien, ...(destination ? { destination } : {}) } });
   };
 
   return (

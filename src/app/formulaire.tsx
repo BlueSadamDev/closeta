@@ -19,6 +19,7 @@ import { brouillonDepuisDescription, lireParametresPhoto, preremplirDepuisPropos
 import { prixPourSaisie } from '@/domain/prix';
 import { releveAEnregistrer } from '@/domain/releve';
 import { texts } from '@/domain/texts';
+import { dateAchatPourSaisie, etatDeDepart } from '@/domain/vestiaire';
 import { BROUILLON_VIDE, validerBrouillon, type Brouillon, type Erreurs } from '@/domain/validation';
 import { extraire } from '@/relay/client';
 import { prendrePhoto, type SourcePhoto } from '@/photo/prise';
@@ -43,6 +44,7 @@ const versBrouillon = (a: Article): Brouillon => ({
   urlBoutique: a.urlBoutique ?? '',
   priorite: a.priorite,
   notes: a.notes ?? '',
+  dateAchat: dateAchatPourSaisie(a.dateAchat),
 });
 
 /** Formulaire de départ d'un ajout par photo : proposition choisie, ou seulement ce que l'IA a vu. */
@@ -67,12 +69,14 @@ function departPhoto(description: string | undefined, proposition: string | unde
 
 /** Formulaire de saisie (ajout manuel et modification) — docs/SPEC.md, « 4. Formulaire de validation ». */
 export default function Formulaire() {
-  const { id, lien, photo, description, proposition } = useLocalSearchParams<{
+  const { id, lien, photo, description, proposition, destination } = useLocalSearchParams<{
     id?: string;
     lien?: string;
     photo?: string;
     description?: string;
     proposition?: string;
+    /** « vestiaire » : ajout direct au Vestiaire (docs/SPEC.md, « Lot 3 », « Étape 6 »). */
+    destination?: string;
   }>();
   const db = useSQLiteContext();
   const [existant, setExistant] = useState<Article | null>(null);
@@ -135,7 +139,11 @@ export default function Formulaire() {
     setErreurs((e) => (champ in e ? { ...e, [champ]: undefined } : e));
   };
 
-  const fermer = () => (router.canGoBack() ? router.back() : router.replace('/'));
+  // Pièce du Vestiaire (ajout direct ou modification) : sans priorité, avec prix payé et date d'achat.
+  const pourVestiaire = existant ? existant.statut === 'achete' : !id && destination === 'vestiaire';
+
+  const fermer = () =>
+    router.canGoBack() ? router.back() : router.replace(pourVestiaire ? '/vestiaire' : '/');
 
   const ajouterPhoto = async (source: SourcePhoto) => {
     setMessagePhoto(null);
@@ -171,11 +179,19 @@ export default function Formulaire() {
         : source
           ? await copierImage(source, nouvelId)
           : null;
+    const origine = photo ? 'photo' : lien ? 'lien' : 'manuel';
+    // Date d'achat : seulement pour le Vestiaire ; inchangée à la saisie, elle garde son heure d'origine.
+    const dateAchat = !pourVestiaire
+      ? null
+      : existant && dateAchatPourSaisie(existant.dateAchat) === brouillon.dateAchat.trim()
+        ? existant.dateAchat
+        : r.champs.dateAchat;
     const article: Article = existant
       ? {
           ...existant,
           ...r.champs,
           ...(remplacee ? { imageLocale: remplacee, imageSource: null } : {}),
+          dateAchat,
           dateMaj: maintenant,
         }
       : {
@@ -184,21 +200,20 @@ export default function Formulaire() {
           devise: 'EUR',
           imageLocale,
           imageSource: source,
-          statut: 'souhaite',
-          origine: photo ? 'photo' : lien ? 'lien' : 'manuel',
+          origine,
           estAlternative: choisie?.alternative ?? false,
           dateAjout: maintenant,
-          dateAchat: null,
+          dateAchat,
           dateMaj: maintenant,
           prixAjout: r.champs.prix,
           disponibilite: 'inconnue',
           dispoTaille: 'inconnue',
-          // Ajout par lien : la page boutique vient d'être lue.
-          dateVerif: lien && !photo ? maintenant : null,
+          // Statut ; page boutique lue (ajout par lien dans la Wishlist), jamais pour le Vestiaire.
+          ...etatDeDepart(pourVestiaire ? 'vestiaire' : 'wishlist', origine, maintenant),
           alternativeDe: null,
         };
     try {
-      // Historique des prix : relevé à l'ajout par lien ou photo, ou à chaque prix modifié à la main.
+      // Historique des prix (Wishlist seulement) : relevé à l'ajout par lien ou photo, ou à chaque prix modifié à la main.
       await enregistrerArticle(db, article, releveAEnregistrer(existant, article, randomUUID()));
       if (remplacee && existant?.imageLocale) effacerFichier(existant.imageLocale);
       fermer();
@@ -214,6 +229,7 @@ export default function Formulaire() {
     return e ? f.erreurs[e] : undefined;
   };
   const suggestions = brouillon.type ? CATEGORIES[brouillon.type] : [];
+  const aujourdhui = dateAchatPourSaisie(new Date().toISOString());
 
   // Pendant la lecture de la page : texte d'attente, sans roue qui tourne (DESIGN.md, « Chargement »).
   if (lecture) {
@@ -301,7 +317,7 @@ export default function Formulaire() {
             <Saisie value={brouillon.marque} onChangeText={(v) => changer('marque', v)} placeholder={f.exemples.marque} autoCapitalize="words" />
           </Champ>
 
-          <Champ libelle={f.champs.prix} erreur={message('prix')}>
+          <Champ libelle={pourVestiaire ? f.champs.prixPaye : f.champs.prix} erreur={message('prix')}>
             <Saisie
               value={brouillon.prix}
               onChangeText={(v) => changer('prix', v)}
@@ -324,9 +340,26 @@ export default function Formulaire() {
             </View>
           </View>
 
-          <Champ libelle={f.champs.priorite}>
-            <Choix options={OPTIONS_PRIORITE} valeur={brouillon.priorite} onChange={(v) => changer('priorite', v)} />
-          </Champ>
+          {pourVestiaire ? (
+            <Champ libelle={f.champs.dateAchat} erreur={message('dateAchat')}>
+              <Saisie
+                value={brouillon.dateAchat}
+                onChangeText={(v) => changer('dateAchat', v)}
+                placeholder={f.exemples.dateAchat}
+                keyboardType="numbers-and-punctuation"
+                enErreur={!!erreurs.dateAchat}
+              />
+              <Choix
+                options={[{ valeur: aujourdhui, libelle: f.aujourdhui }]}
+                valeur={brouillon.dateAchat.trim() === aujourdhui ? aujourdhui : null}
+                onChange={(v) => changer('dateAchat', v)}
+              />
+            </Champ>
+          ) : (
+            <Champ libelle={f.champs.priorite}>
+              <Choix options={OPTIONS_PRIORITE} valeur={brouillon.priorite} onChange={(v) => changer('priorite', v)} />
+            </Champ>
+          )}
 
           <Champ libelle={f.champs.lien} erreur={message('urlBoutique')}>
             <Saisie
