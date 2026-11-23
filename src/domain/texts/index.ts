@@ -67,6 +67,7 @@ export const texts = {
   ecrans: {
     wishlist: 'Wishlist',
     vestiaire: 'Vestiaire',
+    reglages: 'Réglages',
   },
 
   priorites: {
@@ -270,7 +271,8 @@ export const texts = {
   },
 
   accessibilite: {
-    reglages: 'Ouvrir les Réglages',
+    menu: 'Ouvrir le menu',
+    fermerMenu: 'Fermer le menu',
     fermerAjout: 'Fermer',
     rechercher: 'Rechercher',
     fermerRecherche: 'Fermer la recherche',

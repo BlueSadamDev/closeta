@@ -70,7 +70,7 @@ Piste A · Relais et Wishlist :
 4. Pièce épuisée → bandeau « Voir des alternatives » (recherche lancée seulement au toucher).
 
 Piste B · Vestiaire :
-5. Navigation par onglets : barre en bas (Wishlist, Vestiaire), vrai menu en haut à gauche, bouton « Ajouter » sur chaque onglet.
+5. Navigation par onglets : barre en bas (Wishlist, Vestiaire), vrai menu en haut à gauche, bouton « Ajouter » sur chaque onglet. **Terminée, fusionnée via la PR #16** : onglets « WISHLIST · VESTIAIRE » en bas, menu qui glisse depuis la gauche (Wishlist, Vestiaire, Réglages), bascule supprimée. Le bouton « Ajouter » du Vestiaire vient à l'étape 6.
 6. Ajout direct au Vestiaire : même feuille d'ajout, statut `achete`, date d'achat et prix payé facultatifs.
 7. Prise de vue guidée, format 3:4 (`expo-camera` à valider) : cadre, silhouette de cintre, recadrage 1200 × 1600 ; cartes du Vestiaire en 3:4.
 8. Habillage de la photo (exploration) : essai de détourage sur 5 photos, décision de l'utilisateur avant tout développement.
@@ -114,6 +114,7 @@ Si `expo-doctor` signale des versions incompatibles : `npx expo install --fix`, 
 - Ne jamais travailler directement sur `main`. Une branche par étape.
 - Après chaque étape validée : commit, puis push de la branche.
 - Fusionner dans `main` uniquement après test de l'APK par l'utilisateur, avec un accord explicite qui nomme la PR (par exemple « fusionne la #3 »). Un « ok » général ne suffit pas.
+- Exception du lot 3 : une étape peut être fusionnée après les vérifications automatiques (section « Qualité du code »), sans test d'APK ; le test unique se fait avec l'APK de production à l'étape 9. L'accord explicite qui nomme la PR reste obligatoire.
 - Dans chaque résumé, distinguer « APK construit » (le build GitHub a réussi) et « APK testé » (installé et vérifié par l'utilisateur).
 - Après une fusion avec conflits, relire `package.json` et `.github/workflows/` pour vérifier qu'aucune mise à jour n'a été annulée.
 - Après la fusion, proposer de supprimer la branche.
