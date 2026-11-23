@@ -251,6 +251,14 @@ Décisions validées le 23 novembre 2026 :
 - Ajout direct au Vestiaire : date d'achat et prix payé **facultatifs**.
 - Photos des pièces possédées : **sur cintre**, **format unique portrait 3:4**.
 
+Décisions du 23 novembre 2026 (plans des étapes 1 et 5) :
+
+- `releve_prix` reçoit un champ `source` (enum obligatoire : `ajout`, `relais`, `manuel`) : relevé de l'ajout, relecture par le relais, modification à la main.
+- Les relevés sont créés dès l'étape 1 : à l'ajout par lien ou par photo, et à chaque modification manuelle du prix.
+- Le compteur SerpApi suit le mois du calendrier (remise à zéro le 1er), même si l'offre SerpApi se renouvelle à une autre date.
+- Barre d'onglets : deux mots en capitales, « WISHLIST » et « VESTIAIRE », sans icône (actif `ink` souligné, inactif `inkMuted`).
+- Le bouton « Ajouter » du Vestiaire n'apparaît qu'à l'étape 6 (ajout direct au Vestiaire).
+
 ### Modèle de données (migration)
 
 Nouvelle table `releve_prix` (un relevé = une lecture de la page boutique) :
