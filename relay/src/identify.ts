@@ -47,6 +47,18 @@ export function assembler(lens: Proposition[], shopping: Proposition[], descript
     .map((p) => avecMarque(p, description.marque));
 }
 
+/** Le seuil mensuel de recherches SerpApi est atteint : aucune recherche n'a été lancée. */
+export class QuotaAtteint extends Error {
+  constructor() {
+    super('quota_atteint');
+  }
+}
+
+/** Ce que /identify demande au compteur SerpApi : réserver une recherche avant chaque appel. */
+export interface Reservation {
+  reserver(): Promise<boolean>;
+}
+
 export class RechercheIndisponible extends Error {
   constructor(readonly incidents: string[]) {
     super('recherche_indisponible');
@@ -61,13 +73,21 @@ const resume = (e: unknown, secret: string | undefined) => {
 
 /**
  * Enchaîne IA, Lens et Shopping. `adressePhoto` est l'adresse publique (temporaire) de la photo.
- * Lève RechercheIndisponible si aucune recherche n'a pu aboutir (clé absente, quota, réseau).
+ * Chaque appel SerpApi est d'abord réservé auprès du compteur : seuil atteint → appel sauté.
+ * Lève QuotaAtteint si le seuil a empêché toute recherche, RechercheIndisponible si aucune
+ * recherche n'a pu aboutir pour une autre raison (clé absente, réseau).
  */
 export async function identifier(
   photo: Uint8Array,
-  outils: { ia: IA; stockage: Stockage; cleSerpApi: string | undefined; adressePhoto: (id: string) => string },
+  outils: {
+    ia: IA;
+    stockage: Stockage;
+    cleSerpApi: string | undefined;
+    quota: Reservation;
+    adressePhoto: (id: string) => string;
+  },
 ): Promise<Identification> {
-  const { ia, stockage, cleSerpApi } = outils;
+  const { ia, stockage, cleSerpApi, quota } = outils;
   const id = nouvelIdentifiant();
   // Étapes en échec, renvoyées seulement en cas de panne (aucun secret dedans).
   const incidents: string[] = [];
@@ -75,6 +95,10 @@ export async function identifier(
   const lens = async (): Promise<Proposition[] | null> => {
     if (!cleSerpApi) {
       incidents.push('cle_serpapi_absente');
+      return null;
+    }
+    if (!(await quota.reserver())) {
+      incidents.push('quota_atteint');
       return null;
     }
     try {
@@ -105,18 +129,25 @@ export async function identifier(
   // null = recherche Shopping non faite ou en échec.
   let shopping: Proposition[] | null = null;
   if ((trouves?.length ?? 0) < settings.resultatsMin && cleSerpApi && description.recherche) {
-    try {
-      shopping = lireShopping(await appelerSerpApi(adresseShopping(cleSerpApi, description.recherche), settings.delaiShoppingMs));
-    } catch (e) {
-      // Shopping en échec : on garde ce que Lens a trouvé.
-      incidents.push(`shopping: ${resume(e, cleSerpApi)}`);
+    if (await quota.reserver()) {
+      try {
+        shopping = lireShopping(await appelerSerpApi(adresseShopping(cleSerpApi, description.recherche), settings.delaiShoppingMs));
+      } catch (e) {
+        // Shopping en échec : on garde ce que Lens a trouvé.
+        incidents.push(`shopping: ${resume(e, cleSerpApi)}`);
+      }
+    } else {
+      // Seuil atteint après Lens : on garde ce que Lens a trouvé.
+      incidents.push('quota_atteint');
     }
   } else if (trouves === null && !description.recherche) {
     incidents.push('ia_sans_recherche');
   }
 
   // Aucune recherche n'a fonctionné : ce n'est pas « rien trouvé », c'est une panne.
-  if (trouves === null && shopping === null) throw new RechercheIndisponible(incidents);
+  if (trouves === null && shopping === null) {
+    throw incidents.includes('quota_atteint') ? new QuotaAtteint() : new RechercheIndisponible(incidents);
+  }
 
   const resultats = assembler(trouves ?? [], shopping ?? [], description);
   // Les étapes en échec (IA trop lente, Shopping en panne…) accompagnent la réponse : utile au diagnostic.

@@ -1,6 +1,7 @@
 import { extraireProduit } from './extract';
 import type { IA } from './ia';
-import { clePhoto, estJpeg, identifiantValide, identifier, RechercheIndisponible, type Stockage } from './identify';
+import { clePhoto, estJpeg, identifiantValide, identifier, QuotaAtteint, RechercheIndisponible, type Stockage } from './identify';
+import { Compteur, lireLimite, type Magasin } from './quota';
 import { settings } from './settings';
 import { urlPublique } from './url';
 
@@ -19,6 +20,10 @@ export interface Env {
   AI: IA;
   /** Stockage temporaire des photos, le temps de la recherche Google Lens. */
   PHOTOS: Stockage;
+  /** Compteur des recherches SerpApi du mois (Cloudflare KV). */
+  QUOTA: Magasin;
+  /** Seuil mensuel de recherches SerpApi, réglé dans wrangler.toml ([vars]). */
+  SERPAPI_LIMITE_MOIS?: string;
 }
 
 export type CodeErreur =
@@ -30,7 +35,8 @@ export type CodeErreur =
   | 'url_refusee'
   | 'page_illisible'
   | 'photo_refusee'
-  | 'recherche_indisponible';
+  | 'recherche_indisponible'
+  | 'quota_atteint';
 
 const json = (corps: unknown, statut = 200) =>
   new Response(JSON.stringify(corps), {
@@ -148,20 +154,32 @@ async function routeExtract(requete: Request): Promise<Response> {
   return json({ ...extraireProduit(page.html, page.url), url: url.toString() });
 }
 
+const compteur = (env: Env) => new Compteur(env.QUOTA, lireLimite(env.SERPAPI_LIMITE_MOIS));
+
+/** GET /quota : recherches SerpApi du mois, `{ utilise, limite, mois }`. */
+async function routeQuota(env: Env): Promise<Response> {
+  return json(await compteur(env).etat());
+}
+
 /** POST /identify : propositions à partir d'une photo. */
 async function routeIdentify(requete: Request, env: Env): Promise<Response> {
   const photo = await lirePhoto(requete);
   if (!photo) return erreur('photo_refusee', 400);
+  const quota = compteur(env);
+  // Seuil atteint : réponse immédiate, sans IA ni SerpApi.
+  if (await quota.atteint()) return erreur('quota_atteint', 429);
   const origine = new URL(requete.url).origin;
   try {
     const resultat = await identifier(photo, {
       ia: env.AI,
       stockage: env.PHOTOS,
       cleSerpApi: env.SERPAPI_KEY,
+      quota,
       adressePhoto: (id) => `${origine}/photo/${id}`,
     });
     return json(resultat);
   } catch (e) {
+    if (e instanceof QuotaAtteint) return erreur('quota_atteint', 429);
     if (e instanceof RechercheIndisponible) return json({ erreur: 'recherche_indisponible', incidents: e.incidents }, 502);
     throw e;
   }
@@ -186,7 +204,8 @@ export default {
     const { pathname } = new URL(requete.url);
     const photo = pathname.match(/^\/photo\/([^/]+)$/);
     if (requete.method === 'GET' && photo) return routePhoto(photo[1], env, requete);
-    if (requete.method !== 'POST' || (pathname !== '/extract' && pathname !== '/identify')) {
+    const route = `${requete.method} ${pathname}`;
+    if (route !== 'POST /extract' && route !== 'POST /identify' && route !== 'GET /quota') {
       return erreur('route_inconnue', 404);
     }
 
@@ -203,11 +222,12 @@ export default {
       return erreur('jeton_refuse', 403);
     }
 
-    // 2) Limite de débit par jeton (commune aux deux routes).
+    // 2) Limite de débit par jeton (commune à toutes les routes).
     if (!(await env.LIMITEUR.limit({ key: `jeton:${hex(await empreinte(jeton)).slice(0, 16)}` })).success) {
       return erreur('limite', 429);
     }
 
+    if (route === 'GET /quota') return routeQuota(env);
     return pathname === '/extract' ? routeExtract(requete) : routeIdentify(requete, env);
   },
 };

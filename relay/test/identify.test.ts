@@ -6,6 +6,7 @@ import relais, { type Env } from '../src/index';
 import { lireDevise, lireLens, lireShopping, type Proposition } from '../src/recherche';
 import lens from './fixtures/lens.json';
 import shopping from './fixtures/shopping.json';
+import { magasin } from './kv';
 
 const JETON = 'jeton-fictif-de-test';
 /** Une « photo » fictive : juste l'en-tête JPEG suivi d'octets quelconques. */
@@ -139,16 +140,19 @@ function stockage() {
   };
 }
 
-function env(options: { ia?: unknown; cle?: string | undefined } = {}) {
+function env(options: { ia?: unknown; cle?: string | undefined; quota?: Record<string, string>; limite?: string } = {}) {
   const photos = stockage();
+  const quota = magasin(options.quota);
   const e: Env = {
     RELAY_TOKEN: JETON,
     SERPAPI_KEY: 'cle' in options ? options.cle : 'cle-fictive',
     LIMITEUR: { limit: async () => ({ success: true }) },
     AI: { run: vi.fn(async () => options.ia ?? reponseIA(DESCRIPTION_IA)) },
     PHOTOS: photos,
+    QUOTA: quota,
+    SERPAPI_LIMITE_MOIS: options.limite,
   };
-  return { e, photos };
+  return { e, photos, quota };
 }
 
 const envoi = (corps: BodyInit, type = 'image/jpeg', jeton: string | null = JETON) =>
