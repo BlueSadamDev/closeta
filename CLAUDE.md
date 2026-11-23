@@ -71,7 +71,7 @@ Piste A · Relais et Wishlist :
 
 Piste B · Vestiaire :
 5. Navigation par onglets : barre en bas (Wishlist, Vestiaire), vrai menu en haut à gauche, bouton « Ajouter » sur chaque onglet. **Terminée, fusionnée via la PR #16** : onglets « WISHLIST · VESTIAIRE » en bas, menu qui glisse depuis la gauche (Wishlist, Vestiaire, Réglages), bascule supprimée. Le bouton « Ajouter » du Vestiaire vient à l'étape 6.
-6. Ajout direct au Vestiaire : même feuille d'ajout, statut `achete`, date d'achat et prix payé facultatifs.
+6. Ajout direct au Vestiaire : même feuille d'ajout, statut `achete`, date d'achat et prix payé facultatifs. **Terminée, fusionnée via la PR #18** : bouton « Ajouter » du Vestiaire (même feuille), formulaire sans priorité avec « Prix payé » et « Date d'achat » facultatifs, « ACHAT NON DATÉ » sur les cartes, aucun relevé de prix pour le Vestiaire.
 7. Prise de vue guidée, format 3:4 (`expo-camera` à valider) : cadre, silhouette de cintre, recadrage 1200 × 1600 ; cartes du Vestiaire en 3:4.
 8. Habillage de la photo (exploration) : essai de détourage sur 5 photos, décision de l'utilisateur avant tout développement.
 

@@ -56,6 +56,9 @@ export const texts = {
     titre: 'Le Vestiaire',
     vide: 'Ton Vestiaire est vide. Sur une fiche, *Je l’ai acheté* y range la pièce.',
     acheteEn: (mois: string) => `Acheté en ${mois}`,
+    /** Étiquette d'une pièce sans date d'achat. */
+    nonDate: 'Achat non daté',
+    ajouter: 'Ajouter',
     tri: {
       achat: 'Achats récents',
       prix: 'Prix',
@@ -98,6 +101,7 @@ export const texts = {
     acheteLe: (date: string) => `Acheté le ${date}`,
     /** Fiche d'une pièce ajoutée comme alternative : « Alternative à : <nom> ». */
     alternativeA: 'Alternative à :',
+    nonDate: 'Non daté',
     introuvable: 'Cette pièce n’est plus là. *Retourne à ta Wishlist*.',
     lienIllisible: 'Ce lien ne s’ouvre pas. *Vérifie-le* en modifiant la pièce.',
   },
@@ -134,6 +138,8 @@ export const texts = {
       taille: 'Taille',
       couleur: 'Couleur',
       prix: 'Prix en euros',
+      prixPaye: 'Prix payé en euros',
+      dateAchat: 'Date d’achat',
       lien: 'Lien de la boutique',
       priorite: 'Priorité',
       notes: 'Notes',
@@ -145,6 +151,7 @@ export const texts = {
       taille: 'M, 42, 9 UK…',
       couleur: 'Écru, marine…',
       prix: '129,90',
+      dateAchat: '14/11/2026',
       lien: 'Colle le lien ici',
       notes: 'Une idée de tenue, un détail à vérifier…',
     },
@@ -153,6 +160,7 @@ export const texts = {
       typeManquant: 'Choisis *vêtement ou chaussures*.',
       prixInvalide: 'Écris un prix *comme 129,90*.',
       lienInvalide: 'Ce lien semble incomplet. *Colle-le en entier*.',
+      dateInvalide: 'Écris une date passée, *comme 14/11/2026*.',
     },
     echecEnregistrement: 'La pièce n’a pas pu être enregistrée. *Réessaie*.',
     /** Formulaire ouvert après un lien (collé ou partagé). */
@@ -184,6 +192,7 @@ export const texts = {
       boutique: 'Celle de la boutique',
       changer: 'Changer la photo',
     },
+    aujourdhui: 'Aujourd’hui',
     enregistrer: 'Enregistrer',
     annuler: 'Annuler',
   },
