@@ -47,4 +47,11 @@ describe('relevés de prix', () => {
     const achetee = articleFictif({ id: 'y', prix: 90, statut: 'achete' });
     expect(releveAEnregistrer(achetee, { ...achetee, prix: 80 }, 'r2')).toBeNull();
   });
+
+  it('pièce ajoutée directement au Vestiaire, même par lien ou photo : aucun relevé', () => {
+    for (const origine of ['lien', 'photo', 'manuel'] as const) {
+      const a = articleFictif({ id: 'x', origine, statut: 'achete', prix: 420 });
+      expect(releveAEnregistrer(null, a, 'r1')).toBeNull();
+    }
+  });
 });

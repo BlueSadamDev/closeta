@@ -23,6 +23,7 @@ describe('validation du formulaire', () => {
         urlBoutique: null,
         priorite: 'moyenne',
         notes: null,
+        dateAchat: null,
       },
     });
   });
@@ -40,5 +41,18 @@ describe('validation du formulaire', () => {
   it('accepte un lien complet', () => {
     const r = validerBrouillon({ ...BROUILLON_VIDE, nom: 'Pull', type: 'vetement', urlBoutique: 'https://boutique.example/pull' });
     expect(r.ok && r.champs.urlBoutique).toBe('https://boutique.example/pull');
+  });
+
+  it('lit la date d’achat facultative du Vestiaire, refuse une date mal écrite ou à venir', () => {
+    const maintenant = new Date(2026, 10, 23, 9);
+    const base = { ...BROUILLON_VIDE, nom: 'Pull', type: 'vetement' as const };
+    const vide = validerBrouillon(base, maintenant);
+    expect(vide.ok && vide.champs.dateAchat).toBeNull();
+    const datee = validerBrouillon({ ...base, dateAchat: '14/11/2026' }, maintenant);
+    expect(datee.ok && datee.champs.dateAchat).toBe(new Date(2026, 10, 14, 12).toISOString());
+    expect(validerBrouillon({ ...base, dateAchat: '24/11/2026' }, maintenant)).toEqual({
+      ok: false,
+      erreurs: { dateAchat: 'dateInvalide' },
+    });
   });
 });
