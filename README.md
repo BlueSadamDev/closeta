@@ -63,15 +63,27 @@ Petit programme hébergé chez Cloudflare (gratuit). L'app lui envoie un lien pr
 - `POST /extract`, corps `{ "url": "https://…", "taille": "M" }` (`taille` facultative) : lit la page de la boutique et renvoie nom, marque, image, prix, devise, `disponibilite` et `dispo_taille` (`en_stock`, `epuise` ou `inconnue` si la boutique ne publie rien). N'accepte que des liens `https` publics.
 - `POST /identify`, corps = la photo JPEG (`Content-Type: image/jpeg`, 2 Mo au plus) : l'IA de Cloudflare décrit la pièce, Google Lens (via SerpApi) cherche l'article, Google Shopping complète avec des alternatives. Renvoie de 0 à 5 résultats. La photo est déposée un instant dans le stockage R2 (Lens a besoin d'une adresse pour la lire, `GET /photo/<id>`), puis supprimée.
 - `POST /alternatives`, corps JSON `{ image_url?, photo?, nom, marque, categorie, couleur, url_exclue }` (`photo` = JPEG en base64, seulement si la pièce n'a pas d'image de boutique) : Google Lens cherche des pièces qui ressemblent, classées par ressemblance (jamais par prix) ; la page d'origine, les réseaux sociaux et les résultats sans boutique sont écartés ; sous 3 résultats, Google Shopping complète. Renvoie de 0 à 5 résultats ; 1 ou 2 recherches SerpApi par appel.
-- `GET /quota` : recherches SerpApi du mois, `{ "utilise": 37, "limite": 250, "mois": "2026-11" }` (affiché dans les Réglages de l'app).
-- En-tête `Authorization: Bearer <jeton>` obligatoire ; limite de 30 requêtes par minute.
+- `GET /quota` : recherches SerpApi du mois, `{ "installation": { "utilise": 12, "limite": 250 }, "global": { "utilise": 37, "limite": 250 }, "mois": "2026-11" }` (le global est affiché dans les Réglages de l'app).
+- Routes servies sous `/v1/…` (`/v1/extract`, `/v1/identify`, `/v1/alternatives`, `/v1/quota`) ; les adresses sans `/v1` restent des alias pour les anciens APK.
+- En-tête `Authorization: Bearer <jeton>` obligatoire ; limite de 30 requêtes par minute et par installation. L'app envoie aussi `X-ClosetA-Installation` (identifiant du téléphone) et `X-ClosetA-Version` (version de l'app).
 - Tests : `cd relay && npm ci && npm test`.
 
+### Installations (un jeton par téléphone)
+
+- Chaque téléphone peut avoir son propre jeton. Le relais n'en garde que l'empreinte SHA-256 (dans le même espace KV que le compteur), jamais le jeton lui-même. Un jeton révoqué est refusé (en moins d'une minute, délai de diffusion de KV).
+- L'ancien jeton `RELAY_TOKEN` reste accepté : il compte comme l'installation « Principale ».
+- Chaque recherche SerpApi compte dans la case de l'installation et dans la case globale ; le seuil global reste la limite dure. Seuil par installation : `SERPAPI_LIMITE_INSTALLATION` dans `wrangler.toml` (vide = même seuil que le global).
+- Administration, avec le secret Cloudflare `ADMIN_TOKEN` (en-tête `Authorization: Bearer <jeton d'administration>`) :
+  - `GET /v1/admin/installations` : liste (nom, date, active ou non, recherches du mois) ;
+  - `POST /v1/admin/installations`, corps `{ "nom": "Téléphone de Léa" }` : crée l'installation et renvoie son jeton **une seule fois** ;
+  - `DELETE /v1/admin/installations/<id>` : révoque l'installation.
+- Version minimale de l'app : `VERSION_APP_MIN` dans `wrangler.toml` (vide = aucune exigence). Une app plus ancienne, ou qui n'envoie pas sa version (APK d'avant l'étape 9 du lot 3), reçoit `mise_a_jour_requise` (HTTP 426) et affiche « Mets ClosetA à jour pour continuer. »
 ### Mise en ligne
 
 1. Une fois : secrets GitHub `CLOUDFLARE_API_TOKEN` et `CLOUDFLARE_ACCOUNT_ID` (Settings > Secrets and variables > Actions).
 2. Onglet **Actions** > **Mettre en ligne le relais** > **Run workflow**.
 3. Une fois, après la première mise en ligne : dans le tableau de bord Cloudflare, Workers & Pages > `closeta-relay` > Settings > Variables and Secrets, ajouter le secret `RELAY_TOKEN` (le jeton à saisir ensuite dans l'app). Il est conservé lors des mises en ligne suivantes.
+4. Pour gérer plusieurs téléphones : ajouter de la même façon le secret `ADMIN_TOKEN` (jeton d'administration, différent de `RELAY_TOKEN`).
 
 ### Ajout par photo (`/identify`) : à préparer une fois, avant la mise en ligne
 
