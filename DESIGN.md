@@ -52,18 +52,19 @@ Contraste : tout texte atteint 4,5:1 sur son fond. `inkMuted` et `tobacco` le re
 - **Cibles tactiles ≥ 44 px.**
 
 ## Composants
-- **En-tête** : icône menu, mot-symbole centré, icône recherche ; filet `ink` dessous.
+- **En-tête** : icône menu (ouvre le menu), mot-symbole centré, icône recherche ; filet `ink` dessous.
 - **Sur-titre + titre** : « MA SÉLECTION · N PIÈCES » (étiquette), puis « La Wishlist » (dans le Vestiaire : « MON VESTIAIRE · N PIÈCES », « Le Vestiaire ») à gauche et le total à droite, alignés sur la ligne de base.
 - **Barre de filtres** (Wishlist et Vestiaire), repliée par défaut : une ligne entre deux filets `ink`, cible de 44 px. À gauche, icône filtre + « FILTRER · » suivi de la sélection (« TOUT », ou « VÊTEMENTS · VESTE »…) en `ink` ; à droite, le tri (« RÉCENTS ») en `inkMuted` et une flèche vers le bas ; la sélection tient sur une ligne (coupée par « … » si besoin). En vue par catégorie, la première section n'a pas de filet : celui de la barre suffit. Un toucher déplie le panneau ; la ligne affiche alors « FERMER » et une flèche vers le haut.
 - **Panneau de filtres** (déplié, entre les deux filets) : une ligne par rubrique, rubrique en Cormorant Garamond italique 16 `inkMuted` à gauche (Pièces, Choix, Vue, Tri), choix en capitales à droite. Choix actif = « sélection pleine » : fond `ink`, texte `paper`, sans arrondi ; inactifs = `inkMuted` sans fond. « Choix » ouvre la liste des priorités ou des catégories en dessous.
-- **Barre collante** : en faisant défiler, la barre de filtres reste fixée sous la bascule Wishlist / Vestiaire, fond `paper`, filet dessous.
-- **Bascule Wishlist / Vestiaire** : sous l'en-tête, « WISHLIST · VESTIAIRE » en capitales, même style que les filtres (actif = `ink` souligné, inactif = `inkMuted`), cibles de 44 px.
+- **Barre collante** : en faisant défiler, la barre de filtres reste fixée sous l'en-tête, fond `paper`, filet dessous.
+- **Barre d'onglets** : fixée en bas de la Wishlist et du Vestiaire, fond `paper`, filet `ink` au-dessus. Deux mots en capitales, « WISHLIST » et « VESTIAIRE », sans icône, chacun centré sur sa moitié ; même style que les filtres (actif = `ink` souligné, inactif = `inkMuted`), cibles de 44 px. Le retour Android ramène du Vestiaire à la Wishlist.
+- **Menu** : l'icône menu fait glisser depuis la gauche un panneau `paper` (80 % de la largeur, 320 px au plus, filet `ink` à droite) sur un voile `ink` léger. En haut : croix de fermeture et mot-symbole, filet dessous. Puis une ligne de 64 px par écran : Wishlist, Vestiaire, Réglages, en Cormorant Garamond 24, séparées par des filets ; l'écran affiché en `ink`, les autres en `inkMuted`. Toucher le voile, la croix ou le retour Android le referme.
 - **Carte article** : photo, étiquette de priorité en bas à droite de la photo (fond `paper`, texte `ink`), puis marque (étiquette), nom, prix. Pas de cadre autour de la carte. Dans le Vestiaire, l'étiquette porte le mois d'achat (« ACHETÉ EN NOV. 2026 ») à la place de la priorité.
 - **Article sans prix** : « Prix à compléter » en `inkMuted` à la place du prix ; il n'entre pas dans le total, et le total le signale.
 - **Article sans photo** : aplat `photo1` à `photo3` (selon l'article) avec la première lettre du nom en Cormorant Garamond.
 - **Bouton principal** : fond `ink`, texte `paper`, 52 px de haut.
 - **Bouton secondaire** : filet 1 px `ink`, fond transparent, texte `ink`.
-- **Bouton « Ajouter »** : bouton principal fixé en bas à droite (24 px des bords), icône + « AJOUTER ».
+- **Bouton « Ajouter »** : bouton principal fixé en bas à droite, 24 px au-dessus de la barre d'onglets et du bord droit, icône + « AJOUTER ».
 - **Feuille du bas** (choix du mode d'ajout) : fond `paper`, filet `ink` en haut, une ligne par mode (icône + libellé + phrase courte), 64 px par ligne.
 - **Proposition (lot 1b)** : photo + marque + nom + prix + boutique ; une proposition « alternative » porte l'étiquette « ALTERNATIVE » en `tobacco`.
 - **Chargement** : texte en italique Cormorant Garamond (« On lit la page… »), sans roue qui tourne plein écran.
