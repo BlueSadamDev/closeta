@@ -10,8 +10,8 @@ export type Filtre = {
 
 export const FILTRE_VIDE: Filtre = { type: null, priorite: null, categorie: null, recherche: '' };
 
-export type Tri = 'date' | 'prix' | 'priorite';
-export const TRIS: readonly Tri[] = ['date', 'prix', 'priorite'];
+export type Tri = 'date' | 'prix' | 'priorite' | 'marque';
+export const TRIS: readonly Tri[] = ['date', 'prix', 'priorite', 'marque'];
 
 /** Seuls les articles souhaités sont dans la Wishlist. */
 export const articlesDeLaWishlist = (articles: readonly Article[]) =>
@@ -54,13 +54,27 @@ const RANG_PRIORITE: Record<Priorite, number> = { forte: 0, moyenne: 1, un_jour:
 const plusRecentDabord = (a: Article, b: Article) => b.dateAjout.localeCompare(a.dateAjout);
 
 /**
+ * Ordre des marques : alphabétique, sans tenir compte des majuscules ni des accents ;
+ * pièces sans marque à la fin. 0 pour deux pièces de la même marque (l'autre tri les départage).
+ */
+export function comparerMarques(a: Article, b: Article): number {
+  const ma = a.marque ? normaliser(a.marque) : '';
+  const mb = b.marque ? normaliser(b.marque) : '';
+  if (ma === mb) return 0;
+  if (!ma) return 1;
+  if (!mb) return -1;
+  return ma.localeCompare(mb);
+}
+
+/**
  * Trie sans modifier la liste d'origine.
  * date : plus récent d'abord ; prix : moins cher d'abord, sans prix à la fin ;
- * priorité : envie forte d'abord, puis plus récent.
+ * priorité : envie forte d'abord, puis plus récent ; marque : alphabétique, sans marque à la fin, puis plus récent.
  */
 export function trier(articles: readonly Article[], tri: Tri): Article[] {
   const copie = [...articles];
   if (tri === 'date') return copie.sort(plusRecentDabord);
+  if (tri === 'marque') return copie.sort((a, b) => comparerMarques(a, b) || plusRecentDabord(a, b));
   if (tri === 'priorite') {
     return copie.sort((a, b) => RANG_PRIORITE[a.priorite] - RANG_PRIORITE[b.priorite] || plusRecentDabord(a, b));
   }
@@ -72,14 +86,24 @@ export function trier(articles: readonly Article[], tri: Tri): Article[] {
   });
 }
 
-/** Catégories présentes dans la liste, sans doublon (« veste » et « Veste » comptent une fois), triées. */
-export function categoriesPresentes(articles: readonly Article[]): string[] {
+/** Champ qui sert à regrouper les pièces : la catégorie ou la marque. */
+type LireChamp = (a: Article) => string | null;
+const lireCategorie: LireChamp = (a) => a.categorie;
+const lireMarque: LireChamp = (a) => a.marque;
+
+/** Valeurs présentes d'un champ, sans doublon (« veste » et « Veste » comptent une fois), triées. */
+function valeursPresentes(articles: readonly Article[], lire: LireChamp): string[] {
   const vues = new Map<string, string>();
   for (const a of articles) {
-    if (a.categorie && !vues.has(normaliser(a.categorie))) vues.set(normaliser(a.categorie), a.categorie);
+    const valeur = lire(a);
+    const cle = valeur ? normaliser(valeur) : '';
+    if (cle && !vues.has(cle)) vues.set(cle, valeur as string);
   }
   return [...vues.values()].sort((a, b) => normaliser(a).localeCompare(normaliser(b)));
 }
+
+/** Catégories présentes dans la liste, sans doublon (« veste » et « Veste » comptent une fois), triées. */
+export const categoriesPresentes = (articles: readonly Article[]) => valeursPresentes(articles, lireCategorie);
 
 /** Couleur d'aplat (photo1 à photo3) quand l'article n'a pas de photo : toujours la même pour un article. */
 export function indiceAplat(id: string): 0 | 1 | 2 {
@@ -88,43 +112,50 @@ export function indiceAplat(id: string): 0 | 1 | 2 {
   return somme as 0 | 1 | 2;
 }
 
-export type Vue = 'grille' | 'categories';
-export const VUES: readonly Vue[] = ['grille', 'categories'];
+export type Vue = 'grille' | 'categories' | 'marques';
+export const VUES: readonly Vue[] = ['grille', 'categories', 'marques'];
 
 export type Section = {
-  /** Nom de la catégorie tel que saisi ; null pour les pièces sans catégorie. */
-  categorie: string | null;
+  /** Catégorie ou marque telle que saisie ; null pour les pièces qui n'en ont pas. */
+  titre: string | null;
   articles: Article[];
   total: ReturnType<typeof totalWishlist>;
 };
 
 /**
- * Vue par catégorie : une section par catégorie (« veste » et « Veste » ensemble),
- * dans l'ordre alphabétique, puis les pièces sans catégorie à la fin.
+ * Une section par valeur du champ (« veste » et « Veste » ensemble), dans l'ordre alphabétique,
+ * puis les pièces sans valeur à la fin.
  * L'ordre des pièces dans chaque section reste celui de la liste reçue (donc le tri choisi).
  */
-export function regrouperParCategorie(articles: readonly Article[]): Section[] {
+function regrouper(articles: readonly Article[], lire: LireChamp): Section[] {
   const groupes = new Map<string, Article[]>();
-  const sansCategorie: Article[] = [];
+  const sansValeur: Article[] = [];
   for (const a of articles) {
-    const cle = a.categorie ? normaliser(a.categorie) : '';
+    const valeur = lire(a);
+    const cle = valeur ? normaliser(valeur) : '';
     if (!cle) {
-      sansCategorie.push(a);
+      sansValeur.push(a);
       continue;
     }
     const groupe = groupes.get(cle);
     if (groupe) groupe.push(a);
     else groupes.set(cle, [a]);
   }
-  const sections: Section[] = categoriesPresentes(articles).map((categorie) => {
-    const contenu = groupes.get(normaliser(categorie)) ?? [];
-    return { categorie, articles: contenu, total: totalWishlist(contenu) };
-  }).filter((s) => s.articles.length > 0);
-  if (sansCategorie.length > 0) {
-    sections.push({ categorie: null, articles: sansCategorie, total: totalWishlist(sansCategorie) });
+  const sections: Section[] = valeursPresentes(articles, lire).map((titre) => {
+    const contenu = groupes.get(normaliser(titre)) ?? [];
+    return { titre, articles: contenu, total: totalWishlist(contenu) };
+  });
+  if (sansValeur.length > 0) {
+    sections.push({ titre: null, articles: sansValeur, total: totalWishlist(sansValeur) });
   }
   return sections;
 }
+
+/** Vue par catégorie : sections alphabétiques, pièces sans catégorie à la fin (« À classer »). */
+export const regrouperParCategorie = (articles: readonly Article[]) => regrouper(articles, lireCategorie);
+
+/** Vue par marque : mêmes règles, pièces sans marque à la fin (« Sans marque »). */
+export const regrouperParMarque = (articles: readonly Article[]) => regrouper(articles, lireMarque);
 
 /** Range les pièces par deux, pour afficher les sections sur 2 colonnes. */
 export function parPaires<T>(liste: readonly T[]): T[][] {
