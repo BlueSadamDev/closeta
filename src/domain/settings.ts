@@ -7,10 +7,14 @@ export const settings = {
   databaseName: 'closeta.db',
   /** Adresse du relais Cloudflare (pas un secret ; le jeton, lui, est saisi dans les Réglages). */
   relayUrl: 'https://closeta-relay.bluesadam-dev.workers.dev',
+  /** Version des routes du relais (« /v1/extract »). */
+  relayPrefixe: '/v1',
   /** Temps maximal d'attente d'une réponse du relais (docs/SPEC.md : 20 s). */
   relayTimeoutMs: 20_000,
   /** Nom sous lequel le jeton du relais est rangé dans le coffre du téléphone (expo-secure-store). */
   relayTokenKey: 'closeta.jeton-relais',
+  /** Clé du coffre du téléphone où est rangé l'identifiant d'installation. */
+  installationKey: 'closeta.installation',
   /** Temps maximal pour copier sur le téléphone la photo d'une pièce ajoutée par lien. */
   imageDownloadTimeoutMs: 15_000,
   /** Dossier (dans le stockage de l'app) où sont rangées les photos des pièces. */

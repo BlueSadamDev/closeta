@@ -4,6 +4,7 @@
  */
 import type { Disponibilite } from './article';
 import { prixPourSaisie } from './prix';
+import { STATUT_MISE_A_JOUR } from './relais';
 import { BROUILLON_VIDE, type Brouillon } from './validation';
 
 /** Données lues sur la page de la boutique ; null = non trouvé (jamais inventé). */
@@ -20,7 +21,13 @@ export type Extraction = {
 };
 
 /** Raisons pour lesquelles le relais n'a rien rendu d'utilisable. */
-export type EchecExtraction = 'jeton_absent' | 'jeton_refuse' | 'limite' | 'injoignable' | 'illisible';
+export type EchecExtraction =
+  | 'jeton_absent'
+  | 'jeton_refuse'
+  | 'limite'
+  | 'mise_a_jour_requise'
+  | 'injoignable'
+  | 'illisible';
 
 export type ResultatExtraction = { ok: true; extraction: Extraction } | { ok: false; raison: EchecExtraction };
 
@@ -74,6 +81,7 @@ export function lireExtraction(statut: number | null, corps: unknown, lienDemand
   if (statut === 401) return { ok: false, raison: 'jeton_absent' };
   if (statut === 403) return { ok: false, raison: 'jeton_refuse' };
   if (statut === 429) return { ok: false, raison: 'limite' };
+  if (statut === STATUT_MISE_A_JOUR) return { ok: false, raison: 'mise_a_jour_requise' };
   if (statut !== 200 || typeof corps !== 'object' || corps === null) return { ok: false, raison: 'illisible' };
 
   const c = corps as Record<string, unknown>;
