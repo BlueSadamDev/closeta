@@ -23,3 +23,13 @@ binding = "AI"
 [[r2_buckets]]
 binding = "PHOTOS"
 bucket_name = "closeta-photos-temp"
+
+# Compteur des recherches SerpApi du mois (une case par mois, effacée d'elle-même après 40 jours).
+# L'identifiant de l'espace KV n'est pas un secret : sans les accès au compte, il ne permet rien.
+[[kv_namespaces]]
+binding = "QUOTA"
+id = "19c2c02e0f46454a82b5f9039dada99d"
+
+# Seuil mensuel de recherches SerpApi (offre gratuite : 250). Au seuil, /identify répond « quota_atteint ».
+[vars]
+SERPAPI_LIMITE_MOIS = "250"

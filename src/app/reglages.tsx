@@ -10,22 +10,32 @@ import { Champ, Saisie } from '@/components/Champ';
 import { Entete } from '@/components/Entete';
 import { Etiquette } from '@/components/Etiquette';
 import { RichText } from '@/components/RichText';
-import { nettoyerJeton } from '@/domain/relais';
+import { nettoyerJeton, niveauQuota, type Quota } from '@/domain/relais';
 import { texts } from '@/domain/texts';
-import { testerConnexion } from '@/relay/client';
+import { lireQuotaRelais, testerConnexion } from '@/relay/client';
 import { enregistrerJeton, lireJeton } from '@/relay/jeton';
 import { colors, fonts, spacing, type } from '@/theme';
 
 const r = texts.reglages;
 
-/** Écran Réglages : jeton du relais, test de connexion, version (docs/SPEC.md, « 5. Réglages »). */
+/**
+ * Écran Réglages : jeton du relais, test de connexion, recherches du mois, version
+ * (docs/SPEC.md, « 5. Réglages » et « Lot 3 », étape 1).
+ */
 export default function Reglages() {
   const [jeton, setJeton] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [enCours, setEnCours] = useState(false);
+  // Recherches du mois : undefined = pas de jeton (ligne masquée), null = le relais n'a pas répondu.
+  const [quota, setQuota] = useState<Quota | null | undefined>(undefined);
+
+  const actualiserQuota = async (j: string) => setQuota(j ? await lireQuotaRelais(j) : undefined);
 
   useEffect(() => {
-    lireJeton().then(setJeton);
+    lireJeton().then((j) => {
+      setJeton(j);
+      actualiserQuota(j);
+    });
   }, []);
 
   const changer = (valeur: string) => {
@@ -38,6 +48,7 @@ export default function Reglages() {
     await enregistrerJeton(propre);
     setJeton(propre);
     setMessage(propre ? r.enregistre : r.connexion.jeton_absent);
+    actualiserQuota(propre);
   };
 
   const tester = async () => {
@@ -46,7 +57,10 @@ export default function Reglages() {
     const etat = await testerConnexion(nettoyerJeton(jeton));
     setEnCours(false);
     setMessage(r.connexion[etat]);
+    if (etat === 'ok') actualiserQuota(nettoyerJeton(jeton));
   };
+
+  const niveau = quota ? niveauQuota(quota) : 'normal';
 
   return (
     <SafeAreaView style={styles.ecran} edges={['top', 'bottom']}>
@@ -74,9 +88,26 @@ export default function Reglages() {
           {enCours ? <Text style={styles.chargement}>{r.testEnCours}</Text> : null}
           {message ? <RichText style={styles.message}>{message}</RichText> : null}
 
-          <View style={styles.version}>
-            <Etiquette>{r.version}</Etiquette>
-            <Text style={[type.body, styles.valeur]}>{Constants.expoConfig?.version ?? ''}</Text>
+          <View style={styles.lignes}>
+            {quota !== undefined ? (
+              <View style={styles.ligne}>
+                <View style={styles.ligneHaut}>
+                  <Etiquette>{r.recherches}</Etiquette>
+                  {quota ? (
+                    <Text style={[type.body, styles.valeur]}>
+                      {r.recherchesValeur.replace('{utilise}', String(quota.utilise)).replace('{limite}', String(quota.limite))}
+                    </Text>
+                  ) : (
+                    <Text style={[type.body, styles.manquant]}>{r.recherchesSansReponse}</Text>
+                  )}
+                </View>
+                {niveau !== 'normal' ? <RichText style={styles.miseEnGarde}>{r.quota[niveau]}</RichText> : null}
+              </View>
+            ) : null}
+            <View style={[styles.ligne, styles.ligneHaut]}>
+              <Etiquette>{r.version}</Etiquette>
+              <Text style={[type.body, styles.valeur]}>{Constants.expoConfig?.version ?? ''}</Text>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -91,14 +122,10 @@ const styles = StyleSheet.create({
   boutons: { gap: 12, marginTop: 28 },
   chargement: { fontFamily: fonts.serifItalic, fontSize: 20, color: colors.ink, marginTop: 20 },
   message: { ...type.body, color: colors.ink, marginTop: 20 },
-  version: {
-    marginTop: 48,
-    paddingTop: 16,
-    borderTopWidth: spacing.hairline,
-    borderTopColor: colors.ink,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
+  lignes: { marginTop: 48 },
+  ligne: { paddingVertical: 16, borderTopWidth: spacing.hairline, borderTopColor: colors.ink },
+  ligneHaut: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   valeur: { color: colors.ink },
+  manquant: { color: colors.inkMuted },
+  miseEnGarde: { ...type.body, color: colors.ink, marginTop: 8 },
 });

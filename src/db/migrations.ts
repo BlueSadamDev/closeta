@@ -42,4 +42,43 @@ export const MIGRATIONS: readonly Migration[] = [
       CREATE INDEX article_statut ON article (statut);
     `,
   },
+  {
+    version: 2,
+    description: 'Historique des prix (table releve_prix), nouveaux champs de article, reprise des données',
+    // Pas de clé étrangère déclarée : enregistrerArticle utilise INSERT OR REPLACE, qui efface puis
+    // réécrit la ligne ; une suppression en cascade effacerait l'historique à chaque modification.
+    // Les relevés d'une pièce sont donc supprimés explicitement avec elle (supprimerArticle).
+    sql: `
+      ALTER TABLE article ADD COLUMN prix_ajout REAL CHECK (prix_ajout IS NULL OR prix_ajout >= 0);
+      ALTER TABLE article ADD COLUMN disponibilite TEXT NOT NULL DEFAULT 'inconnue'
+        CHECK (disponibilite IN ('en_stock', 'epuise', 'inconnue'));
+      ALTER TABLE article ADD COLUMN dispo_taille TEXT NOT NULL DEFAULT 'inconnue'
+        CHECK (dispo_taille IN ('en_stock', 'epuise', 'inconnue'));
+      ALTER TABLE article ADD COLUMN date_verif TEXT;
+      ALTER TABLE article ADD COLUMN alternative_de TEXT;
+
+      CREATE TABLE releve_prix (
+        id            TEXT PRIMARY KEY NOT NULL,
+        article_id    TEXT NOT NULL,
+        date          TEXT NOT NULL,
+        prix          REAL CHECK (prix IS NULL OR prix >= 0),
+        devise        TEXT,
+        disponibilite TEXT NOT NULL CHECK (disponibilite IN ('en_stock', 'epuise', 'inconnue')),
+        dispo_taille  TEXT NOT NULL CHECK (dispo_taille IN ('en_stock', 'epuise', 'inconnue')),
+        source        TEXT NOT NULL CHECK (source IN ('ajout', 'relais', 'manuel'))
+      );
+      CREATE INDEX releve_prix_article ON releve_prix (article_id, date);
+
+      -- Reprise : le prix actuel devient le prix d'ajout ; un relevé initial par pièce de la Wishlist qui a un prix.
+      UPDATE article SET prix_ajout = prix;
+      INSERT INTO releve_prix (id, article_id, date, prix, devise, disponibilite, dispo_taille, source)
+        SELECT
+          lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' ||
+            substr(lower(hex(randomblob(2))), 2) || '-' || substr('89ab', 1 + abs(random()) % 4, 1) ||
+            substr(lower(hex(randomblob(2))), 2) || '-' || lower(hex(randomblob(6))),
+          id, date_ajout, prix, devise, 'inconnue', 'inconnue', 'ajout'
+        FROM article
+        WHERE statut = 'souhaite' AND prix IS NOT NULL;
+    `,
+  },
 ];

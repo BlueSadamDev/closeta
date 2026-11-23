@@ -17,6 +17,7 @@ import { CATEGORIES, PRIORITES, type Article, type TypeArticle } from '@/domain/
 import { brouillonDepuisLien, listeFrancaise, nomDuSite, preremplir, type ChampManquant } from '@/domain/lien';
 import { brouillonDepuisDescription, lireParametresPhoto, preremplirDepuisProposition, type Proposition } from '@/domain/photo';
 import { prixPourSaisie } from '@/domain/prix';
+import { releveAEnregistrer } from '@/domain/releve';
 import { texts } from '@/domain/texts';
 import { BROUILLON_VIDE, validerBrouillon, type Brouillon, type Erreurs } from '@/domain/validation';
 import { extraire } from '@/relay/client';
@@ -189,9 +190,16 @@ export default function Formulaire() {
           dateAjout: maintenant,
           dateAchat: null,
           dateMaj: maintenant,
+          prixAjout: r.champs.prix,
+          disponibilite: 'inconnue',
+          dispoTaille: 'inconnue',
+          // Ajout par lien : la page boutique vient d'être lue.
+          dateVerif: lien && !photo ? maintenant : null,
+          alternativeDe: null,
         };
     try {
-      await enregistrerArticle(db, article);
+      // Historique des prix : relevé à l'ajout par lien ou photo, ou à chaque prix modifié à la main.
+      await enregistrerArticle(db, article, releveAEnregistrer(existant, article, randomUUID()));
       if (remplacee && existant?.imageLocale) effacerFichier(existant.imageLocale);
       fermer();
     } catch {

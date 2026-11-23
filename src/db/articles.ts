@@ -1,4 +1,5 @@
 import type { Article } from '@/domain/article';
+import type { RelevePrix } from '@/domain/releve';
 
 type Valeur = string | number | null;
 
@@ -31,6 +32,11 @@ type Ligne = {
   date_ajout: string;
   date_achat: string | null;
   date_maj: string;
+  prix_ajout: number | null;
+  disponibilite: Article['disponibilite'];
+  dispo_taille: Article['dispoTaille'];
+  date_verif: string | null;
+  alternative_de: string | null;
 };
 
 const versArticle = (l: Ligne): Article => ({
@@ -54,18 +60,25 @@ const versArticle = (l: Ligne): Article => ({
   dateAjout: l.date_ajout,
   dateAchat: l.date_achat,
   dateMaj: l.date_maj,
+  prixAjout: l.prix_ajout,
+  disponibilite: l.disponibilite,
+  dispoTaille: l.dispo_taille,
+  dateVerif: l.date_verif,
+  alternativeDe: l.alternative_de,
 });
 
 const COLONNES = [
   'id', 'nom', 'marque', 'type', 'categorie', 'taille', 'couleur', 'prix', 'devise', 'url_boutique',
   'image_locale', 'image_source', 'priorite', 'notes', 'statut', 'origine', 'est_alternative',
-  'date_ajout', 'date_achat', 'date_maj',
+  'date_ajout', 'date_achat', 'date_maj', 'prix_ajout', 'disponibilite', 'dispo_taille', 'date_verif',
+  'alternative_de',
 ] as const;
 
 const valeurs = (a: Article): Valeur[] => [
   a.id, a.nom, a.marque, a.type, a.categorie, a.taille, a.couleur, a.prix, a.devise, a.urlBoutique,
   a.imageLocale, a.imageSource, a.priorite, a.notes, a.statut, a.origine, a.estAlternative ? 1 : 0,
-  a.dateAjout, a.dateAchat, a.dateMaj,
+  a.dateAjout, a.dateAchat, a.dateMaj, a.prixAjout, a.disponibilite, a.dispoTaille, a.dateVerif,
+  a.alternativeDe,
 ];
 
 /** Tous les articles de la Wishlist (statut souhaité). */
@@ -85,15 +98,59 @@ export async function lireArticle(db: BaseArticles, id: string): Promise<Article
   return ligne ? versArticle(ligne) : null;
 }
 
-/** Ajoute un nouvel article, ou remplace celui qui a le même identifiant. */
-export async function enregistrerArticle(db: BaseArticles, a: Article): Promise<void> {
+/**
+ * Ajoute un nouvel article, ou remplace celui qui a le même identifiant.
+ * `releve` : relevé de prix à ajouter à l'historique en même temps (voir releveAEnregistrer).
+ */
+export async function enregistrerArticle(db: BaseArticles, a: Article, releve: RelevePrix | null = null): Promise<void> {
   await db.runAsync(
     `INSERT OR REPLACE INTO article (${COLONNES.join(', ')}) VALUES (${COLONNES.map(() => '?').join(', ')})`,
     valeurs(a),
   );
+  if (releve) await enregistrerReleve(db, releve);
 }
 
-/** Efface réellement l'article (l'image locale est effacée par l'appelant : effacerImage). */
+/** Efface réellement l'article et son historique de prix (l'image locale est effacée par l'appelant : effacerImage). */
 export async function supprimerArticle(db: BaseArticles, id: string): Promise<void> {
+  await db.runAsync('DELETE FROM releve_prix WHERE article_id = ?', [id]);
   await db.runAsync('DELETE FROM article WHERE id = ?', [id]);
+}
+
+// --- Relevés de prix ---
+
+type LigneReleve = {
+  id: string;
+  article_id: string;
+  date: string;
+  prix: number | null;
+  devise: string | null;
+  disponibilite: RelevePrix['disponibilite'];
+  dispo_taille: RelevePrix['dispoTaille'];
+  source: RelevePrix['source'];
+};
+
+export async function enregistrerReleve(db: BaseArticles, r: RelevePrix): Promise<void> {
+  await db.runAsync(
+    `INSERT INTO releve_prix (id, article_id, date, prix, devise, disponibilite, dispo_taille, source)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [r.id, r.articleId, r.date, r.prix, r.devise, r.disponibilite, r.dispoTaille, r.source],
+  );
+}
+
+/** Historique des prix d'une pièce, du plus récent au plus ancien. */
+export async function lireReleves(db: BaseArticles, articleId: string): Promise<RelevePrix[]> {
+  const lignes = await db.getAllAsync<LigneReleve>(
+    'SELECT * FROM releve_prix WHERE article_id = ? ORDER BY date DESC',
+    [articleId],
+  );
+  return lignes.map((l) => ({
+    id: l.id,
+    articleId: l.article_id,
+    date: l.date,
+    prix: l.prix,
+    devise: l.devise,
+    disponibilite: l.disponibilite,
+    dispoTaille: l.dispo_taille,
+    source: l.source,
+  }));
 }

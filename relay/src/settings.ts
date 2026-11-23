@@ -12,6 +12,14 @@ export const settings = {
   userAgent:
     'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36',
 
+  // --- Compteur SerpApi ---
+  /** Seuil mensuel si wrangler.toml n'en donne pas (variable SERPAPI_LIMITE_MOIS). */
+  limiteSerpApiDefaut: 250,
+  /** Le mois du compteur suit l'heure de Paris (remise à zéro le 1er à minuit). */
+  fuseauQuota: 'Europe/Paris',
+  /** Durée de vie d'une case mensuelle dans KV : 40 jours, puis effacée d'elle-même. */
+  dureeCaseQuotaS: 40 * 24 * 3600,
+
   // --- /identify (ajout par photo) ---
   /** Poids maximal de la photo reçue (l'app l'envoie réduite à 1024 px, bien en dessous). */
   tailleMaxPhoto: 2_000_000,
