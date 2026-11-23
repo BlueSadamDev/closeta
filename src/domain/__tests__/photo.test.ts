@@ -68,6 +68,8 @@ describe('lireIdentification', () => {
     expect(lireIdentification(401, {})).toEqual({ ok: false, raison: 'jeton_absent' });
     expect(lireIdentification(403, {})).toEqual({ ok: false, raison: 'jeton_refuse' });
     expect(lireIdentification(429, {})).toEqual({ ok: false, raison: 'limite' });
+    expect(lireIdentification(429, { erreur: 'limite' })).toEqual({ ok: false, raison: 'limite' });
+    expect(lireIdentification(429, { erreur: 'quota_atteint' })).toEqual({ ok: false, raison: 'quota_atteint' });
     expect(lireIdentification(400, { erreur: 'photo_refusee' })).toEqual({ ok: false, raison: 'photo_refusee' });
     expect(lireIdentification(502, { erreur: 'recherche_indisponible' })).toEqual({ ok: false, raison: 'indisponible' });
     expect(lireIdentification(200, 'pas du JSON')).toEqual({ ok: false, raison: 'indisponible' });

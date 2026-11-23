@@ -5,7 +5,7 @@ import { File, UploadType } from 'expo-file-system';
 
 import { lireExtraction, type ResultatExtraction } from '@/domain/lien';
 import { lireIdentification, type ResultatIdentification } from '@/domain/photo';
-import { lireTestConnexion, type EtatConnexion } from '@/domain/relais';
+import { lireQuota, lireTestConnexion, type EtatConnexion, type Quota } from '@/domain/relais';
 import { settings } from '@/domain/settings';
 
 /** Envoie au relais une demande vide pour vérifier que le jeton est accepté. */
@@ -24,6 +24,24 @@ export async function testerConnexion(jeton: string): Promise<EtatConnexion> {
     return lireTestConnexion(reponse.status, corps);
   } catch {
     return lireTestConnexion(null, null);
+  } finally {
+    clearTimeout(minuteur);
+  }
+}
+
+/** Recherches SerpApi du mois. Ne lève jamais d'exception : null si le relais ne répond pas. */
+export async function lireQuotaRelais(jeton: string): Promise<Quota | null> {
+  if (!jeton) return null;
+  const arret = new AbortController();
+  const minuteur = setTimeout(() => arret.abort(), settings.relayTimeoutMs);
+  try {
+    const reponse = await fetch(`${settings.relayUrl}/quota`, {
+      headers: { Authorization: `Bearer ${jeton}` },
+      signal: arret.signal,
+    });
+    return lireQuota(reponse.status, await reponse.json().catch(() => null));
+  } catch {
+    return null;
   } finally {
     clearTimeout(minuteur);
   }

@@ -1,6 +1,7 @@
 /**
  * Lecture des réponses du relais (sans réseau : le client est dans src/relay/).
  */
+import { settings } from './settings';
 
 /** Résultat du bouton « Tester la connexion » des Réglages. */
 export type EtatConnexion = 'ok' | 'jeton_absent' | 'jeton_refuse' | 'limite' | 'injoignable' | 'inattendu';
@@ -26,4 +27,25 @@ export function lireTestConnexion(statut: number | null, corps: unknown): EtatCo
   if (statut === 403) return 'jeton_refuse';
   if (statut === 429) return 'limite';
   return 'inattendu';
+}
+
+/** Recherches SerpApi du mois (route GET /quota du relais). */
+export type Quota = { utilise: number; limite: number; mois: string };
+
+/** Lit la réponse de GET /quota ; null si le relais n'a pas répondu ou si la réponse est illisible. */
+export function lireQuota(statut: number | null, corps: unknown): Quota | null {
+  if (statut !== 200 || typeof corps !== 'object' || corps === null) return null;
+  const { utilise, limite, mois } = corps as Record<string, unknown>;
+  const entier = (n: unknown): n is number => typeof n === 'number' && Number.isInteger(n) && n >= 0;
+  if (!entier(utilise) || !entier(limite) || typeof mois !== 'string') return null;
+  return { utilise, limite, mois };
+}
+
+/** `alerte` à partir de 80 % du seuil (réglable), `atteint` au seuil. */
+export type NiveauQuota = 'normal' | 'alerte' | 'atteint';
+
+export function niveauQuota(q: Quota): NiveauQuota {
+  if (q.utilise >= q.limite) return 'atteint';
+  if (q.utilise >= q.limite * settings.quotaAlerte) return 'alerte';
+  return 'normal';
 }

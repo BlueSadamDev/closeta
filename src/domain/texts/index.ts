@@ -222,6 +222,7 @@ export const texts = {
       jeton_absent: 'Aucun jeton pour l’instant. *Ajoute-le dans les Réglages*, ou saisis l’article.',
       jeton_refuse: 'Le relais ne te reconnaît pas. *Vérifie ton jeton* dans les Réglages.',
       limite: 'Trop de demandes en une minute. *Réessaie dans un instant*.',
+      quota_atteint: 'Les recherches du mois sont épuisées. *Saisis l’article* à la main.',
       injoignable: 'Le relais ne répond pas. *Vérifie ta connexion*, ou saisis l’article.',
       indisponible: 'La recherche est indisponible pour l’instant. *Saisis l’article* à la main.',
       photo_refusee: 'Cette photo ne passe pas. *Essaie-en une autre*.',
@@ -249,6 +250,15 @@ export const texts = {
     tester: 'Tester la connexion',
     testEnCours: 'On interroge le relais…',
     version: 'Version',
+    /** Recherches par photo du mois (offre SerpApi limitée). */
+    recherches: 'Recherches ce mois',
+    /** {utilise} et {limite} sont remplacés par les nombres. */
+    recherchesValeur: '{utilise} sur {limite}',
+    recherchesSansReponse: 'Pas de réponse',
+    quota: {
+      alerte: 'Il reste *peu de recherches* ce mois-ci.',
+      atteint: 'Les recherches du mois sont épuisées. *Elles reviennent le 1er*.',
+    },
     connexion: {
       ok: 'Le relais te reconnaît. *Tout est prêt*.',
       jeton_absent: 'Aucun jeton pour l’instant. *Colle ton jeton* au-dessus.',

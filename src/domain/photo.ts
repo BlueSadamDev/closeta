@@ -27,7 +27,14 @@ export type Proposition = {
   alternative: boolean;
 };
 
-export type EchecIdentification = 'jeton_absent' | 'jeton_refuse' | 'limite' | 'injoignable' | 'indisponible' | 'photo_refusee';
+export type EchecIdentification =
+  | 'jeton_absent'
+  | 'jeton_refuse'
+  | 'limite'
+  | 'quota_atteint'
+  | 'injoignable'
+  | 'indisponible'
+  | 'photo_refusee';
 
 export type ResultatIdentification =
   | { ok: true; description: DescriptionPhoto; propositions: Proposition[] }
@@ -99,9 +106,10 @@ export function lireIdentification(statut: number | null, corps: unknown): Resul
   if (statut === null) return { ok: false, raison: 'injoignable' };
   if (statut === 401) return { ok: false, raison: 'jeton_absent' };
   if (statut === 403) return { ok: false, raison: 'jeton_refuse' };
-  if (statut === 429) return { ok: false, raison: 'limite' };
-  if (statut === 400) return { ok: false, raison: 'photo_refusee' };
   const c = objet(corps);
+  // 429 : seuil mensuel de recherches atteint, ou trop de demandes en une minute.
+  if (statut === 429) return { ok: false, raison: c?.erreur === 'quota_atteint' ? 'quota_atteint' : 'limite' };
+  if (statut === 400) return { ok: false, raison: 'photo_refusee' };
   if (statut !== 200 || !c || !Array.isArray(c.resultats)) return { ok: false, raison: 'indisponible' };
   const vues = new Set<string>();
   const propositions: Proposition[] = [];
