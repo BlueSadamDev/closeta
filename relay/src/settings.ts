@@ -32,6 +32,8 @@ export const settings = {
   delaiIAMs: 20_000,
   delaiLensMs: 15_000,
   delaiShoppingMs: 8_000,
+  /** /alternatives : taille maximale de la demande (photo en base64 comprise, un tiers plus lourde que le JPEG). */
+  tailleMaxDemandeAlternatives: 2_800_000,
   /** Nombre de résultats renvoyés à l'app : au moins 3 quand c'est possible, au plus 5. */
   resultatsMin: 3,
   resultatsMax: 5,

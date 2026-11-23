@@ -1,0 +1,45 @@
+{
+  "search_metadata": { "status": "Success" },
+  "visual_matches": [
+    {
+      "position": 1,
+      "title": "Veste Fictive en velours côtelé – Maison Exemple",
+      "link": "https://www.boutique.exemple.test/veste-fictive/?utm_source=lens",
+      "source": "Boutique Exemple",
+      "image": "https://images.exemple.test/origine.jpg",
+      "price": { "value": "249,00 €", "extracted_value": 249, "currency": "€" }
+    },
+    {
+      "position": 2,
+      "title": "Casquette velours marron",
+      "link": "https://chapeaux.exemple.test/casquette",
+      "source": "Chapeaux Exemple",
+      "price": { "value": "39,00 €", "extracted_value": 39, "currency": "€" }
+    },
+    {
+      "position": 3,
+      "title": "Veste en velours marron",
+      "link": "https://atelier.exemple.test/veste-velours",
+      "source": "Atelier Exemple",
+      "image": "https://images.exemple.test/atelier.jpg"
+    },
+    {
+      "position": 4,
+      "title": "Look velours automne",
+      "link": "https://www.instagram.com/p/fictif",
+      "source": "Instagram"
+    },
+    {
+      "position": 5,
+      "title": "Veste velours sans boutique",
+      "link": "https://blog.exemple.test/veste"
+    },
+    {
+      "position": 6,
+      "title": "Blouson velours côtelé",
+      "link": "https://mode.exemple.test/blouson",
+      "source": "Mode Exemple",
+      "price": { "value": "129,00 €", "extracted_value": 129, "currency": "€" }
+    }
+  ]
+}

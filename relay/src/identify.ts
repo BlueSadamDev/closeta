@@ -66,7 +66,7 @@ export class RechercheIndisponible extends Error {
 }
 
 /** Message d'erreur court et sans secret, pour le diagnostic. */
-const resume = (e: unknown, secret: string | undefined) => {
+export const resume = (e: unknown, secret: string | undefined) => {
   const brut = e instanceof Error ? e.message : String(e);
   return (secret ? brut.split(secret).join('***') : brut).slice(0, 160);
 };

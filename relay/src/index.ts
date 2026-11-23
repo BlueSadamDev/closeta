@@ -1,3 +1,4 @@
+import { chercherAlternatives, DemandeInvalide, lireDemande } from './alternatives';
 import { extraireProduit } from './extract';
 import type { IA } from './ia';
 import { clePhoto, estJpeg, identifiantValide, identifier, QuotaAtteint, RechercheIndisponible, type Stockage } from './identify';
@@ -185,6 +186,39 @@ async function routeIdentify(requete: Request, env: Env): Promise<Response> {
   }
 }
 
+/** POST /alternatives : pièces qui ressemblent à une pièce de la Wishlist. */
+async function routeAlternatives(requete: Request, env: Env): Promise<Response> {
+  if (Number(requete.headers.get('content-length') ?? '0') > settings.tailleMaxDemandeAlternatives) {
+    return erreur('photo_refusee', 400);
+  }
+  let demande;
+  try {
+    const brut = await requete.text();
+    if (brut.length > settings.tailleMaxDemandeAlternatives) return erreur('photo_refusee', 400);
+    demande = lireDemande(JSON.parse(brut));
+  } catch (e) {
+    return erreur(e instanceof DemandeInvalide ? e.code : 'requete_invalide', 400);
+  }
+  const quota = compteur(env);
+  // Seuil atteint : réponse immédiate, sans appel à SerpApi.
+  if (await quota.atteint()) return erreur('quota_atteint', 429);
+  const origine = new URL(requete.url).origin;
+  try {
+    return json(
+      await chercherAlternatives(demande, {
+        stockage: env.PHOTOS,
+        cleSerpApi: env.SERPAPI_KEY,
+        quota,
+        adressePhoto: (id) => `${origine}/photo/${id}`,
+      }),
+    );
+  } catch (e) {
+    if (e instanceof QuotaAtteint) return erreur('quota_atteint', 429);
+    if (e instanceof RechercheIndisponible) return json({ erreur: 'recherche_indisponible', incidents: e.incidents }, 502);
+    throw e;
+  }
+}
+
 /**
  * GET /photo/<id> : la photo déposée le temps de la recherche, lue par Google Lens.
  * Sans jeton (Lens ne peut pas en envoyer) : l'identifiant de 64 caractères aléatoires est impossible
@@ -205,7 +239,8 @@ export default {
     const photo = pathname.match(/^\/photo\/([^/]+)$/);
     if (requete.method === 'GET' && photo) return routePhoto(photo[1], env, requete);
     const route = `${requete.method} ${pathname}`;
-    if (route !== 'POST /extract' && route !== 'POST /identify' && route !== 'GET /quota') {
+    const routes = ['POST /extract', 'POST /identify', 'POST /alternatives', 'GET /quota'];
+    if (!routes.includes(route)) {
       return erreur('route_inconnue', 404);
     }
 
@@ -228,6 +263,7 @@ export default {
     }
 
     if (route === 'GET /quota') return routeQuota(env);
+    if (route === 'POST /alternatives') return routeAlternatives(requete, env);
     return pathname === '/extract' ? routeExtract(requete) : routeIdentify(requete, env);
   },
 };

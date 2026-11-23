@@ -69,7 +69,7 @@ const lienHttps = (v: unknown): string | null => {
   }
 };
 
-const siteIgnore = (url: string) => {
+export const siteIgnore = (url: string) => {
   const hote = new URL(url).hostname.toLowerCase();
   // « pinterest. » couvre pinterest.fr, pinterest.com… ; les autres valent pour le site et ses sous-domaines.
   return settings.sitesIgnores.some((s) => (s.endsWith('.') ? hote.includes(s) : hote === s || hote.endsWith(`.${s}`)));
@@ -83,8 +83,11 @@ const prixPositif = (v: unknown): number | null => {
 type Brut = Record<string, unknown>;
 const liste = (v: unknown): Brut[] => (Array.isArray(v) ? v.filter((x): x is Brut => typeof x === 'object' && x !== null) : []);
 
-/** Correspondances Google Lens qui mènent à une page de boutique (les réseaux sociaux sont écartés). Les pièces avec un prix passent devant. */
-export function lireLens(reponse: unknown): Proposition[] {
+/**
+ * Correspondances Google Lens qui mènent à une page de boutique (les réseaux sociaux sont écartés).
+ * Par défaut, les pièces avec un prix passent devant ; `prixDabord = false` garde l'ordre de Lens (ressemblance).
+ */
+export function lireLens(reponse: unknown, prixDabord = true): Proposition[] {
   const r = (reponse ?? {}) as Brut;
   const vues = new Set<string>();
   const propositions: Proposition[] = [];
@@ -106,6 +109,7 @@ export function lireLens(reponse: unknown): Proposition[] {
       alternative: false,
     });
   }
+  if (!prixDabord) return propositions;
   return [...propositions.filter((p) => p.prix !== null), ...propositions.filter((p) => p.prix === null)];
 }
 
