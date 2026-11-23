@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import relais, { type Env } from '../src/index';
+import shopifyTailles from './fixtures/shopify-tailles.html?raw';
 import shopify from './fixtures/shopify.html?raw';
 import { magasin } from './kv';
 
@@ -106,8 +107,16 @@ describe('relais : extraction', () => {
       prix: 1290,
       devise: 'EUR',
       url: 'https://boutique.exemple.test/ancien',
+      disponibilite: 'en_stock',
+      dispo_taille: 'inconnue',
     });
     expect(appels).toEqual(['https://boutique.exemple.test/ancien', 'https://boutique.exemple.test/products/manteau-fictif']);
+  });
+
+  it('transmet la taille demandée pour lire sa disponibilité', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => pageHtml(shopifyTailles)));
+    const r = await relais.fetch(demande({ url: 'https://boutique.exemple.test/veste', taille: 'M' }), env());
+    expect(await r.json()).toMatchObject({ disponibilite: 'en_stock', dispo_taille: 'epuise' });
   });
 
   it('signale une page qui refuse la lecture (ex. protection anti-robots)', async () => {

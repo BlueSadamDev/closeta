@@ -152,7 +152,10 @@ async function routeExtract(requete: Request): Promise<Response> {
   }
   if (!page) return erreur('page_illisible', 502);
 
-  return json({ ...extraireProduit(page.html, page.url), url: url.toString() });
+  // Taille de la pièce (facultative), pour lire sa disponibilité.
+  const taille = (corps as { taille?: unknown }).taille;
+  const tailleLue = typeof taille === 'string' && taille.trim() !== '' ? taille.trim().slice(0, settings.tailleMaxTaille) : null;
+  return json({ ...extraireProduit(page.html, page.url, tailleLue), url: url.toString() });
 }
 
 const compteur = (env: Env) => new Compteur(env.QUOTA, lireLimite(env.SERPAPI_LIMITE_MOIS));

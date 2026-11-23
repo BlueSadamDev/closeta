@@ -6,6 +6,9 @@
  * Une information introuvable vaut null : rien n'est inventé.
  */
 
+/** Disponibilité publiée par la boutique ; `inconnue` si rien n'est publié (jamais devinée). */
+export type Disponibilite = 'en_stock' | 'epuise' | 'inconnue';
+
 export type Extraction = {
   nom: string | null;
   marque: string | null;
@@ -13,6 +16,10 @@ export type Extraction = {
   prix: number | null;
   devise: string | null;
   url: string;
+  /** Disponibilité globale (au moins une taille en stock = en stock). */
+  disponibilite: Disponibilite;
+  /** Disponibilité de la taille demandée, si la boutique publie ses variantes ; sinon `inconnue`. */
+  dispo_taille: Disponibilite;
 };
 
 type Json = null | boolean | number | string | Json[] | { [cle: string]: Json };
@@ -133,6 +140,102 @@ function prixDuProduit(p: Objet): { prix: number | null; devise: string | null }
   return { prix: null, devise: null };
 }
 
+// ---------- disponibilité ----------
+
+/**
+ * Lit une valeur de disponibilité : schema.org (« https://schema.org/InStock »), balises de partage
+ * (« in stock », « instock », « out of stock »), ou booléen WooCommerce (is_in_stock).
+ */
+export function lireDisponibilite(v: Json | undefined): Disponibilite {
+  if (typeof v === 'boolean') return v ? 'en_stock' : 'epuise';
+  if (typeof v !== 'string') return 'inconnue';
+  const t = v.toLowerCase().replace(/^https?:\/\/schema\.org\//, '').replace(/[\s_-]/g, '');
+  if (['instock', 'limitedavailability', 'onlineonly', 'instoreonly', 'available', 'disponible', 'enstock'].includes(t)) return 'en_stock';
+  if (['outofstock', 'soldout', 'discontinued', 'oos', 'epuise', 'rupture', 'unavailable', 'indisponible'].includes(t)) return 'epuise';
+  return 'inconnue';
+}
+
+/** Plusieurs états réunis : une offre en stock suffit ; épuisé seulement si toutes les offres connues le sont. */
+export function reunir(etats: Disponibilite[]): Disponibilite {
+  if (etats.includes('en_stock')) return 'en_stock';
+  return etats.length > 0 && etats.every((e) => e === 'epuise') ? 'epuise' : 'inconnue';
+}
+
+/** Taille écrite de façon comparable : « Taille M » → « m », « EU 42 » → « 42 », « 9,5 UK » → « 9.5uk ». */
+export function tailleNormalisee(t: string | null | undefined): string | null {
+  if (!t) return null;
+  const n = t
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/,/g, '.')
+    .replace(/\b(taille|size|pointure|eu|fr)\b/g, '')
+    .replace(/\s+/g, '');
+  return n === '' ? null : n;
+}
+
+/** Vrai si un texte de variante (« Manteau - M / Noir », « M », « 42 ») désigne la taille demandée. */
+function nommeLaTaille(texte: string | null, taille: string): boolean {
+  if (!texte) return false;
+  return texte.split(/[-–—/|,:()]/).some((morceau) => tailleNormalisee(morceau) === taille);
+}
+
+type Variante = { textes: (string | null)[]; etat: Disponibilite };
+
+/** Offres d'un produit JSON-LD, avec les textes qui peuvent porter la taille (nom, taille de la variante). */
+function variantesJsonLd(p: Objet): Variante[] {
+  const variantes: Variante[] = [];
+  const offres = (v: Json | undefined): Objet[] => (Array.isArray(v) ? v.filter(estObjet) : estObjet(v) ? [v] : []);
+  for (const o of offres(p.offers)) variantes.push({ textes: [premierTexte(o.name), premierTexte(o.size, 'name')], etat: lireDisponibilite(o.availability) });
+  if (Array.isArray(p.hasVariant)) {
+    for (const v of p.hasVariant) {
+      if (!estObjet(v)) continue;
+      const textes = [premierTexte(v.size, 'name'), premierTexte(v.name), premierTexte(v.sku)];
+      for (const o of offres(v.offers)) variantes.push({ textes, etat: lireDisponibilite(o.availability) });
+    }
+  }
+  return variantes;
+}
+
+/** Variantes WooCommerce (attribut data-product_variations) : taille dans les attributs, stock dans is_in_stock. */
+function variantesWoo(html: string): Variante[] {
+  const brut = html.match(/data-product_variations\s*=\s*"([^"]*)"/i)?.[1];
+  if (!brut) return [];
+  let liste: Json;
+  try {
+    liste = JSON.parse(decoderAttribut(brut)) as Json;
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(liste)) return [];
+  return liste.filter(estObjet).map((v) => {
+    const attributs = estObjet(v.attributes) ? v.attributes : {};
+    const textes = Object.entries(attributs)
+      .filter(([cle]) => /taille|size|pointure/i.test(cle))
+      .map(([, valeur]) => (typeof valeur === 'string' ? valeur : null));
+    return { textes, etat: lireDisponibilite(v.is_in_stock) };
+  });
+}
+
+/** Disponibilité globale et de la taille demandée. Rien de publié → `inconnue`. */
+function disponibilites(html: string, produit: Objet | null, metas: Map<string, string>, taille: string | null) {
+  const variantes = [...(produit ? variantesJsonLd(produit) : []), ...variantesWoo(html)];
+  let disponibilite = reunir(variantes.map((v) => v.etat));
+  if (disponibilite === 'inconnue') {
+    disponibilite = lireDisponibilite(premiereMeta(metas, 'product:availability', 'og:availability', 'availability'));
+  }
+  if (disponibilite === 'inconnue') {
+    // Produit WooCommerce simple : « <p class="stock out-of-stock"> ».
+    const stock = html.match(/<p\b[^>]*class\s*=\s*["'][^"']*\bstock\b[^"']*\b(in-stock|out-of-stock)\b/i)?.[1];
+    if (stock) disponibilite = stock.toLowerCase() === 'in-stock' ? 'en_stock' : 'epuise';
+  }
+  const t = tailleNormalisee(taille);
+  const dispo_taille: Disponibilite = t
+    ? reunir(variantes.filter((v) => v.textes.some((x) => nommeLaTaille(x, t))).map((v) => v.etat))
+    : 'inconnue';
+  return { disponibilite, dispo_taille };
+}
+
 // ---------- 2) balises meta ----------
 
 function balisesMeta(html: string): Map<string, string> {
@@ -233,7 +336,8 @@ function sansSuffixe(nom: string | null, ...noms: (string | null)[]): string | n
   return noms.some((n) => n && n.trim().toLowerCase() === fin) ? m[1] : nom;
 }
 
-export function extraireProduit(html: string, page: URL): Extraction {
+/** `taille` : taille de la pièce (« M », « 42 »), pour lire sa disponibilité si la boutique la publie. */
+export function extraireProduit(html: string, page: URL, taille: string | null = null): Extraction {
   const produit = trouverProduit(blocsJsonLd(html));
   const metas = balisesMeta(html);
   const titre = texteNet(html.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)?.[1]);
@@ -268,5 +372,13 @@ export function extraireProduit(html: string, page: URL): Extraction {
   if (prix === null) ({ prix, devise } = prixAfficheWoo(html));
   if (prix === null) devise = null;
 
-  return { nom, marque, image, prix, devise: devise ? devise.toUpperCase() : null, url: page.toString() };
+  return {
+    nom,
+    marque,
+    image,
+    prix,
+    devise: devise ? devise.toUpperCase() : null,
+    url: page.toString(),
+    ...disponibilites(html, produit, metas, taille),
+  };
 }
