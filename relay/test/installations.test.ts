@@ -7,6 +7,7 @@ import { miseAJourRequise } from '../src/version';
 import lens from './fixtures/lens.json';
 import shopping from './fixtures/shopping.json';
 import { magasin } from './kv';
+import { espaceQuota } from './quotaObjet';
 
 // Jetons fictifs, propres aux tests.
 const JETON_PARTAGE = 'jeton-partage-fictif';
@@ -18,6 +19,7 @@ const CE_MOIS = () => moisDe(new Date());
 
 function env(options: { quota?: Record<string, string>; vars?: Partial<Env>; limiteur?: (cle: string) => boolean } = {}) {
   const kv = magasin(options.quota);
+  const quota = espaceQuota(kv);
   const cles: string[] = [];
   const e: Env = {
     RELAY_TOKEN: JETON_PARTAGE,
@@ -32,9 +34,10 @@ function env(options: { quota?: Record<string, string>; vars?: Partial<Env>; lim
     AI: { run: async () => ({ choices: [{ message: { content: JSON.stringify(DESCRIPTION_IA) } }] }) },
     PHOTOS: { put: async () => null, get: async () => null, delete: async () => undefined },
     QUOTA: kv,
+    QUOTAS: quota.espace,
     ...options.vars,
   };
-  return { e, kv, cles };
+  return { e, kv, cles, quota };
 }
 
 function requete(chemin: string, options: { methode?: string; jeton?: string | null; corps?: unknown; entetes?: Record<string, string> } = {}) {
@@ -174,12 +177,14 @@ describe('administration des installations', () => {
 
 describe('quota par installation', () => {
   it('compte chaque recherche dans la case de l’installation et dans la case globale', async () => {
-    const { e, kv } = env();
+    const { e, kv, quota } = env();
     const { id, jeton } = await creer(e);
     vi.stubGlobal('fetch', vi.fn(async (a: string) => jsonOk(a.includes('google_lens') ? lens : shopping)));
     expect((await relais.fetch(envoiPhoto(jeton), e)).status).toBe(200);
-    expect(kv.cases.get(cleQuota(CE_MOIS()))).toBe('2');
-    expect(kv.cases.get(cleQuota(CE_MOIS(), id))).toBe('2');
+    expect(quota.compte()).toBe(2);
+    expect(quota.compte(id)).toBe(2);
+    // KV ne sert plus au quota : aucune case serpapi:… écrite.
+    expect([...kv.cases.keys()].filter((c) => c.startsWith('serpapi:'))).toEqual([]);
     const r = await relais.fetch(requete('/v1/quota', { jeton }), e);
     expect(await r.json()).toEqual({ installation: { utilise: 2, limite: 250 }, global: { utilise: 2, limite: 250 }, mois: CE_MOIS() });
   });

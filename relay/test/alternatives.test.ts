@@ -6,6 +6,7 @@ import type { Proposition } from '../src/recherche';
 import lensAlternatives from './fixtures/lens-alternatives.json';
 import shopping from './fixtures/shopping.json';
 import { magasin } from './kv';
+import { espaceQuota } from './quotaObjet';
 
 const JETON = 'jeton-fictif-de-test';
 /** Une « photo » fictive : l'en-tête JPEG suivi d'octets quelconques, en base64. */
@@ -123,14 +124,16 @@ function stockage() {
 
 function env(options: { cle?: string | undefined; quota?: Record<string, string>; limite?: string } = {}) {
   const photos = stockage();
-  const quota = magasin(options.quota);
+  const kv = magasin(options.quota);
+  const quota = espaceQuota(kv);
   const e: Env = {
     RELAY_TOKEN: JETON,
     SERPAPI_KEY: 'cle' in options ? options.cle : 'cle-fictive',
     LIMITEUR: { limit: async () => ({ success: true }) },
     AI: { run: vi.fn() },
     PHOTOS: photos,
-    QUOTA: quota,
+    QUOTA: kv,
+    QUOTAS: quota.espace,
     SERPAPI_LIMITE_MOIS: options.limite,
   };
   return { e, photos, quota };
@@ -144,7 +147,7 @@ const envoi = (corps: unknown, jeton: string | null = JETON) =>
   });
 
 const jsonOk = (corps: unknown) => new Response(JSON.stringify(corps), { headers: { 'content-type': 'application/json' } });
-const utilise = (q: ReturnType<typeof magasin>) => [...q.cases.values()].map(Number)[0] ?? 0;
+const utilise = (q: ReturnType<typeof espaceQuota>) => q.compte();
 
 afterEach(() => vi.unstubAllGlobals());
 

@@ -7,6 +7,7 @@ import { lireDevise, lireLens, lireShopping, type Proposition } from '../src/rec
 import lens from './fixtures/lens.json';
 import shopping from './fixtures/shopping.json';
 import { magasin } from './kv';
+import { espaceQuota } from './quotaObjet';
 
 const JETON = 'jeton-fictif-de-test';
 /** Une « photo » fictive : juste l'en-tête JPEG suivi d'octets quelconques. */
@@ -150,6 +151,7 @@ function env(options: { ia?: unknown; cle?: string | undefined; quota?: Record<s
     AI: { run: vi.fn(async () => options.ia ?? reponseIA(DESCRIPTION_IA)) },
     PHOTOS: photos,
     QUOTA: quota,
+    QUOTAS: espaceQuota(quota).espace,
     SERPAPI_LIMITE_MOIS: options.limite,
   };
   return { e, photos, quota };
