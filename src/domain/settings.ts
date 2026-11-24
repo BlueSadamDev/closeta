@@ -65,4 +65,13 @@ export const settings = {
   relectureDelaiH: 24,
   /** Recherches SerpApi du mois : mise en garde dans les Réglages à partir de 80 % du seuil. */
   quotaAlerte: 0.8,
+  /** Sauvegarde (Réglages) : fichier closeta-AAAA-MM-JJ.closeta, écrit dans le cache avant le partage. */
+  sauvegarde: {
+    prefixe: 'closeta-',
+    extension: '.closeta',
+    /** Type annoncé au partage Android (le contenu est du JSON). */
+    typeMime: 'application/json',
+    /** Dossier (dans le stockage de l'app) où les photos restaurées attendent la fin du remplacement. */
+    dossierRestauration: 'images-restauration',
+  },
 } as const;
