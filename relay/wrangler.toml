@@ -1,8 +1,11 @@
 # Relais ClosetA (Cloudflare Worker).
-# L'identifiant du compte Cloudflare n'est PAS ici : il vient de la variable CLOUDFLARE_ACCOUNT_ID
-# (secret GitHub utilisé par le workflow de mise en ligne).
+# Aucun identifiant propre à un compte Cloudflare ici, pour que chacun puisse installer son propre relais :
+# - l'identifiant du compte vient du secret GitHub CLOUDFLARE_ACCOUNT_ID ;
+# - le nom du Worker, l'identifiant de l'espace KV et le nom du bucket R2 viennent des variables GitHub
+#   RELAIS_NOM_WORKER, RELAIS_KV_ID et RELAIS_BUCKET_R2 : le workflow de mise en ligne
+#   (.github/workflows/deploy-relay.yml) ajoute les blocs [[kv_namespaces]] et [[r2_buckets]] à la fin
+#   de ce fichier juste avant l'envoi, et passe le nom avec « wrangler deploy --name ».
 # Les secrets RELAY_TOKEN, ADMIN_TOKEN et SERPAPI_KEY sont saisis dans le tableau de bord Cloudflare, jamais dans ce fichier.
-name = "closeta-relay"
 main = "src/index.ts"
 compatibility_date = "2026-10-01"
 workers_dev = true
@@ -18,18 +21,11 @@ simple = { limit = 30, period = 60 }
 [ai]
 binding = "AI"
 
-# Stockage temporaire des photos, le temps de la recherche Google Lens (supprimées aussitôt après).
-# Le bucket est créé une fois par l'utilisateur (voir README), avec une règle de suppression après 1 jour.
-[[r2_buckets]]
-binding = "PHOTOS"
-bucket_name = "closeta-photos-temp"
-
-# Compteur des recherches SerpApi du mois (une case par mois, globale et par installation, effacée
-# d'elle-même après 40 jours) et liste des installations (empreintes des jetons, jamais les jetons).
-# L'identifiant de l'espace KV n'est pas un secret : sans les accès au compte, il ne permet rien.
-[[kv_namespaces]]
-binding = "QUOTA"
-id = "19c2c02e0f46454a82b5f9039dada99d"
+# Ajoutés par le workflow de mise en ligne (voir en tête de fichier) :
+# - [[r2_buckets]] binding "PHOTOS" : stockage temporaire des photos, le temps de la recherche Google Lens
+#   (supprimées aussitôt après ; règle du bucket : suppression après 1 jour) ;
+# - [[kv_namespaces]] binding "QUOTA" : compteur des recherches SerpApi du mois (global et par installation,
+#   effacé de lui-même après 40 jours) et liste des installations (empreintes des jetons, jamais les jetons).
 
 # Seuil mensuel de recherches SerpApi (offre gratuite : 250). Au seuil, /identify répond « quota_atteint ».
 [vars]
