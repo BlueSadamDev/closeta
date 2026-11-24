@@ -143,6 +143,11 @@ export const texts = {
       message: 'Elle disparaît pour de bon.',
       confirmer: 'Supprimer',
     },
+    revocation: {
+      titre: 'Révoquer ce téléphone ?',
+      message: 'Il ne pourra plus utiliser le relais. Les autres téléphones continuent.',
+      confirmer: 'Révoquer',
+    },
     annuler: 'Annuler',
   },
 
@@ -323,10 +328,50 @@ export const texts = {
 
   reglages: {
     titre: 'Réglages',
+    /** Section « Relais » (docs/SPEC.md, « Lot 3 », « Étape 10 »). */
+    sectionRelais: 'Relais',
+    adresse: 'Adresse du relais',
+    adresseRefusee: 'Cette adresse ne convient pas. *Saisis une adresse en https*.',
     jeton: 'Jeton du relais',
     jetonExemple: 'Colle ton jeton ici',
     enregistrer: 'Enregistrer',
-    enregistre: 'Jeton *enregistré*.',
+    enregistre: 'Réglages *enregistrés*.',
+    scanner: 'Scanner un QR de configuration',
+    afficherQr: 'Afficher le QR de ce téléphone',
+    masquerQr: 'Masquer le QR',
+    /** Sous chaque QR de configuration affiché : il contient un jeton. */
+    qrMiseEnGarde: 'Ce code donne accès à ton relais. Ne le partage qu’avec le téléphone à configurer.',
+    /** Section « Installations » : seulement avec un jeton d'administration rangé sur ce téléphone. */
+    sectionInstallations: 'Installations',
+    jetonAdmin: 'Jeton d’administration',
+    jetonAdminExemple: 'Seulement sur le téléphone qui gère le relais',
+    jetonAdminEnregistre: 'Jeton d’administration *enregistré*.',
+    jetonAdminEfface: 'Jeton d’administration *effacé*.',
+    installations: {
+      chargement: 'On interroge le relais…',
+      principale: 'Jeton d’origine',
+      ajouteLe: (date: string) => `Ajouté le ${date}`,
+      recherches: (n: number) => (n <= 1 ? `${n} recherche ce mois` : `${n} recherches ce mois`),
+      revoque: 'Révoqué',
+      revoquer: 'Révoquer',
+      revocationFaite: 'Téléphone *révoqué*. Le relais le refuse d’ici une minute.',
+      ajouter: 'Ajouter un téléphone',
+      nom: 'Nom du téléphone',
+      nomExemple: 'Pixel du salon',
+      nomManquant: 'Ce téléphone n’a pas de nom. *Donne-lui un nom*.',
+      creer: 'Créer le QR',
+      creation: 'On prépare l’accès…',
+      /** Le QR d'un téléphone ajouté ne s'affiche qu'une fois (le relais ne redonne jamais son jeton). */
+      nouveauQr: (nom: string) => `Scanne ce code depuis *${nom}*. Il ne s’affichera plus.`,
+      termine: 'C’est scanné',
+      echec: {
+        jeton_absent: 'Aucun jeton d’administration. *Colle-le* au-dessus.',
+        jeton_refuse: 'Le relais ne reconnaît pas ce jeton d’administration. *Vérifie-le*.',
+        limite: 'Trop de demandes en une minute. *Réessaie dans un instant*.',
+        injoignable: 'Le relais ne répond pas. *Vérifie ta connexion* et réessaie.',
+        inattendu: 'Le relais a répondu de façon inattendue. *Réessaie plus tard*.',
+      },
+    },
     tester: 'Tester la connexion',
     testEnCours: 'On interroge le relais…',
     version: 'Version',
@@ -360,5 +405,28 @@ export const texts = {
     fermerFiltres: 'Fermer les filtres',
     retour: 'Retour',
     fermerPriseDeVue: 'Fermer la prise de vue',
+    fermerScanner: 'Fermer le lecteur de QR',
+    qrConfiguration: 'QR de configuration',
+  },
+
+  /** Lecteur de QR de configuration (Réglages). */
+  scanner: {
+    consigne: 'Vise le QR de configuration affiché sur l’autre téléphone.',
+    cameraRefusee: 'L’appareil photo n’est pas autorisé. *Autorise-le dans les réglages d’Android*.',
+    etranger: 'Ce code n’est pas un QR de configuration ClosetA. *Vise le bon code*.',
+    adresse: 'Ce code donne une adresse de relais non sécurisée. *Demande un nouveau code*.',
+    jeton: 'Ce code ne contient pas de jeton. *Demande un nouveau code*.',
+  },
+
+  /** Confirmation d'une configuration (QR scanné ou lien closeta://config ouvert). */
+  configuration: {
+    titre: 'Configurer',
+    question: (hote: string) => `Relier ce téléphone au relais *${hote}* ?`,
+    remplace: 'L’adresse et le jeton actuels de ce téléphone seront remplacés.',
+    confirmer: 'Configurer',
+    annuler: 'Annuler',
+    enCours: 'On vérifie l’accès…',
+    invalide: 'Ce lien de configuration ne convient pas. *Demande un nouveau code*.',
+    retour: 'Retour aux Réglages',
   },
 } as const;

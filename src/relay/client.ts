@@ -7,21 +7,35 @@ import { demandeAlternatives, lireAlternatives, type ResultatAlternatives } from
 import type { Article } from '@/domain/article';
 import { lireExtraction, type ResultatExtraction } from '@/domain/lien';
 import { lireIdentification, type ResultatIdentification } from '@/domain/photo';
+import {
+  lireCreationInstallation,
+  lireListeInstallations,
+  lireRevocation,
+  type EchecAdmin,
+  type Installation,
+} from '@/domain/configuration';
 import { adresseRelais, entetesRelais, lireQuota, lireTestConnexion, type EtatConnexion, type Quota } from '@/domain/relais';
 import { settings } from '@/domain/settings';
 
 import { identite } from './installation';
+import { lireAdresse } from './jeton';
 
-/** Adresse complète d'une route du relais (« /extract » → « …/v1/extract »). */
-const adresse = (route: string) => adresseRelais(settings.relayUrl, route);
+/**
+ * Adresse complète d'une route du relais (« /extract » → « …/v1/extract »).
+ * `base` : adresse du relais à utiliser ; par défaut celle rangée sur le téléphone (ou celle de settings.ts).
+ */
+const adresse = async (route: string, base?: string) => adresseRelais(base ?? (await lireAdresse()), route);
 
-/** Envoie au relais une demande vide pour vérifier que le jeton est accepté. */
-export async function testerConnexion(jeton: string): Promise<EtatConnexion> {
+/**
+ * Envoie au relais une demande vide pour vérifier que le jeton est accepté.
+ * `base` : adresse à tester (celle saisie dans les Réglages) ; par défaut celle rangée.
+ */
+export async function testerConnexion(jeton: string, base?: string): Promise<EtatConnexion> {
   if (!jeton) return 'jeton_absent';
   const arret = new AbortController();
   const minuteur = setTimeout(() => arret.abort(), settings.relayTimeoutMs);
   try {
-    const reponse = await fetch(adresse('/extract'), {
+    const reponse = await fetch(await adresse('/extract', base), {
       method: 'POST',
       headers: entetesRelais(await identite(jeton), { 'Content-Type': 'application/json' }),
       body: '{}',
@@ -42,7 +56,7 @@ export async function lireQuotaRelais(jeton: string): Promise<Quota | null> {
   const arret = new AbortController();
   const minuteur = setTimeout(() => arret.abort(), settings.relayTimeoutMs);
   try {
-    const reponse = await fetch(adresse('/quota'), {
+    const reponse = await fetch(await adresse('/quota'), {
       headers: entetesRelais(await identite(jeton)),
       signal: arret.signal,
     });
@@ -63,7 +77,7 @@ export async function extraire(lien: string, jeton: string, taille: string | nul
   const arret = new AbortController();
   const minuteur = setTimeout(() => arret.abort(), settings.relayTimeoutMs);
   try {
-    const reponse = await fetch(adresse('/extract'), {
+    const reponse = await fetch(await adresse('/extract'), {
       method: 'POST',
       headers: entetesRelais(await identite(jeton), { 'Content-Type': 'application/json' }),
       body: JSON.stringify(taille ? { url: lien, taille } : { url: lien }),
@@ -86,7 +100,7 @@ export async function identifier(photo: string, jeton: string): Promise<Resultat
   if (!jeton) return { ok: false, raison: 'jeton_absent' };
   let minuteur: ReturnType<typeof setTimeout> | undefined;
   try {
-    const envoi = new File(photo).createUploadTask(adresse('/identify'), {
+    const envoi = new File(photo).createUploadTask(await adresse('/identify'), {
       httpMethod: 'POST',
       uploadType: UploadType.BINARY_CONTENT,
       headers: entetesRelais(await identite(jeton), { 'Content-Type': 'image/jpeg' }),
@@ -117,7 +131,7 @@ export async function chercherAlternatives(article: Article, photo: string | nul
   const arret = new AbortController();
   const minuteur = setTimeout(() => arret.abort(), settings.alternativesTimeoutMs);
   try {
-    const reponse = await fetch(adresse('/alternatives'), {
+    const reponse = await fetch(await adresse('/alternatives'), {
       method: 'POST',
       headers: entetesRelais(await identite(jeton), { 'Content-Type': 'application/json' }),
       body: JSON.stringify(demandeAlternatives(article, photo)),
@@ -129,4 +143,59 @@ export async function chercherAlternatives(article: Article, photo: string | nul
   } finally {
     clearTimeout(minuteur);
   }
+}
+
+/* ---------- Administration (section « Installations » des Réglages, jeton d'administration) ---------- */
+
+/** Demande d'administration ; renvoie le statut et le corps, ou null si le relais ne répond pas. */
+async function demandeAdmin(
+  jetonAdmin: string,
+  methode: 'GET' | 'POST' | 'DELETE',
+  route: string,
+  corps?: unknown,
+): Promise<{ statut: number; corps: unknown } | null> {
+  const arret = new AbortController();
+  const minuteur = setTimeout(() => arret.abort(), settings.relayTimeoutMs);
+  try {
+    const reponse = await fetch(await adresse(route), {
+      method: methode,
+      headers: entetesRelais(
+        await identite(jetonAdmin),
+        corps === undefined ? {} : { 'Content-Type': 'application/json' },
+      ),
+      body: corps === undefined ? undefined : JSON.stringify(corps),
+      signal: arret.signal,
+    });
+    return { statut: reponse.status, corps: await reponse.json().catch(() => null) };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(minuteur);
+  }
+}
+
+type Echec = { ok: false; raison: EchecAdmin };
+
+/** Liste des installations du relais, avec les recherches du mois de chacune. Ne lève jamais d'exception. */
+export async function listerInstallations(jetonAdmin: string): Promise<{ ok: true; installations: Installation[] } | Echec> {
+  if (!jetonAdmin) return { ok: false, raison: 'jeton_absent' };
+  const r = await demandeAdmin(jetonAdmin, 'GET', '/admin/installations');
+  return lireListeInstallations(r?.statut ?? null, r?.corps ?? null);
+}
+
+/** Crée l'installation d'un nouveau téléphone ; son jeton n'est donné qu'ici. Ne lève jamais d'exception. */
+export async function ajouterInstallation(
+  jetonAdmin: string,
+  nom: string,
+): Promise<{ ok: true; installation: Installation; jeton: string } | Echec> {
+  if (!jetonAdmin) return { ok: false, raison: 'jeton_absent' };
+  const r = await demandeAdmin(jetonAdmin, 'POST', '/admin/installations', { nom });
+  return lireCreationInstallation(r?.statut ?? null, r?.corps ?? null);
+}
+
+/** Révoque une installation : son jeton est refusé en moins d'une minute. Ne lève jamais d'exception. */
+export async function revoquerInstallation(jetonAdmin: string, id: string): Promise<{ ok: true } | Echec> {
+  if (!jetonAdmin) return { ok: false, raison: 'jeton_absent' };
+  const r = await demandeAdmin(jetonAdmin, 'DELETE', `/admin/installations/${encodeURIComponent(id)}`);
+  return lireRevocation(r?.statut ?? null);
 }

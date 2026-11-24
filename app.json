@@ -51,7 +51,7 @@
         "expo-camera",
         {
           "recordAudioAndroid": false,
-          "barcodeScannerEnabled": false
+          "barcodeScannerEnabled": true
         }
       ],
       [
