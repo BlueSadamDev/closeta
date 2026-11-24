@@ -395,6 +395,15 @@ Décisions du 23 novembre 2026 (plan de l'étape 9) :
 - Réglages, section « Installations » (visible seulement si un jeton d'administration est saisi sur ce téléphone) : liste (nom, date, recherches du mois), « Ajouter un téléphone » (nom → QR de configuration affiché), « Révoquer » (confirmation).
 - Relais déployable par un autre compte : plus aucun identifiant propre au compte dans `wrangler.toml` (identifiant KV, nom du bucket R2, nom du Worker) ; le workflow de mise en ligne les injecte depuis les **variables** GitHub du dépôt. README : guide « Installer son propre relais » pas à pas (compte Cloudflare, SerpApi, secrets, variables, premier jeton d'administration).
 
+Décisions du 24 novembre 2026 (plan de l'étape 10) :
+
+- Adresse du relais, jeton et jeton d'administration sont rangés dans le coffre du téléphone (`expo-secure-store`). Tant que l'adresse n'est pas changée, rien n'est rangé et l'app suit celle de `settings.ts` : un téléphone déjà configuré marche sans rien faire.
+- Un lien `closeta://config` ouvert par Android (QR lu avec l'appareil photo du téléphone) mène à la même confirmation que le scan dans les Réglages : rien n'est enregistré sans « Configurer ».
+- QR dessiné avec `qrcode-generator` (calcul seul, sans code natif) et `react-native-svg` ; le lecteur de codes d'`expo-camera` est activé (`barcodeScannerEnabled`), d'où un nouvel APK de développement.
+- Le jeton d'un téléphone ajouté n'existe que dans son QR, affiché une seule fois : il n'est rangé nulle part sur le téléphone qui administre.
+- Variables GitHub : `RELAIS_NOM_WORKER`, `RELAIS_KV_ID`, `RELAIS_BUCKET_R2`. Le workflow ajoute à `wrangler.toml`, le temps de la mise en ligne, les blocs de l'espace KV et du bucket R2, et passe le nom avec `wrangler deploy --name`.
+- Sur un nouveau relais, le premier téléphone se configure avec `RELAY_TOKEN` ; les suivants avec « Ajouter un téléphone ».
+
 **Étape 11 — Données portables : chemins relatifs et sauvegarde**
 
 - Migration v3 : `image_locale` ne garde que le **nom du fichier** (le dossier est recalculé à l'exécution) ; reprise des données existantes. Indispensable pour restaurer une sauvegarde sur un autre téléphone, ou entre l'APK de dev et celui de production.

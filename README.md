@@ -78,17 +78,54 @@ Petit programme hébergé chez Cloudflare (gratuit). L'app lui envoie un lien pr
   - `POST /v1/admin/installations`, corps `{ "nom": "Téléphone de Léa" }` : crée l'installation et renvoie son jeton **une seule fois** ;
   - `DELETE /v1/admin/installations/<id>` : révoque l'installation.
 - Version minimale de l'app : `VERSION_APP_MIN` dans `wrangler.toml` (vide = aucune exigence). Une app plus ancienne, ou qui n'envoie pas sa version (APK d'avant l'étape 9 du lot 3), reçoit `mise_a_jour_requise` (HTTP 426) et affiche « Mets ClosetA à jour pour continuer. »
+
+### Configurer un téléphone (Réglages de l'app)
+
+- **Relais** : adresse du relais (par défaut celle de `src/domain/settings.ts`), jeton, « Tester la connexion ». Les deux sont rangés dans le coffre du téléphone (`expo-secure-store`), jamais dans l'APK.
+- **QR de configuration** : `closeta://config?relais=<adresse>&jeton=<jeton>`. « Scanner un QR de configuration » le lit avec l'appareil photo ; un QR lu par l'appareil photo d'Android ouvre aussi ClosetA. Une confirmation est toujours demandée avant d'enregistrer. Seules les adresses `https` sont acceptées. « Afficher le QR de ce téléphone » ne s'affiche qu'à la demande : le code contient le jeton.
+- **Installations** : visible seulement quand un jeton d'administration (`ADMIN_TOKEN`) est saisi sur ce téléphone. Liste des téléphones (nom, date, recherches du mois), « Ajouter un téléphone » (nom, puis QR affiché une seule fois, à scanner depuis le nouveau téléphone), « Révoquer ».
+
 ### Mise en ligne
 
-1. Une fois : secrets GitHub `CLOUDFLARE_API_TOKEN` et `CLOUDFLARE_ACCOUNT_ID` (Settings > Secrets and variables > Actions).
-2. Onglet **Actions** > **Mettre en ligne le relais** > **Run workflow**.
-3. Une fois, après la première mise en ligne : dans le tableau de bord Cloudflare, Workers & Pages > `closeta-relay` > Settings > Variables and Secrets, ajouter le secret `RELAY_TOKEN` (le jeton à saisir ensuite dans l'app). Il est conservé lors des mises en ligne suivantes.
-4. Pour gérer plusieurs téléphones : ajouter de la même façon le secret `ADMIN_TOKEN` (jeton d'administration, différent de `RELAY_TOKEN`).
+1. Une fois : secrets GitHub `CLOUDFLARE_API_TOKEN` et `CLOUDFLARE_ACCOUNT_ID` (Settings > Secrets and variables > Actions > onglet **Secrets**).
+2. Une fois : variables GitHub `RELAIS_NOM_WORKER`, `RELAIS_KV_ID` et `RELAIS_BUCKET_R2` (même page, onglet **Variables**). Elles sont propres au compte Cloudflare : `relay/wrangler.toml` n'en contient aucune, le workflow les ajoute juste avant l'envoi et s'arrête avec un message clair s'il en manque une.
+3. Onglet **Actions** > **Mettre en ligne le relais** > **Run workflow**.
+4. Une fois, après la première mise en ligne : dans le tableau de bord Cloudflare, Workers & Pages > le Worker (`RELAIS_NOM_WORKER`) > Settings > Variables and Secrets, ajouter le secret `RELAY_TOKEN` (le jeton à saisir ensuite dans l'app). Il est conservé lors des mises en ligne suivantes.
+5. Pour gérer plusieurs téléphones : ajouter de la même façon le secret `ADMIN_TOKEN` (jeton d'administration, différent de `RELAY_TOKEN`).
 
 ### Ajout par photo (`/identify`) : à préparer une fois, avant la mise en ligne
 
 1. **Stockage R2** : tableau de bord Cloudflare > R2 > Create bucket, nom `closeta-photos-temp`. Puis dans le bucket : Settings > Object lifecycle rules > supprimer les objets après 1 jour (filet de sécurité).
 2. **Jeton GitHub → Cloudflare** : le jeton du secret `CLOUDFLARE_API_TOKEN` doit avoir les droits « Workers R2 Storage : Edit » et « Workers AI : Read ».
 3. **SerpApi** : créer un compte sur serpapi.com (offre gratuite), puis ajouter sa clé comme secret Cloudflare `SERPAPI_KEY` (même chemin que `RELAY_TOKEN`).
-4. **Compteur des recherches** : l'espace Cloudflare KV `closeta-quota` (créé par `npx wrangler kv namespace create closeta-quota`, ou tableau de bord > Storage & Databases > Workers KV) compte les recherches SerpApi du mois du calendrier (heure de Paris). Son identifiant est dans `relay/wrangler.toml`. Le jeton `CLOUDFLARE_API_TOKEN` doit aussi avoir le droit « Workers KV Storage : Edit ». Le seuil se règle dans `wrangler.toml` (`SERPAPI_LIMITE_MOIS`, 250 par défaut) : une fois atteint, `/identify` et `/alternatives` répondent `quota_atteint` sans appeler SerpApi.
+4. **Compteur des recherches** : l'espace Cloudflare KV `closeta-quota` (créé par `npx wrangler kv namespace create closeta-quota`, ou tableau de bord > Storage & Databases > Workers KV) compte les recherches SerpApi du mois du calendrier (heure de Paris). Son identifiant va dans la variable GitHub `RELAIS_KV_ID`. Le jeton `CLOUDFLARE_API_TOKEN` doit aussi avoir le droit « Workers KV Storage : Edit ». Le seuil se règle dans `wrangler.toml` (`SERPAPI_LIMITE_MOIS`, 250 par défaut) : une fois atteint, `/identify` et `/alternatives` répondent `quota_atteint` sans appeler SerpApi.
 5. L'IA (Cloudflare Workers AI) ne demande ni compte ni clé : offre gratuite avec quota quotidien, qui s'arrête net une fois atteint. Le modèle se change dans `relay/src/settings.ts` (`modeleIA`).
+
+## Installer son propre relais
+
+Pour utiliser ClosetA avec **ton propre** relais (ton compte Cloudflare, ta clé SerpApi), sans dépendre de celui de quelqu'un d'autre. Tout est gratuit avec les offres de base. Compter une heure la première fois.
+
+1. **Copier le dépôt** : sur GitHub, bouton **Fork** (une copie à toi, publique comme l'original). Les étapes suivantes se font dans ta copie.
+2. **Compte Cloudflare** : créer un compte sur cloudflare.com (offre gratuite). Noter l'**Account ID** (tableau de bord > Workers & Pages, colonne de droite).
+3. **Bucket R2** (photos temporaires) : tableau de bord > R2 > activer R2 (gratuit, une carte peut être demandée sans être débitée) > **Create bucket**, nom au choix, par exemple `closeta-photos-temp`. Dans le bucket : Settings > Object lifecycle rules > supprimer les objets après 1 jour.
+4. **Espace KV** (compteur et installations) : tableau de bord > Storage & Databases > Workers KV > **Create**, nom `closeta-quota`. Noter son **ID** (32 caractères).
+5. **Jeton d'API Cloudflare** (permet à GitHub de mettre le relais en ligne) : My Profile > API Tokens > **Create Token** > modèle « Edit Cloudflare Workers ». Vérifier qu'il contient « Workers Scripts : Edit », « Workers KV Storage : Edit » et « Workers R2 Storage : Edit », ajouter « Workers AI : Read », puis créer et copier le jeton (il ne s'affiche qu'une fois).
+6. **SerpApi** (recherche par photo et alternatives) : créer un compte sur serpapi.com (offre gratuite, 250 recherches par mois), copier la clé (Dashboard > Your Private API Key).
+7. **Secrets GitHub** (ta copie > Settings > Secrets and variables > Actions > onglet **Secrets** > New repository secret) :
+   - `CLOUDFLARE_API_TOKEN` : le jeton de l'étape 5 ;
+   - `CLOUDFLARE_ACCOUNT_ID` : l'Account ID de l'étape 2.
+8. **Variables GitHub** (même page, onglet **Variables** > New repository variable) :
+   - `RELAIS_NOM_WORKER` : nom du relais, en minuscules et tirets, par exemple `closeta-relay` (il fait partie de l'adresse) ;
+   - `RELAIS_KV_ID` : l'ID de l'étape 4 ;
+   - `RELAIS_BUCKET_R2` : le nom du bucket de l'étape 3.
+9. **Première mise en ligne** : onglet **Actions** > activer les workflows si GitHub le demande > **Mettre en ligne le relais** > **Run workflow**. À la fin, l'adresse du relais s'affiche dans le journal de l'étape « Mettre en ligne sur Cloudflare », de la forme `https://<RELAIS_NOM_WORKER>.<ton-sous-domaine>.workers.dev`.
+10. **Secrets Cloudflare** (tableau de bord > Workers & Pages > ton relais > Settings > Variables and Secrets > Add, type **Secret**) :
+    - `SERPAPI_KEY` : la clé de l'étape 6 ;
+    - `RELAY_TOKEN` : le jeton de ton premier téléphone ;
+    - `ADMIN_TOKEN` : ton jeton d'administration, différent du précédent.
+    Pour fabriquer un jeton : une longue suite de lettres et de chiffres sans espace (40 caractères ou plus), par exemple tirée d'un gestionnaire de mots de passe. Les garder dans ce gestionnaire : Cloudflare ne les réaffiche jamais.
+11. **Premier téléphone** : installer l'APK (voir « Construire les APK »), puis Réglages > Relais : saisir l'adresse de l'étape 9 et le jeton `RELAY_TOKEN`, **Enregistrer**, **Tester la connexion**.
+12. **Premier jeton d'administration** : sur ce même téléphone, Réglages > Installations : coller `ADMIN_TOKEN`, **Enregistrer**. La liste des installations apparaît (« Principale » = le jeton `RELAY_TOKEN`).
+13. **Autres téléphones** : « Ajouter un téléphone », donner un nom, puis sur le nouveau téléphone, Réglages > « Scanner un QR de configuration ». Le QR ne s'affiche qu'une fois ; en cas de perte, révoquer et recommencer.
+
+Le relais ne garde ni les photos (supprimées juste après la recherche) ni les pages lues ; seuls les compteurs du mois et les empreintes des jetons sont conservés dans KV.

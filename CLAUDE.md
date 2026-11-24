@@ -31,7 +31,7 @@
 
 ## Relais Cloudflare
 - Les clés d'API (IA, SerpApi) sont des secrets Cloudflare (`wrangler secret put`), jamais dans `wrangler.toml` ni dans le code.
-- `wrangler.toml` ne contient pas l'identifiant du compte : il est fourni par la variable d'environnement `CLOUDFLARE_ACCOUNT_ID`.
+- `wrangler.toml` ne contient aucun identifiant propre au compte : l'identifiant du compte vient du secret `CLOUDFLARE_ACCOUNT_ID`, le nom du Worker, l'espace KV et le bucket R2 des variables GitHub `RELAIS_NOM_WORKER`, `RELAIS_KV_ID` et `RELAIS_BUCKET_R2` (ajoutés par le workflow de mise en ligne).
 - Le relais refuse toute requête sans jeton valide (en-tête `Authorization`) et limite le débit à 30 requêtes par minute.
 - `/extract` n'accepte que des URL `https` publiques (pas d'adresse IP locale ou privée).
 - Le relais ne conserve rien. Exception au lot 1b : si SerpApi Lens exige une URL d'image, dépôt temporaire dans Cloudflare R2, supprimé juste après la recherche.
