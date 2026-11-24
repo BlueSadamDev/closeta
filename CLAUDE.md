@@ -83,6 +83,24 @@ Piste C · Fondations multi-installations (ajoutée le 23 novembre 2026) :
 Fin du lot :
 12. Production : vérifications complètes, APK de production, test unique par l'utilisateur. **Terminée, fusionnée via la PR #29** : vérifications complètes, aucun secret (dépôt, APK), test unique validé sur l'APK de production (points 1 à 7 ; QR de configuration à tester plus tard) ; retours ajoutés : photo agrandie avec zoom sur la fiche, genre des recherches d'alternatives (Réglages « Je cherche pour », relais `/alternatives` et `/identify`) ; variables GitHub `RELAIS_*` créées, relais remis en ligne.
 
+## Découpage en étapes (lot 4 : Robustesse et catalogue partagé)
+Une étape = une branche, validée sur l'APK de développement ; **un seul APK de production testé**, à l'étape 9 (même exception de fusion qu'au lot 3). Deux pistes, menables dans deux sessions. Détail : docs/SPEC.md, « Lot 4 — Robustesse et catalogue partagé », et docs/ARCHITECTURE.md. Les décisions marquées « à valider » dans la spec se confirment avec l'utilisateur au plan de l'étape concernée.
+
+Piste A · Relais :
+1. Compteurs de quota dans un Durable Object `Quota` (SQLite) : réservation atomique global + installation, reprise des compteurs KV du mois.
+2. Catalogue partagé et cache dans D1 (`produit`, `observation_prix`, `recherche`) : lecture des pages en cache 24 h, recherches en cache (sans consommer le quota), purge nocturne ; variable GitHub `RELAIS_D1_ID` à créer par l'utilisateur ; règle « Relais Cloudflare » mise à jour.
+3. Historique de prix partagé : `historique` dans `/v1/extract`, « Prix le plus bas observé » sur la fiche de la Wishlist.
+4. Interface de recherche indépendante du fournisseur (`RECHERCHE_FOURNISSEUR`, défaut `serpapi`).
+5. Supervision et photos temporaires : journaux JSON sans donnée personnelle, `GET /v1/admin/etat`, règle d'expiration R2 vérifiée par le workflow.
+
+Piste B · App et conformité :
+6. Codes d'invitation : création depuis « Installations », lien `closeta://invitation` sans jeton, code à usage unique valable 7 jours.
+7. Vérification de mise à jour : release GitHub à chaque APK de production, `GET /v1/version`, bandeau dans l'app.
+8. Confidentialité : `docs/CONFIDENTIALITE.md`, `docs/REGISTRE.md`, écran « Confidentialité », rappel sur les écrans photo.
+
+Fin du lot :
+9. Production : vérifications complètes, relais en ligne, APK publié en release, test unique par l'utilisateur.
+
 ## Lots suivants
 Lots 4 à 7 (robustesse et catalogue partagé, bien tailler, plan d'achat, style) : voir [docs/ROADMAP.md](docs/ROADMAP.md). Chaque lot sera détaillé dans docs/SPEC.md avant son développement. Architecture, coûts et passage à plusieurs utilisateurs : [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), à lire avant toute évolution du relais.
 
