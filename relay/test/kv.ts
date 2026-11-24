@@ -7,5 +7,9 @@ export function magasin(initial: Record<string, string> = {}) {
     cases,
     get: vi.fn(async (cle: string) => cases.get(cle) ?? null),
     put: vi.fn(async (cle: string, valeur: string, _options?: { expirationTtl?: number }) => void cases.set(cle, valeur)),
+    list: vi.fn(async ({ prefix }: { prefix: string; cursor?: string }) => ({
+      keys: [...cases.keys()].filter((c) => c.startsWith(prefix)).map((name) => ({ name })),
+      list_complete: true,
+    })),
   };
 }

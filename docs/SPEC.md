@@ -241,7 +241,7 @@ Le Vestiaire montre les pièces passées en « acheté » (`statut = achete`). A
 
 ## Lot 3 — Prix, alternatives et numérisation
 
-Lot fusionné (anciens lots 3 « Prix et alternatives » et 4 « Numériser » de la feuille de route), pour **un seul test d'APK de production**, à la dernière étape. Chaque étape reste validée sur l'APK de développement. Deux pistes indépendantes, menables en parallèle dans deux sessions (voir CLAUDE.md, « Travail en parallèle ») : **A · Relais et Wishlist** (étapes 1 à 4) et **B · Vestiaire** (étapes 5 à 8).
+Lot fusionné (anciens lots 3 « Prix et alternatives » et 4 « Numériser » de la feuille de route), pour **un seul test d'APK de production**, à la dernière étape. Chaque étape reste validée sur l'APK de développement. Trois pistes, menables en parallèle dans plusieurs sessions (voir CLAUDE.md, « Travail en parallèle ») : **A · Relais et Wishlist** (étapes 1 à 4), **B · Vestiaire** (étapes 5 à 8) et **C · Fondations multi-installations** (étapes 9 à 11, ajoutée le 23 novembre 2026). La production (étape 12) vient en dernier.
 
 Décisions validées le 23 novembre 2026 :
 
@@ -364,9 +364,49 @@ Règles :
 - L'identification (`/identify`) reçoit toujours la photo d'origine.
 - Les photos déjà présentes dans le Vestiaire ne sont pas modifiées.
 
-**Étape 9 — Production**
+### Piste C · Fondations multi-installations
+
+Objectif : pouvoir installer ClosetA sur d'autres téléphones (les siens ou ceux d'autres personnes, sur le même relais ou sur un relais à eux) **sans recréer de compte Cloudflare**, et préparer une future synchronisation. Ces fondations ne changent rien à l'usage quotidien d'un téléphone seul. Décisions validées le 23 novembre 2026 ; comptes utilisateurs et synchronisation restent hors lot.
+
+Constats de départ : un seul jeton partagé (`RELAY_TOKEN`), quota SerpApi global sans attribution, adresse du relais écrite en dur dans `settings.ts`, identifiants propres au compte Cloudflare dans `wrangler.toml`, photos enregistrées avec leur chemin complet, aucune sauvegarde, aucune vérification de compatibilité entre versions de l'app et du relais.
+
+**Étape 9 — Identité, jetons par installation et versions**
+
+- App : **identifiant d'installation** (UUID créé au premier lancement, rangé dans le coffre du téléphone), envoyé au relais dans l'en-tête `X-ClosetA-Installation`, avec la version de l'app dans `X-ClosetA-Version`.
+- Relais : **un jeton par installation**. Liste dans Cloudflare KV : empreinte SHA-256 du jeton (jamais le jeton en clair) → `{ id, nom, cree_le, actif }`. Un jeton révoqué (`actif = faux`) est refusé immédiatement.
+- Relais : **jeton d'administration** (`ADMIN_TOKEN`, secret Cloudflare saisi par l'utilisateur, comme les autres) qui seul ouvre les routes `GET /v1/admin/installations` (liste, avec le quota du mois de chacune), `POST /v1/admin/installations` (`{ nom }` → crée l'installation et renvoie son jeton **une seule fois**) et `DELETE /v1/admin/installations/{id}` (révocation).
+- Transition : `RELAY_TOKEN` reste accepté et compte comme l'installation « Principale » tant qu'il existe ; l'app actuelle continue donc de marcher sans rien faire. Son retrait est hors lot.
+- Quota : compteur SerpApi **par installation en plus du global** (le seuil global reste la limite dure ; seuil par installation réglable, défaut = global). `GET /quota` renvoie `{ installation: { utilise, limite }, global: { utilise, limite }, mois }`.
+- Limite de débit par installation (et non plus par jeton partagé).
+- Versions : routes servies sous `/v1/…` ; les routes actuelles sans préfixe restent des alias tant que des APK anciens existent. Variable `VERSION_APP_MIN` : une app plus ancienne reçoit `mise_a_jour_requise` (HTTP 426) et affiche « Mets ClosetA à jour pour continuer. »
+- Tests du relais : jeton inconnu, révoqué, administration sans jeton admin, quota par installation, alias sans préfixe, version trop ancienne.
+
+Décisions du 23 novembre 2026 (plan de l'étape 9) :
+
+- Réglages et fiche affichent le compteur **global** (la limite dure) ; « épuisé » s'affiche aussi quand le seuil du téléphone est atteint (d'où `limite` dans `installation`).
+- L'en-tête `X-ClosetA-Installation` est seulement contrôlé (forme d'un UUID) ; c'est le **jeton** qui désigne l'installation pour le quota et la limite de débit.
+- Révocation : effective en **moins d'une minute** (délai de diffusion de Cloudflare KV).
+- `VERSION_APP_MIN` est vide au départ ; une app qui n'envoie pas sa version compte comme trop ancienne une fois la variable remplie.
+
+**Étape 10 — Configuration par QR code et relais déployable par un autre**
+
+- Réglages, section « Relais » : adresse du relais **modifiable** (valeur par défaut : celle de `settings.ts`), jeton, « Tester la connexion », et **« Scanner un QR de configuration »** (lecteur de codes de `expo-camera`, déjà présent).
+- QR de configuration : `closeta://config?relais=<adresse>&jeton=<jeton>`. Il contient un secret : il n'est affiché qu'à la demande, avec la mention « Ce code donne accès à ton relais. Ne le partage qu'avec le téléphone à configurer. »
+- Réglages, section « Installations » (visible seulement si un jeton d'administration est saisi sur ce téléphone) : liste (nom, date, recherches du mois), « Ajouter un téléphone » (nom → QR de configuration affiché), « Révoquer » (confirmation).
+- Relais déployable par un autre compte : plus aucun identifiant propre au compte dans `wrangler.toml` (identifiant KV, nom du bucket R2, nom du Worker) ; le workflow de mise en ligne les injecte depuis les **variables** GitHub du dépôt. README : guide « Installer son propre relais » pas à pas (compte Cloudflare, SerpApi, secrets, variables, premier jeton d'administration).
+
+**Étape 11 — Données portables : chemins relatifs et sauvegarde**
+
+- Migration v3 : `image_locale` ne garde que le **nom du fichier** (le dossier est recalculé à l'exécution) ; reprise des données existantes. Indispensable pour restaurer une sauvegarde sur un autre téléphone, ou entre l'APK de dev et celui de production.
+- Table `suppression` (`id`, `table`, `date`) : trace de chaque pièce ou relevé supprimé, pour une future synchronisation. Aucun usage visible dans ce lot.
+- **Sauvegarde** (Réglages) : un fichier unique `closeta-AAAA-MM-JJ.closeta` (JSON : version du schéma, articles, relevés, photos encodées), proposé au partage Android (Drive, mail, fichiers…). Ni jeton ni identifiant d'installation dans la sauvegarde.
+- **Restauration** (Réglages) : choix d'un fichier `.closeta`, résumé (« 42 pièces, 37 photos »), confirmation, puis **remplacement** de toutes les données du téléphone. Fusion de deux téléphones : hors lot.
+- Dépendances à valider au plan de l'étape : partage et choix de fichier (`expo-sharing`, `expo-document-picker`).
+
+**Étape 12 — Production**
 
 - Vérifications complètes (expo-doctor, lint, tsc, jest, tests du relais), APK de production, **test unique** par l'utilisateur, fin du lot.
+- Le test couvre en particulier : migration des photos (aucune perdue), ancien jeton toujours accepté, sauvegarde puis restauration sur l'APK de dev.
 
 ### Critères d'acceptation
 
@@ -379,7 +419,13 @@ Règles :
 - [ ] Une pièce ajoutée depuis le Vestiaire y apparaît directement, avec ou sans date et prix
 - [ ] Une photo prise par la prise de vue guidée est enregistrée en 3:4, 1200 × 1600
 - [ ] Les données existantes (Wishlist, Vestiaire, photos) sont intactes après la migration et la mise à jour de l'APK
+- [ ] Un téléphone ajouté depuis « Installations » se configure en scannant un QR, sans rien taper, et son quota du mois apparaît dans la liste
+- [ ] Une installation révoquée est refusée par le relais ; les autres continuent de fonctionner
+- [ ] Le téléphone actuel fonctionne sans reconfiguration après la mise à jour (ancien jeton accepté)
+- [ ] Une app plus ancienne que `VERSION_APP_MIN` affiche le message de mise à jour au lieu d'une erreur
+- [ ] Une sauvegarde restaurée sur un autre téléphone (ou sur l'APK de dev) retrouve toutes les pièces, relevés et photos
+- [ ] `wrangler.toml` ne contient plus aucun identifiant propre à un compte Cloudflare
 
 ### Hors lot 3
 
-Notifications de baisse, actualisation des pièces du Vestiaire, alternatives depuis le Vestiaire, habillage si l'étape 8 n'est pas validée, lots suivants (bien tailler, plan d'achat, style : voir ROADMAP.md).
+Notifications de baisse, actualisation des pièces du Vestiaire, comptes utilisateurs, synchronisation ou partage entre téléphones, fusion de sauvegardes, retrait de l'ancien jeton partagé, alternatives depuis le Vestiaire, habillage si l'étape 8 n'est pas validée, lots suivants (bien tailler, plan d'achat, style : voir ROADMAP.md).

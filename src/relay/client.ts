@@ -7,8 +7,13 @@ import { demandeAlternatives, lireAlternatives, type ResultatAlternatives } from
 import type { Article } from '@/domain/article';
 import { lireExtraction, type ResultatExtraction } from '@/domain/lien';
 import { lireIdentification, type ResultatIdentification } from '@/domain/photo';
-import { lireQuota, lireTestConnexion, type EtatConnexion, type Quota } from '@/domain/relais';
+import { adresseRelais, entetesRelais, lireQuota, lireTestConnexion, type EtatConnexion, type Quota } from '@/domain/relais';
 import { settings } from '@/domain/settings';
+
+import { identite } from './installation';
+
+/** Adresse complète d'une route du relais (« /extract » → « …/v1/extract »). */
+const adresse = (route: string) => adresseRelais(settings.relayUrl, route);
 
 /** Envoie au relais une demande vide pour vérifier que le jeton est accepté. */
 export async function testerConnexion(jeton: string): Promise<EtatConnexion> {
@@ -16,9 +21,9 @@ export async function testerConnexion(jeton: string): Promise<EtatConnexion> {
   const arret = new AbortController();
   const minuteur = setTimeout(() => arret.abort(), settings.relayTimeoutMs);
   try {
-    const reponse = await fetch(`${settings.relayUrl}/extract`, {
+    const reponse = await fetch(adresse('/extract'), {
       method: 'POST',
-      headers: { Authorization: `Bearer ${jeton}`, 'Content-Type': 'application/json' },
+      headers: entetesRelais(await identite(jeton), { 'Content-Type': 'application/json' }),
       body: '{}',
       signal: arret.signal,
     });
@@ -37,8 +42,8 @@ export async function lireQuotaRelais(jeton: string): Promise<Quota | null> {
   const arret = new AbortController();
   const minuteur = setTimeout(() => arret.abort(), settings.relayTimeoutMs);
   try {
-    const reponse = await fetch(`${settings.relayUrl}/quota`, {
-      headers: { Authorization: `Bearer ${jeton}` },
+    const reponse = await fetch(adresse('/quota'), {
+      headers: entetesRelais(await identite(jeton)),
       signal: arret.signal,
     });
     return lireQuota(reponse.status, await reponse.json().catch(() => null));
@@ -58,9 +63,9 @@ export async function extraire(lien: string, jeton: string, taille: string | nul
   const arret = new AbortController();
   const minuteur = setTimeout(() => arret.abort(), settings.relayTimeoutMs);
   try {
-    const reponse = await fetch(`${settings.relayUrl}/extract`, {
+    const reponse = await fetch(adresse('/extract'), {
       method: 'POST',
-      headers: { Authorization: `Bearer ${jeton}`, 'Content-Type': 'application/json' },
+      headers: entetesRelais(await identite(jeton), { 'Content-Type': 'application/json' }),
       body: JSON.stringify(taille ? { url: lien, taille } : { url: lien }),
       signal: arret.signal,
     });
@@ -81,10 +86,10 @@ export async function identifier(photo: string, jeton: string): Promise<Resultat
   if (!jeton) return { ok: false, raison: 'jeton_absent' };
   let minuteur: ReturnType<typeof setTimeout> | undefined;
   try {
-    const envoi = new File(photo).createUploadTask(`${settings.relayUrl}/identify`, {
+    const envoi = new File(photo).createUploadTask(adresse('/identify'), {
       httpMethod: 'POST',
       uploadType: UploadType.BINARY_CONTENT,
-      headers: { Authorization: `Bearer ${jeton}`, 'Content-Type': 'image/jpeg' },
+      headers: entetesRelais(await identite(jeton), { 'Content-Type': 'image/jpeg' }),
     });
     minuteur = setTimeout(() => envoi.cancel(), settings.identifyTimeoutMs);
     const reponse = await envoi.uploadAsync();
@@ -112,9 +117,9 @@ export async function chercherAlternatives(article: Article, photo: string | nul
   const arret = new AbortController();
   const minuteur = setTimeout(() => arret.abort(), settings.alternativesTimeoutMs);
   try {
-    const reponse = await fetch(`${settings.relayUrl}/alternatives`, {
+    const reponse = await fetch(adresse('/alternatives'), {
       method: 'POST',
-      headers: { Authorization: `Bearer ${jeton}`, 'Content-Type': 'application/json' },
+      headers: entetesRelais(await identite(jeton), { 'Content-Type': 'application/json' }),
       body: JSON.stringify(demandeAlternatives(article, photo)),
       signal: arret.signal,
     });

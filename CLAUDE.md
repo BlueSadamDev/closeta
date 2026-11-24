@@ -27,7 +27,7 @@
 - L'adresse du relais n'est pas un secret : elle peut figurer dans `settings.ts`.
 - Aucune vraie donnée de ma wishlist dans le dépôt (exports, captures, logs). Les tests utilisent uniquement des **données fictives** rangées dans `src/domain/__fixtures__/` et `relay/test/fixtures/`.
 - Pas de SDK d'analytics, de suivi des plantages ni de publicité.
-- Sauvegarde uniquement par export manuel d'un fichier, déclenché par l'utilisateur (hors lot 1).
+- Sauvegarde uniquement par export manuel d'un fichier, déclenché par l'utilisateur (lot 3, étape 11) ; jamais de jeton ni d'identifiant d'installation dedans.
 
 ## Relais Cloudflare
 - Les clés d'API (IA, SerpApi) sont des secrets Cloudflare (`wrangler secret put`), jamais dans `wrangler.toml` ni dans le code.
@@ -61,7 +61,7 @@ Une étape = une branche et un APK testé. Détail : docs/SPEC.md, « Lot 2 — 
 4. Tri et vue par marque (Wishlist et Vestiaire) → fin du lot 2. **Terminée, fusionnée via la PR #14** : tri « Marque » et vue « Marques » (sections alphabétiques, sous-totaux, « Sans marque » à la fin) dans la Wishlist et le Vestiaire.
 
 ## Découpage en étapes (lot 3 : Prix, alternatives et numérisation)
-Une étape = une branche, validée sur l'APK de développement ; **un seul APK de production testé**, à l'étape 9. Deux pistes indépendantes, menables dans deux sessions (voir « Travail en parallèle »). Détail : docs/SPEC.md, « Lot 3 — Prix, alternatives et numérisation ».
+Une étape = une branche, validée sur l'APK de développement ; **un seul APK de production testé**, à l'étape 12. Trois pistes, menables dans plusieurs sessions (voir « Travail en parallèle »). Détail : docs/SPEC.md, « Lot 3 — Prix, alternatives et numérisation ».
 
 Piste A · Relais et Wishlist :
 1. Compteur SerpApi et historique des prix : compteur mensuel au relais (seuil réglable, `quota_atteint`), route `GET /quota`, ligne dans Réglages ; migration (`releve_prix`, nouveaux champs de `article`) et reprise des données. **Terminée, fusionnée via la PR #17** : compteur SerpApi dans Cloudflare KV (mois du calendrier, seuil dans `wrangler.toml`), `GET /quota`, ligne « Recherches ce mois » dans Réglages (mise en garde à 80 %), message « quota atteint » sur Par photo ; migration v2 (`releve_prix` avec `source`), relevés à l'ajout par lien ou photo et à chaque prix modifié à la main.
@@ -75,8 +75,13 @@ Piste B · Vestiaire :
 7. Prise de vue guidée, format 3:4 (`expo-camera` à valider) : cadre, silhouette de cintre, recadrage 1200 × 1600 ; cartes du Vestiaire en 3:4. **Terminée, fusionnée via la PR #20** : `expo-camera` (sans micro), prise de vue guidée (cadre 3:4, cintre, consigne), recadrage 1200 × 1600, galerie recadrée en 3:4, identification facultative, cartes du Vestiaire en 3:4.
 8. Habillage de la photo (exploration) : essai de détourage sur 5 photos, décision de l'utilisateur avant tout développement.
 
+Piste C · Fondations multi-installations (ajoutée le 23 novembre 2026) :
+9. Identité, jetons par installation et versions : identifiant d'installation, jetons par installation (empreintes dans KV), jeton d'administration et routes `/v1/admin/installations`, quota et limite de débit par installation, routes `/v1/…` avec alias, `VERSION_APP_MIN` ; `RELAY_TOKEN` toujours accepté (installation « Principale »). **Terminée, fusionnée via la PR #25** : jetons par installation (empreintes dans KV, révocation), `ADMIN_TOKEN` et routes `/v1/admin/installations`, quota et limite de débit par installation, routes `/v1` avec alias, `VERSION_APP_MIN` (426, « Mets ClosetA à jour pour continuer. »), identifiant d'installation et version envoyés par l'app.
+10. Configuration par QR code et relais déployable par un autre : adresse du relais modifiable, QR `closeta://config`, section « Installations » (ajout, révocation), `wrangler.toml` sans identifiant de compte (variables GitHub), guide « Installer son propre relais ».
+11. Données portables : photos en nom de fichier (migration v3), table `suppression`, sauvegarde et restauration d'un fichier `.closeta`.
+
 Fin du lot :
-9. Production : vérifications complètes, APK de production, test unique par l'utilisateur.
+12. Production : vérifications complètes, APK de production, test unique par l'utilisateur.
 
 ## Lots suivants
 Lots 4 à 6 (bien tailler, plan d'achat, style) : voir [docs/ROADMAP.md](docs/ROADMAP.md). Chaque lot sera détaillé dans docs/SPEC.md avant son développement.
@@ -114,7 +119,7 @@ Si `expo-doctor` signale des versions incompatibles : `npx expo install --fix`, 
 - Ne jamais travailler directement sur `main`. Une branche par étape.
 - Après chaque étape validée : commit, puis push de la branche.
 - Fusionner dans `main` uniquement après test de l'APK par l'utilisateur, avec un accord explicite qui nomme la PR (par exemple « fusionne la #3 »). Un « ok » général ne suffit pas.
-- Exception du lot 3 : une étape peut être fusionnée après les vérifications automatiques (section « Qualité du code »), sans test d'APK ; le test unique se fait avec l'APK de production à l'étape 9. L'accord explicite qui nomme la PR reste obligatoire.
+- Exception du lot 3 : une étape peut être fusionnée après les vérifications automatiques (section « Qualité du code »), sans test d'APK ; le test unique se fait avec l'APK de production à l'étape 12. L'accord explicite qui nomme la PR reste obligatoire.
 - Dans chaque résumé, distinguer « APK construit » (le build GitHub a réussi) et « APK testé » (installé et vérifié par l'utilisateur).
 - Après une fusion avec conflits, relire `package.json` et `.github/workflows/` pour vérifier qu'aucune mise à jour n'a été annulée.
 - Après la fusion, proposer de supprimer la branche.

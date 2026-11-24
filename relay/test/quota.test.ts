@@ -95,7 +95,11 @@ describe('relais : GET /quota', () => {
     const { e } = env({ [CE_MOIS()]: '37' }, '300');
     const r = await relais.fetch(lireQuota(), e);
     expect(r.status).toBe(200);
-    expect(await r.json()).toEqual({ utilise: 37, limite: 300, mois: moisDe(new Date()) });
+    expect(await r.json()).toEqual({
+      installation: { utilise: 0, limite: 300 },
+      global: { utilise: 37, limite: 300 },
+      mois: moisDe(new Date()),
+    });
   });
 });
 

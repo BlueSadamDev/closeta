@@ -9,6 +9,7 @@ import { useEffect } from 'react';
 import { preparerBase } from '@/db';
 import { trouverLien } from '@/domain/lien';
 import { settings } from '@/domain/settings';
+import { identifiantInstallation } from '@/relay/installation';
 import { colors, fontFiles } from '@/theme';
 
 // L'écran de démarrage reste affiché tant que les polices ne sont pas prêtes.
@@ -21,6 +22,11 @@ export default function RootLayout() {
   useEffect(() => {
     if (pret) SplashScreen.hideAsync();
   }, [pret]);
+
+  // Identifiant de ce téléphone pour le relais, créé au premier lancement (rien d'envoyé ici).
+  useEffect(() => {
+    identifiantInstallation();
+  }, []);
 
   if (!pret) return null;
 

@@ -22,6 +22,10 @@ export const settings = {
   /** Durée de vie d'une case mensuelle dans KV : 40 jours, puis effacée d'elle-même. */
   dureeCaseQuotaS: 40 * 24 * 3600,
 
+  // --- Installations ---
+  /** Longueur maximale du nom d'une installation (« Téléphone de Léa »). */
+  nomInstallationMax: 40,
+
   // --- /identify (ajout par photo) ---
   /** Poids maximal de la photo reçue (l'app l'envoie réduite à 1024 px, bien en dessous). */
   tailleMaxPhoto: 2_000_000,

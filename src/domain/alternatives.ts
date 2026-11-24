@@ -6,6 +6,7 @@ import type { Article } from './article';
 import type { ChampManquant } from './lien';
 import { lireProposition } from './photo';
 import { enCentimes, prixPourSaisie } from './prix';
+import { STATUT_MISE_A_JOUR } from './relais';
 import { BROUILLON_VIDE, type Brouillon } from './validation';
 
 /** Une pièce proche renvoyée par le relais ; null = non trouvé (jamais inventé). */
@@ -24,6 +25,7 @@ export type EchecAlternatives =
   | 'jeton_refuse'
   | 'limite'
   | 'quota_atteint'
+  | 'mise_a_jour_requise'
   | 'injoignable'
   | 'indisponible'
   | 'photo_refusee';
@@ -74,6 +76,7 @@ export function lireAlternatives(statut: number | null, corps: unknown): Resulta
   if (statut === null) return { ok: false, raison: 'injoignable' };
   if (statut === 401) return { ok: false, raison: 'jeton_absent' };
   if (statut === 403) return { ok: false, raison: 'jeton_refuse' };
+  if (statut === STATUT_MISE_A_JOUR) return { ok: false, raison: 'mise_a_jour_requise' };
   const c = typeof corps === 'object' && corps !== null ? (corps as Record<string, unknown>) : null;
   if (statut === 429) return { ok: false, raison: c?.erreur === 'quota_atteint' ? 'quota_atteint' : 'limite' };
   if (statut === 400) return { ok: false, raison: c?.erreur === 'photo_refusee' ? 'photo_refusee' : 'indisponible' };
