@@ -14,6 +14,7 @@ import { RichText } from '@/components/RichText';
 import { DESCRIPTION_VIDE, seulementDesAlternatives, type DescriptionPhoto, type Proposition } from '@/domain/photo';
 import { texts } from '@/domain/texts';
 import { prendrePhoto, type SourcePhoto } from '@/photo/prise';
+import { habiller } from '@/photo/habillage';
 import { choisirPourVestiaire, copiePourRelais } from '@/photo/vestiaire';
 import { identifier } from '@/relay/client';
 import { lireJeton } from '@/relay/jeton';
@@ -23,7 +24,9 @@ const t = texts.photo;
 
 type Etat =
   | { etape: 'choix'; message: string | null }
-  /** Vestiaire : photo 3:4 prête, identification proposée, facultative. */
+  /** Vestiaire : habillage en cours (pièce détourée sur fond uni). */
+  | { etape: 'preparation'; photo: string }
+  /** Vestiaire : photo 3:4 prête (et habillée si possible), identification proposée, facultative. */
   | { etape: 'prete'; photo: string }
   | { etape: 'recherche'; photo: string }
   | { etape: 'resultats'; photo: string; description: DescriptionPhoto; propositions: Proposition[] }
@@ -37,6 +40,16 @@ export default function ParPhoto() {
   const [etat, setEtat] = useState<Etat>({ etape: 'choix', message: null });
   // Vestiaire : la prise de vue guidée s'ouvre d'emblée (docs/SPEC.md, « Lot 3 », « Étape 7 »).
   const [guidee, setGuidee] = useState(pourVestiaire);
+  // Vestiaire : version habillée de la photo, transmise au formulaire (l'identification utilise l'origine).
+  const [habillee, setHabillee] = useState<string | null>(null);
+  const [messageHabillage, setMessageHabillage] = useState<string | null>(null);
+
+  const photoPrete = (origine: string, version: string | null) => {
+    recherche.current++;
+    setHabillee(version);
+    setMessageHabillage(version ? null : t.guidee.sansHabillage);
+    setEtat({ etape: 'prete', photo: origine });
+  };
   // Évite d'afficher le résultat d'une recherche abandonnée (« Une autre photo » pendant l'attente).
   const recherche = useRef(0);
 
@@ -50,8 +63,10 @@ export default function ParPhoto() {
         return;
       }
       const prise = await choisirPourVestiaire();
-      if (prise.ok) setEtat({ etape: 'prete', photo: prise.uri });
-      else if (prise.raison !== 'annule') setEtat({ etape: 'choix', message: t.photoIllisible });
+      if (prise.ok) {
+        setEtat({ etape: 'preparation', photo: prise.uri });
+        photoPrete(prise.uri, await habiller(prise.uri));
+      } else if (prise.raison !== 'annule') setEtat({ etape: 'choix', message: t.photoIllisible });
       return;
     }
     const prise = await prendrePhoto(source);
@@ -93,6 +108,7 @@ export default function ParPhoto() {
         description: JSON.stringify(description),
         ...(proposition ? { proposition: JSON.stringify(proposition) } : {}),
         ...(destination ? { destination } : {}),
+        ...(pourVestiaire && habillee ? { habillee } : {}),
       },
     });
 
@@ -112,10 +128,17 @@ export default function ParPhoto() {
           </>
         ) : null}
 
-        {etat.etape === 'prete' ? (
+        {etat.etape === 'preparation' ? (
           <>
             <Apercu photo={etat.photo} />
-            <RichText style={styles.texte}>{t.guidee.prete}</RichText>
+            <Text style={styles.attente}>{t.guidee.preparation}</Text>
+          </>
+        ) : null}
+
+        {etat.etape === 'prete' ? (
+          <>
+            <Apercu photo={habillee ?? etat.photo} />
+            <RichText style={styles.texte}>{messageHabillage ?? t.guidee.prete}</RichText>
             <View style={styles.actions}>
               <Bouton libelle={t.guidee.identifier} onPress={() => chercher(etat.photo)} />
               <Bouton
@@ -183,10 +206,9 @@ export default function ParPhoto() {
         <PriseDeVue
           visible={guidee}
           onFermer={() => setGuidee(false)}
-          onPhoto={(photo) => {
+          onPhoto={(origine, version) => {
             setGuidee(false);
-            recherche.current++;
-            setEtat({ etape: 'prete', photo });
+            photoPrete(origine, version);
           }}
         />
       ) : null}

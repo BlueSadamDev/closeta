@@ -27,6 +27,24 @@ export const settings = {
   photoVestiaire: { largeur: 1200, hauteur: 1600 },
   /** Qualité JPEG de la photo du Vestiaire, gardée sur le téléphone : plus nette que la copie envoyée. */
   photoVestiaireCompression: 0.9,
+  /**
+   * Habillage des photos du Vestiaire (docs/SPEC.md, « Étape 8 ») : pièce détourée sur le téléphone (ML Kit),
+   * centrée sur le fond `photo3` du thème, avec une ombre légère.
+   */
+  habillage: {
+    /** Marge autour de la pièce, en part de la largeur et de la hauteur sur chaque bord (zone utile 960 × 1360). */
+    marges: { largeur: 0.1, hauteur: 0.075 },
+    /** Taches détachées de la pièce, écartées si elles pèsent moins de cette part des pixels détourés. */
+    bruit: 0.005,
+    /** En dessous de cette part de la photo, le détourage est jugé raté : la photo d'origine est gardée. */
+    partMinimale: 0.02,
+    /** Confiance minimale (0 à 1) pour compter un pixel dans la pièce. */
+    confiance: 0.5,
+    /** Ombre portée : décalage en px, opacité (0 à 1), flou (réduction de l'image de l'ombre). */
+    ombre: { dx: 8, dy: 14, opacite: 0.18, flou: 12 },
+    /** Temps maximal du détourage (le modèle de Google peut se télécharger au premier usage). */
+    delaiMs: 30_000,
+  },
   /** Prise de vue guidée : marge entre le bord de l'aperçu et le cadre 3:4, en part de la largeur et de la hauteur. */
   cadreMarge: 0.06,
   /** Temps maximal d'attente de /identify (IA puis recherches Google enchaînées). */

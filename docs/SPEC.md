@@ -354,11 +354,15 @@ Règles :
 - Format cible : pièce entière, centrée, sur cintre, fond uni (exemple de référence fourni par l'utilisateur le 23 novembre 2026).
 - Les cartes du Vestiaire passent au ratio 3:4 (la Wishlist garde son recadrage actuel, les images des boutiques n'étant pas standardisées).
 
-**Étape 8 — Habillage de la photo (exploration, décision avant développement)**
+**Étape 8 — Habillage de la photo**
 
-- Objectif : fond identique pour toutes les pièces du Vestiaire : la pièce détourée, posée sur un **fond ClosetA** (mur ivoire, crochet laiton en haut au centre), créé pour l'app.
-- Piste à tester d'abord : détourage sur le téléphone avec ML Kit de Google (segmentation de sujet, gratuit, hors ligne ; module natif à ajouter).
-- Livrable de l'étape : un essai sur 5 photos réelles, présenté à l'utilisateur. Il décide : intégrer, reporter ou abandonner. Sans accord, l'étape s'arrête à l'essai.
+- Exploration (23 novembre 2026) : essai de détourage sur 5 photos réelles, puis décision de l'utilisateur : **intégrer**, avec un **fond uni `photo3`** (#E4DDD2) **sans crochet** (le fond « mur ivoire et crochet laiton » est abandonné).
+- Détourage **sur le téléphone**, gratuit et hors ligne : ML Kit Subject Segmentation (Google), par un petit module natif propre à l'app (`modules/detourage/`), à la taille réelle de la photo. Le modèle est fourni par les services Google Play (téléchargé au premier usage : le premier habillage peut être plus long). Aucune photo n'est envoyée.
+- Habillage : la pièce détourée est **centrée** horizontalement et verticalement sur le fond, avec une marge de 10 % (côtés) et 7,5 % (haut et bas), et une ombre légère ; image finale 1200 × 1600, JPEG. Les taches détachées de la pièce sont ignorées pour le centrage.
+- Dans le Vestiaire, après la prise de vue guidée ou la galerie : habillage automatique (« On prépare ta photo… »). Formulaire : choix « Habillée » (par défaut) ou « D'origine ».
+- Échec (détourage impossible, rien de détecté, pièce trop petite, plus de 30 s) : la photo d'origine 3:4 est gardée, avec un message ; l'ajout n'est jamais bloqué.
+- L'identification (`/identify`) reçoit toujours la photo d'origine.
+- Les photos déjà présentes dans le Vestiaire ne sont pas modifiées.
 
 ### Piste C · Fondations multi-installations
 

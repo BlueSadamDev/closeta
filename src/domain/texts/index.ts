@@ -212,6 +212,9 @@ export const texts = {
       maPhoto: 'Ma photo',
       boutique: 'Celle de la boutique',
       changer: 'Changer la photo',
+      /** Vestiaire : photo habillée (pièce détourée sur fond uni) ou photo d'origine. */
+      habillee: 'Habillée',
+      origine: 'D’origine',
     },
     aujourdhui: 'Aujourd’hui',
     enregistrer: 'Enregistrer',
@@ -260,6 +263,7 @@ export const texts = {
       prete: 'Ta photo est prête. *Identifie la pièce* pour remplir la fiche, ou continue à la main.',
       identifier: 'Identifier la pièce',
       continuer: 'Continuer sans identifier',
+      sansHabillage: 'La pièce n’a pas pu être détourée. *La photo d’origine est gardée*.',
     },
     echecs: {
       jeton_absent: 'Aucun jeton pour l’instant. *Ajoute-le dans les Réglages*, ou saisis l’article.',

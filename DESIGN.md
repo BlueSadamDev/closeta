@@ -67,6 +67,7 @@ Contraste : tout texte atteint 4,5:1 sur son fond. `inkMuted` et `tobacco` le re
 - **Bouton secondaire** : filet 1 px `ink`, fond transparent, texte `ink`.
 - **Bouton « Ajouter »** : bouton principal fixé en bas à droite, 24 px au-dessus de la barre d'onglets et du bord droit, icône + « AJOUTER ».
 - **Prise de vue guidée** (Vestiaire) : écran `paper` ; aperçu de l'appareil photo en 3:4, cadre 3:4 en filet `paper` à 6 % des bords, extérieur voilé `ink` ; silhouette de cintre au trait `paper` en haut au centre du cadre ; consigne dessous, puis « PRENDRE LA PHOTO » (principal) et « CHOISIR DANS LA GALERIE » (secondaire).
+- **Photo habillée** (Vestiaire) : pièce détourée, centrée sur un fond uni `photo3`, marges de 10 % sur les côtés et 7,5 % en haut et en bas, ombre légère (`#3C3023` à 18 %, décalée de 8 px et 14 px). Choix « HABILLÉE · D'ORIGINE » dans le formulaire.
 - **Feuille du bas** (choix du mode d'ajout) : fond `paper`, filet `ink` en haut, une ligne par mode (icône + libellé + phrase courte), 64 px par ligne.
 - **Proposition (lot 1b)** : photo + marque + nom + prix + boutique ; une proposition « alternative » porte l'étiquette « ALTERNATIVE » en `tobacco`.
 - **Chargement** : texte en italique Cormorant Garamond (« On lit la page… »), sans roue qui tourne plein écran.

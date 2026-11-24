@@ -1,0 +1,7 @@
+{
+  "name": "detourage",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Module local de ClosetA : détourage des photos du Vestiaire sur le téléphone (ML Kit Subject Segmentation).",
+  "main": "index.ts"
+}
