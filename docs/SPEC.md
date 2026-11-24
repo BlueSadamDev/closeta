@@ -458,7 +458,7 @@ Notifications de baisse, actualisation des pièces du Vestiaire, comptes utilisa
 
 Lot technique, préparé le 24 novembre 2026 à partir de [ARCHITECTURE.md](ARCHITECTURE.md) (faiblesses n° 1 à 3 et 5 à 10). But : rendre le relais fiable et économe avant d'ouvrir ClosetA à d'autres personnes, sans rien changer aux usages quotidiens. Comme au lot 3, chaque étape est validée sur l'APK de développement et **un seul APK de production** est testé, à la dernière étape. Deux pistes, menables en parallèle : **A · Relais** (étapes 1 à 5) et **B · App et conformité** (étapes 6 à 8).
 
-Décisions proposées le 24 novembre 2026, **à valider** avant le plan de l'étape concernée :
+Décisions validées par l'utilisateur le 24 novembre 2026 :
 
 - Durées de conservation du catalogue : page produit 24 h ; Google Shopping 7 jours ; Lens sur l'image d'une boutique 30 jours ; Lens sur une photo (empreinte) 30 jours ; historique des prix conservé.
 - Historique partagé affiché sur la fiche de la Wishlist : « Prix le plus bas observé : 79 € (octobre 2026) », seulement s'il existe au moins 2 observations.

@@ -84,7 +84,7 @@ Fin du lot :
 12. Production : vérifications complètes, APK de production, test unique par l'utilisateur. **Terminée, fusionnée via la PR #29** : vérifications complètes, aucun secret (dépôt, APK), test unique validé sur l'APK de production (points 1 à 7 ; QR de configuration à tester plus tard) ; retours ajoutés : photo agrandie avec zoom sur la fiche, genre des recherches d'alternatives (Réglages « Je cherche pour », relais `/alternatives` et `/identify`) ; variables GitHub `RELAIS_*` créées, relais remis en ligne.
 
 ## Découpage en étapes (lot 4 : Robustesse et catalogue partagé)
-Une étape = une branche, validée sur l'APK de développement ; **un seul APK de production testé**, à l'étape 9 (même exception de fusion qu'au lot 3). Deux pistes, menables dans deux sessions. Détail : docs/SPEC.md, « Lot 4 — Robustesse et catalogue partagé », et docs/ARCHITECTURE.md. Les décisions marquées « à valider » dans la spec se confirment avec l'utilisateur au plan de l'étape concernée.
+Une étape = une branche, validée sur l'APK de développement ; **un seul APK de production testé**, à l'étape 9 (même exception de fusion qu'au lot 3). Deux pistes, menables dans deux sessions. Détail : docs/SPEC.md, « Lot 4 — Robustesse et catalogue partagé », et docs/ARCHITECTURE.md. Les 5 décisions de la spec (durées du catalogue, historique partagé, codes d'invitation, releases GitHub, alerte de quota) sont validées.
 
 Piste A · Relais :
 1. Compteurs de quota dans un Durable Object `Quota` (SQLite) : réservation atomique global + installation, reprise des compteurs KV du mois.
