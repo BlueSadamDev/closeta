@@ -1,6 +1,6 @@
 # ClosetA — Confidentialité
 
-> **BROUILLON, à relire et valider.** Rédigé le 24 novembre 2026 (lot 4, étape 8) à partir du code relu sur `main` (commit `ed9fc99`) : app (`src/`), relais (`relay/src/`, `relay/wrangler.toml`) et workflows. Les mentions **[à vérifier]** signalent une information qui ne vient pas du code (engagements d'un fournisseur) et qui n'a pas pu être confirmée sur la source officielle. Les mentions **[à compléter]** attendent une décision.
+> **BROUILLON.** Rédigé le 24 novembre 2026 (lot 4, étape 8) à partir du code relu sur `main` : app (`src/`), relais (`relay/src/`, `relay/wrangler.toml`) et workflows. Décisions de l'utilisateur intégrées le 24 novembre 2026 (voir aussi docs/SPEC.md, « Lot 4 », « Décisions de confidentialité »). Les mentions **[à vérifier]** signalent une information qui ne vient pas du code (engagements d'un fournisseur) et qui n'a pas pu être confirmée sur la source officielle. Les mentions **[prévu]** décrivent une mesure décidée, pas encore en place dans le code.
 
 Ce document décrit les données que ClosetA traite, pourquoi, où, combien de temps et avec qui. Il couvre trois lieux :
 
@@ -16,16 +16,16 @@ Le registre des traitements est dans [REGISTRE.md](REGISTRE.md).
 
 ClosetA n'a ni compte utilisateur, ni publicité, ni statistiques d'usage, ni outil de suivi des plantages. Chaque relais est installé et administré par une personne (« l'administrateur du relais ») qui en distribue l'accès.
 
-Deux situations, à valider :
+Deux situations :
 
 | Situation | Qualification proposée |
 | --- | --- |
 | L'administrateur utilise seul son relais, depuis ses propres téléphones | Activité strictement personnelle : exemption domestique (RGPD, art. 2.2.c et considérant 18). Ce document sert alors de documentation, pas d'obligation. |
 | L'administrateur donne l'accès à d'autres personnes (jeton d'installation, QR de configuration, code d'invitation au lot 4) | L'administrateur est **responsable du traitement** des données de ces personnes qui transitent par son relais, ou y sont gardées. Cloudflare et SerpApi sont ses **sous-traitants**. |
 
-- Responsable : **[à compléter : nom de l'administrateur du relais]**
-- Contact pour toute question ou demande d'exercice des droits : **[à compléter]**
-- Délégué à la protection des données : aucun (non obligatoire, art. 37).
+- Responsable : l'administrateur du relais.
+- Contact pour toute question ou demande d'exercice des droits : **dpo@closeta.fr**
+- Délégué à la protection des données : aucun désigné (non obligatoire, art. 37). L'adresse ci-dessus est une boîte de contact générique.
 
 Le dépôt GitHub du code et l'auteur de l'app ne reçoivent aucune donnée des utilisateurs. Le dépôt sert seulement à télécharger l'APK (voir § 6).
 
@@ -49,7 +49,7 @@ Ces données restent sur le téléphone. L'administrateur du relais n'y a pas ac
 
 **Sauvegarde manuelle** : la section « Sauvegarde » des Réglages crée un fichier `.closeta` (pièces, relevés, suppressions, photos, sans aucun jeton ni identifiant d'installation). L'utilisateur choisit où l'envoyer (feuille de partage d'Android). La destination est sous sa seule responsabilité.
 
-**Sauvegarde automatique d'Android** : l'app ne règle pas `allowBackup`. La valeur par défaut d'Expo est `true`. La base, les photos et les réglages non secrets peuvent donc être copiés par Android dans la sauvegarde du compte Google de l'utilisateur, si celui-ci l'a activée. Le coffre en est exclu par les règles de sauvegarde d'`expo-secure-store`. **[à compléter : garder ce comportement, ou désactiver la sauvegarde automatique]**
+**Sauvegarde automatique d'Android : désactivée** (`android.allowBackup: false` dans `app.json`, depuis l'étape 8 du lot 4). Android ne copie donc ni la base, ni les photos, ni le coffre dans la sauvegarde du compte Google. Les APK construits avant cette étape laissaient la valeur par défaut d'Expo (`true`) : la base et les photos pouvaient y être copiées si l'utilisateur avait activé la sauvegarde Google ; le coffre en était exclu par `expo-secure-store`.
 
 **Connexions directes du téléphone vers des tiers** (sans passer par le relais) :
 
@@ -57,7 +57,7 @@ Ces données restent sur le téléphone. L'administrateur du relais n'y a pas ac
 - **Affichage des images non copiées** : les miniatures des propositions (écrans « Par photo » et « Alternatives ») et l'aperçu du formulaire sont chargés directement depuis leur adresse d'origine. Ce sont des serveurs de Google, de SerpApi ou des boutiques, qui voient l'adresse IP du téléphone.
 - **Ouverture d'une boutique** : le bouton de la fiche ouvre le navigateur, qui applique alors les règles du site.
 
-Le relais n'intervient pas dans ces échanges.
+Le relais n'intervient pas dans ces échanges. Ce choix est assumé : faire passer ces images par le relais masquerait l'IP du téléphone, mais ajouterait une fonctionnalité et du trafic au relais.
 
 ---
 
@@ -88,9 +88,9 @@ Cloudflare reçoit aussi, comme pour toute requête web, l'**adresse IP** du té
 
 | Donnée | Stockage | Durée |
 | --- | --- | --- |
-| Installations : identifiant (UUID tiré par le relais), **nom choisi par l'administrateur** (par exemple un prénom), date de création, actif ou révoqué | Cloudflare KV | Sans limite, y compris après révocation **[à compléter : durée de conservation des installations révoquées]** |
+| Installations : identifiant (UUID tiré par le relais), **nom choisi par l'administrateur** (par exemple un prénom), date de création, actif ou révoqué | Cloudflare KV | Tant que l'installation est active. Aujourd'hui, une installation révoquée reste dans KV (marquée « révoquée ») ; **[prévu]** suppression de la fiche à la révocation. |
 | Empreinte SHA-256 de chaque jeton → identifiant d'installation | Cloudflare KV | Comme l'installation |
-| Compteur mensuel des recherches SerpApi (global et par installation) | Cloudflare KV | 40 jours (expiration automatique) |
+| Compteur mensuel des recherches SerpApi (global et par installation) | Durable Object `Quota` (base SQLite), depuis l'étape 1 du lot 4 ; avant, Cloudflare KV | Mois en cours et mois précédent ; les plus anciens sont effacés au premier appel d'un nouveau mois. Les anciennes cases KV expirent seules au bout de 40 jours. |
 | Photo envoyée pour une recherche | Cloudflare R2 | Le temps de la recherche (environ 30 s au plus), un jour au maximum en cas d'échec de la suppression |
 | Compteur de la limite de débit (30 requêtes par minute, clé = installation ou adresse IP) | Mémoire de Cloudflare (Rate Limiting) | Environ une minute **[à vérifier : documentation Cloudflare]** |
 
@@ -104,7 +104,7 @@ Règle du lot 4 : **le relais ne conserve aucune donnée personnelle.** Il garde
 
 | Étape | Changement | Effet sur les données |
 | --- | --- | --- |
-| 1 — Durable Object `Quota` | Les compteurs passent de KV à un Durable Object (stockage SQLite) : table `compteur (mois, cle, utilise)`, `cle` = `global` ou identifiant d'installation. | Mêmes données qu'aujourd'hui, stockées ailleurs. **[à compléter : durée de conservation des mois passés, aujourd'hui 40 jours dans KV]** |
+| 1 — Durable Object `Quota` (en ligne) | Les compteurs passent de KV à un Durable Object (stockage SQLite) : table `compteur (mois, cle, utilise)`, `cle` = `global` ou identifiant d'installation. | Mêmes données, stockées ailleurs ; mois en cours et précédent gardés. **[prévu]** Déplacement dans la juridiction `eu` (§ 7). |
 | 2 — Catalogue D1 | Tables `produit` (adresse canonique, boutique, nom, marque, image, catégorie, couleur, genre, première et dernière vue), `observation_prix` (date, prix, devise, disponibilité, disponibilité par taille), `recherche` (clé = empreinte de type + entrée + genre ; résultats ; dates). | Données de **pièces vendues en ligne**, sans lien avec la personne qui les a demandées : ni identifiant d'installation, ni jeton, ni IP, ni photo (tests prévus). Voir les réserves ci-dessous. |
 | 2 — Cache des recherches | Une recherche déjà faite (Lens ou Shopping, même entrée, même genre) est resservie sans rappeler SerpApi. | Moins de données envoyées à SerpApi et Google. La photo n'est plus envoyée du tout quand son empreinte est en cache. |
 | 3 — Historique partagé | `/v1/extract` renvoie le prix le plus bas observé. | Aucune donnée nouvelle sur la personne. |
@@ -125,9 +125,9 @@ Durées du catalogue (décisions du 24 novembre 2026) :
 | Historique des prix (`observation_prix`) | Conservé sans limite |
 | `recherche` expirées | Purgées chaque nuit (3 h UTC) |
 
-**Réserves à valider sur le caractère anonyme du catalogue** :
+**Caractère anonyme du catalogue : réserves et mesures** :
 
-1. **Adresse canonique** : seuls les paramètres de suivi connus (`utm_*`, `gclid`, `fbclid`…) sont retirés. Les autres sont gardés, car ils désignent souvent une taille ou une couleur. Un lien partagé depuis un panier, un e-mail ou un compte client peut contenir un identifiant propre à la personne (session, référence client, code d'affiliation). Proposition : liste blanche de paramètres par boutique, ou retrait de tout paramètre inconnu. **[à compléter]**
+1. **Adresse canonique** : un lien partagé depuis un panier, un e-mail ou un compte client peut contenir un identifiant propre à la personne (session, référence client, code d'affiliation). Mesure décidée **[prévu, étape 2]** : **liste blanche**, seuls les paramètres reconnus comme taille, couleur ou variante sont gardés, tous les autres sont retirés.
 2. **Empreinte de la photo** : l'empreinte SHA-256 d'une photo de vêtement seul ne permet pas de retrouver la photo, ni la personne. Si la photo montrait une personne, l'empreinte serait une donnée pseudonymisée, d'où le rappel « sans personne ».
 3. **Clé Shopping** : la requête est construite à partir de la fiche (nom, marque, catégorie, couleur, genre), donc normalement sans donnée personnelle. Mais le nom d'une pièce saisi à la main est du texte libre.
 4. **Genre** : le genre recherché (« Je cherche pour ») fait partie des clés de cache et de la table `produit`. Il décrit le rayon (homme, femme, mixte), pas la personne. Il n'est relié à aucune installation.
@@ -135,7 +135,7 @@ Durées du catalogue (décisions du 24 novembre 2026) :
 
 ---
 
-## 5. Finalités et bases légales (proposition, à valider)
+## 5. Finalités et bases légales
 
 | Finalité | Données | Base légale proposée |
 | --- | --- | --- |
@@ -148,7 +148,7 @@ Durées du catalogue (décisions du 24 novembre 2026) :
 | Inviter une personne (lot 4) | Nom prévu, empreinte du code, IP en mémoire | Intérêt légitime de l'administrateur à ouvrir l'accès ; demande de la personne invitée. |
 | Supervision (lot 4) | Journaux techniques sans personne identifiée | Intérêt légitime : fiabilité du service. |
 
-Aucune décision automatisée produisant des effets juridiques (art. 22). Aucun profilage. Aucune donnée sensible (art. 9) attendue ; le rappel photo vise à l'éviter.
+Aucune décision automatisée produisant des effets juridiques (art. 22). Aucun profilage. Aucune donnée sensible (art. 9) attendue ; le rappel photo vise à l'éviter. Analyse d'impact (art. 35) non requise : ni données sensibles, ni profilage, ni surveillance, petite échelle.
 
 ---
 
@@ -160,7 +160,7 @@ Aucune décision automatisée produisant des effets juridiques (art. 22). Aucun 
 | **SerpApi, LLC** | Sous-traitant | Adresse de la photo déposée ou de l'image de la boutique, requête Google Shopping, pays et langue (`fr`), clé d'API du relais. Ni IP du téléphone, ni identifiant d'installation. | États-Unis (siège déclaré : Austin, Texas) **[à vérifier]** | **[à vérifier : DPA proposé et pour quelles offres ; mécanisme de transfert (DPF, clauses types) ; durée de conservation des requêtes et des résultats (cache d'une heure côté SerpApi, historique des recherches visible dans le compte)]**. Le site de SerpApi n'a pas pu être consulté depuis la session de rédaction. |
 | **Google LLC** (Google Lens, Google Shopping) | **Tiers destinataire**, responsable de son propre traitement (pas de contrat avec ClosetA) | Photo téléchargée depuis le relais, image de boutique, requête Shopping. Requêtes faites par SerpApi, pas par le téléphone. | États-Unis et monde | Conditions et règles de confidentialité de Google. Google est certifié DPF **[à vérifier]**. Hors maîtrise de ClosetA : c'est le point qui justifie le rappel photo. |
 | **Google** (ML Kit, services Google Play) | Responsable de son propre traitement | Informations sur l'appareil, diagnostic. **Pas la photo.** | Monde | Conditions de ML Kit et de Google Play. |
-| **Google** (sauvegarde Android), si activée par l'utilisateur | Choix de l'utilisateur | Base locale et photos (pas le coffre) | Compte Google de l'utilisateur | Hors du périmètre du relais (voir § 2). |
+| **Google** (sauvegarde Android) | — | Rien : sauvegarde automatique désactivée depuis l'étape 8 (voir § 2) | — | — |
 | **Boutiques en ligne** | Tiers | Requête de lecture de page depuis Cloudflare. Téléchargements d'images et affichage de miniatures **depuis le téléphone**, avec son IP. | Variable | Règles de chaque boutique. |
 | **GitHub, Inc.** | Tiers (hébergement du code et des APK) | Requêtes de téléchargement de l'APK, et lecture de la dernière release par le relais au lot 4 | États-Unis | Conditions de GitHub. Aucune donnée d'usage de l'app. |
 
@@ -176,7 +176,7 @@ Personne d'autre ne reçoit de données : pas de régie publicitaire, pas d'outi
 | SerpApi | États-Unis | **[à vérifier : DPF ou clauses types ; à défaut, transfert sans encadrement documenté, à signaler]** |
 | Google (Lens, Shopping, ML Kit) | États-Unis et monde | Tiers responsable de son traitement ; DPF côté Google **[à vérifier]** |
 
-**Mesure proposée à la piste A (non appliquée dans cette étape)** : créer la base D1 et le Durable Object `Quota` avec la juridiction `eu` (option proposée par Cloudflare), et le bucket R2 des photos dans la juridiction européenne, pour que les données gardées restent dans l'UE. KV n'offre pas cette option. **[à compléter : décision]**
+**Mesure décidée [prévu, piste A]** : base D1 du catalogue créée avec la juridiction `eu`, Durable Object `Quota` déplacé dans la juridiction `eu`, bucket R2 des photos dans la juridiction européenne, pour que les données gardées restent dans l'UE. KV (installations) n'offre pas cette option : il reste répliqué dans le monde entier, sous le DPA de Cloudflare.
 
 ---
 
@@ -187,8 +187,8 @@ Personne d'autre ne reçoit de données : pas de régie publicitaire, pas d'outi
 | Pièces, relevés, photos sur le téléphone | Jusqu'à leur suppression par l'utilisateur ou la désinstallation de l'app |
 | Photo envoyée au relais | Durée de la recherche ; 1 jour au plus en cas d'incident |
 | Pages lues, liens, descriptions IA (aujourd'hui) | Non conservés |
-| Installation (nom, dates, état) et empreinte de jeton | Sans limite **[à compléter]** |
-| Compteurs de quota | 40 jours (KV) ; au lot 4 **[à compléter]** |
+| Installation (nom, dates, état) et empreinte de jeton | Tant que l'installation est active ; supprimées à la révocation **[prévu]** |
+| Compteurs de quota | Mois en cours et mois précédent |
 | Limite de débit (IP, installation) | Environ une minute, en mémoire |
 | Catalogue : page produit / Shopping / Lens | 24 h / 7 jours / 30 jours |
 | Catalogue : historique des prix | Sans limite (données de pièces, pas de personnes) |
@@ -207,6 +207,7 @@ Personne d'autre ne reçoit de données : pas de régie publicitaire, pas d'outi
 - `/extract` refuse les adresses non `https` et les adresses privées ou locales, y compris après chaque redirection.
 - Photos réduites à 1024 px avant l'envoi, refusées au-delà de 2 Mo, supprimées après usage.
 - Permissions Android réduites : appareil photo seulement ; micro et stockage partagé bloqués explicitement.
+- Sauvegarde automatique d'Android désactivée : les données de l'app ne sortent du téléphone que par la sauvegarde `.closeta`, à la main.
 - Pas de SDK de statistiques, de publicité ni de suivi des plantages.
 - Dépôt public : aucun secret, aucune donnée réelle (tests sur données fictives).
 
@@ -219,8 +220,8 @@ Pour les données **sur le téléphone**, l'utilisateur les gère lui-même : mo
 Pour les données **gardées par le relais** (installation et compteurs), écrire au contact du § 1 :
 
 - **Accès** (art. 15) : l'administrateur communique le nom, la date de création et l'état de l'installation, et le compteur du mois.
-- **Rectification** (art. 16) : changement du nom de l'installation **[à compléter : pas de route de renommage aujourd'hui ; révocation et nouvelle installation en attendant]**.
-- **Effacement** (art. 17) : révocation de l'installation. **La révocation ne supprime pas la fiche de KV aujourd'hui** (elle passe à « révoquée ») **[à compléter : suppression effective, à la demande ou après un délai]**. Les compteurs disparaissent d'eux-mêmes après 40 jours.
+- **Rectification** (art. 16) : le nom d'une installation se corrige en la révoquant et en en créant une nouvelle (nouveau QR ou nouvelle invitation).
+- **Effacement** (art. 17) : révocation de l'installation, qui supprime sa fiche et l'empreinte de son jeton **[prévu ; aujourd'hui la fiche reste, marquée « révoquée »]**. Les compteurs disparaissent avec le mois (mois en cours et précédent gardés).
 - **Opposition** (art. 21) : cesser d'utiliser le relais, et demander la révocation.
 - **Limitation et portabilité** (art. 18, 20) : sans objet en pratique pour le relais ; la portabilité des pièces est assurée par la sauvegarde `.closeta`.
 - Le catalogue (lot 4) ne contient aucune donnée rattachable à une personne : il n'y a rien à y retrouver pour une personne donnée.
@@ -230,18 +231,26 @@ Délai de réponse : un mois (art. 12.3).
 
 ---
 
-## 11. Points ouverts relevés à la relecture du code
+## 11. Décisions et points restants
 
-À trancher avant validation du document (aucun n'est corrigé dans cette étape) :
+Décisions du 24 novembre 2026 sur les points relevés à la relecture du code :
 
-1. **Sauvegarde automatique d'Android** activée par défaut (§ 2) : garder ou désactiver (`android.allowBackup: false` dans `app.json`).
-2. **Images chargées directement par le téléphone** (copie et miniatures) : l'IP du téléphone est vue par Google, SerpApi et les boutiques. Option : faire passer ces images par le relais.
-3. **Photo publique sans jeton** pendant la recherche Lens : inhérente à Lens. Risque limité par l'identifiant aléatoire et la suppression immédiate.
-4. **Installations révoquées gardées sans limite** dans KV, et nom de l'installation possiblement nominatif : fixer une durée, ou supprimer à la révocation.
-5. **Paramètres d'adresse gardés dans le catalogue** (§ 4, réserve 1).
-6. **Juridiction UE** pour D1, le Durable Object et R2 (§ 7).
-7. **Engagements de SerpApi** (DPA, transferts, durée) à vérifier sur sa documentation officielle.
-8. **Durée des compteurs mensuels** une fois passés dans le Durable Object (lot 4, étape 1).
+| Point | Décision | État |
+| --- | --- | --- |
+| Sauvegarde automatique d'Android | Désactivée | Fait (étape 8) |
+| Images chargées directement par le téléphone (IP vue par Google, SerpApi, boutiques) | Accepté et documenté | — |
+| Photo publique sans jeton pendant la recherche Lens | Accepté et documenté (identifiant aléatoire, suppression immédiate) | — |
+| Installation révoquée gardée dans KV | Suppression à la révocation ; pas de renommage | Prévu (relais) |
+| Paramètres d'adresse dans le catalogue | Liste blanche | Prévu (étape 2) |
+| Juridiction UE pour D1, Durable Object, R2 | Oui | Prévu (piste A) |
+| Durée des compteurs mensuels | Mois en cours et précédent | Fait (étape 1) |
+
+Restent à vérifier :
+
+1. **Engagements de SerpApi** (DPA, mécanisme de transfert, durée de conservation des requêtes et des résultats) sur sa documentation officielle.
+2. Inscription active de Cloudflare et de Google au Data Privacy Framework (dataprivacyframework.gov).
+3. Durée de conservation des journaux Workers Logs de l'offre utilisée (étape 5).
+4. Absence de position GPS dans une photo rangée par l'app (test sur une vraie photo).
 
 ---
 

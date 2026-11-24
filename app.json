@@ -11,6 +11,7 @@
     "android": {
       "package": "com.bluesadamdev.closeta",
       "versionCode": 1,
+      "allowBackup": false,
       "adaptiveIcon": {
         "backgroundColor": "#F6F3EE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
