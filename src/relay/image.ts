@@ -7,7 +7,8 @@ import { Directory, File, Paths } from 'expo-file-system';
 
 import { settings } from '@/domain/settings';
 
-const dossierImages = () => new Directory(Paths.document, settings.imagesDirectory);
+/** Dossier des photos des pièces ; la base n'y garde que les noms de fichier (domain/cheminPhoto). */
+export const dossierImages = () => new Directory(Paths.document, settings.imagesDirectory);
 
 /**
  * Télécharge l'image et renvoie son chemin local, ou null si la copie échoue ou prend trop de temps.

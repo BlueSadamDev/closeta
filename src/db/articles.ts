@@ -1,4 +1,5 @@
 import type { Article } from '@/domain/article';
+import { versCheminDePhoto, versNomDePhoto } from '@/domain/cheminPhoto';
 import type { RelevePrix } from '@/domain/releve';
 
 type Valeur = string | number | null;
@@ -11,7 +12,7 @@ export interface BaseArticles {
 }
 
 /** Une ligne de la table article, telle que SQLite la renvoie. */
-type Ligne = {
+export type Ligne = {
   id: string;
   nom: string;
   marque: string | null;
@@ -39,7 +40,8 @@ type Ligne = {
   alternative_de: string | null;
 };
 
-const versArticle = (l: Ligne): Article => ({
+/** La base garde le nom seul de la photo ; l'app reçoit le chemin complet (domain/cheminPhoto). */
+export const versArticle = (l: Ligne): Article => ({
   id: l.id,
   nom: l.nom,
   marque: l.marque,
@@ -50,7 +52,7 @@ const versArticle = (l: Ligne): Article => ({
   prix: l.prix,
   devise: l.devise,
   urlBoutique: l.url_boutique,
-  imageLocale: l.image_locale,
+  imageLocale: versCheminDePhoto(l.image_locale),
   imageSource: l.image_source,
   priorite: l.priorite,
   notes: l.notes,
@@ -67,16 +69,16 @@ const versArticle = (l: Ligne): Article => ({
   alternativeDe: l.alternative_de,
 });
 
-const COLONNES = [
+export const COLONNES = [
   'id', 'nom', 'marque', 'type', 'categorie', 'taille', 'couleur', 'prix', 'devise', 'url_boutique',
   'image_locale', 'image_source', 'priorite', 'notes', 'statut', 'origine', 'est_alternative',
   'date_ajout', 'date_achat', 'date_maj', 'prix_ajout', 'disponibilite', 'dispo_taille', 'date_verif',
   'alternative_de',
 ] as const;
 
-const valeurs = (a: Article): Valeur[] => [
+export const valeurs = (a: Article): Valeur[] => [
   a.id, a.nom, a.marque, a.type, a.categorie, a.taille, a.couleur, a.prix, a.devise, a.urlBoutique,
-  a.imageLocale, a.imageSource, a.priorite, a.notes, a.statut, a.origine, a.estAlternative ? 1 : 0,
+  versNomDePhoto(a.imageLocale), a.imageSource, a.priorite, a.notes, a.statut, a.origine, a.estAlternative ? 1 : 0,
   a.dateAjout, a.dateAchat, a.dateMaj, a.prixAjout, a.disponibilite, a.dispoTaille, a.dateVerif,
   a.alternativeDe,
 ];
@@ -110,15 +112,27 @@ export async function enregistrerArticle(db: BaseArticles, a: Article, releve: R
   if (releve) await enregistrerReleve(db, releve);
 }
 
-/** Efface réellement l'article et son historique de prix (l'image locale est effacée par l'appelant : effacerImage). */
-export async function supprimerArticle(db: BaseArticles, id: string): Promise<void> {
+/**
+ * Efface réellement l'article et son historique de prix (l'image locale est effacée par l'appelant : effacerImage).
+ * Une trace de chaque suppression reste dans la table suppression, pour une future synchronisation.
+ */
+export async function supprimerArticle(db: BaseArticles, id: string, maintenant: Date = new Date()): Promise<void> {
+  const date = maintenant.toISOString();
+  await db.runAsync(
+    `INSERT INTO suppression (id, "table", date) SELECT id, 'releve_prix', ? FROM releve_prix WHERE article_id = ?`,
+    [date, id],
+  );
   await db.runAsync('DELETE FROM releve_prix WHERE article_id = ?', [id]);
+  await db.runAsync(
+    `INSERT INTO suppression (id, "table", date) SELECT id, 'article', ? FROM article WHERE id = ?`,
+    [date, id],
+  );
   await db.runAsync('DELETE FROM article WHERE id = ?', [id]);
 }
 
 // --- Relevés de prix ---
 
-type LigneReleve = {
+export type LigneReleve = {
   id: string;
   article_id: string;
   date: string;
@@ -143,14 +157,16 @@ export async function lireReleves(db: BaseArticles, articleId: string): Promise<
     'SELECT * FROM releve_prix WHERE article_id = ? ORDER BY date DESC',
     [articleId],
   );
-  return lignes.map((l) => ({
-    id: l.id,
-    articleId: l.article_id,
-    date: l.date,
-    prix: l.prix,
-    devise: l.devise,
-    disponibilite: l.disponibilite,
-    dispoTaille: l.dispo_taille,
-    source: l.source,
-  }));
+  return lignes.map(versReleve);
 }
+
+export const versReleve = (l: LigneReleve): RelevePrix => ({
+  id: l.id,
+  articleId: l.article_id,
+  date: l.date,
+  prix: l.prix,
+  devise: l.devise,
+  disponibilite: l.disponibilite,
+  dispoTaille: l.dispo_taille,
+  source: l.source,
+});

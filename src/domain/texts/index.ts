@@ -9,6 +9,7 @@
 const miseAJour = '*Mets ClosetA à jour* pour continuer.';
 
 const pieces = (n: number) => (n <= 1 ? `${n} pièce` : `${n} pièces`);
+const photos = (n: number) => (n === 0 ? 'aucune photo' : n === 1 ? '1 photo' : `${n} photos`);
 
 export const texts = {
   wishlist: {
@@ -142,6 +143,13 @@ export const texts = {
       titre: 'Supprimer cette pièce ?',
       message: 'Elle disparaît pour de bon.',
       confirmer: 'Supprimer',
+    },
+    /** Restauration d'une sauvegarde (Réglages) : résumé du fichier, puis remplacement de tout. */
+    restauration: {
+      titre: 'Remplacer tes données ?',
+      message: (nbPieces: number, nbPhotos: number = nbPieces) =>
+        `${pieces(nbPieces)}, ${photos(nbPhotos)}. Elles remplacent tout ce qui est sur ce téléphone : Wishlist, Vestiaire et photos.`,
+      confirmer: 'Remplacer',
     },
     revocation: {
       titre: 'Révoquer ce téléphone ?',
@@ -371,6 +379,22 @@ export const texts = {
         injoignable: 'Le relais ne répond pas. *Vérifie ta connexion* et réessaie.',
         inattendu: 'Le relais a répondu de façon inattendue. *Réessaie plus tard*.',
       },
+    },
+    /** Section « Sauvegarde » (docs/SPEC.md, « Lot 3 », « Étape 11 »). */
+    sectionSauvegarde: 'Sauvegarde',
+    sauvegarde: {
+      explication: 'Un fichier avec toutes tes pièces et leurs photos, à ranger où tu veux. Sans jeton ni réglage du relais.',
+      sauvegarder: 'Sauvegarder',
+      restaurer: 'Restaurer',
+      preparation: 'On prépare ta sauvegarde…',
+      lecture: 'On lit le fichier…',
+      remplacement: 'On remet tes pièces en place…',
+      partage_indisponible: 'Le partage ne s’ouvre pas sur ce téléphone. *Réessaie plus tard*.',
+      echec: 'La sauvegarde ne s’est pas faite. *Réessaie*.',
+      illisible: 'Ce fichier n’est pas une sauvegarde ClosetA lisible. *Choisis un autre fichier*.',
+      version_recente: 'Cette sauvegarde vient d’une version plus récente de ClosetA. *Mets l’app à jour*, puis réessaie.',
+      restauree: 'Sauvegarde *restaurée*.',
+      nonRestauree: 'Rien n’a changé sur ce téléphone. *Réessaie*.',
     },
     tester: 'Tester la connexion',
     testEnCours: 'On interroge le relais…',

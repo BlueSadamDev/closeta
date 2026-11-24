@@ -1,3 +1,4 @@
+import { versCheminDePhoto } from '@/domain/cheminPhoto';
 import { migrer, versionDeLaBase } from '../migrate';
 import { MIGRATIONS } from '../migrations';
 import { baseDeTest } from '../__fixtures__/baseDeTest';
@@ -126,5 +127,78 @@ describe('migration 2 : historique des prix', () => {
     await migrer(db);
     expect(() => db.brute.exec("UPDATE releve_prix SET source = 'devine'")).toThrow();
     expect(() => db.brute.exec("UPDATE article SET disponibilite = 'bientot'")).toThrow();
+  });
+});
+
+describe('migration 3 : photos rangées par leur nom, table suppression', () => {
+  // Dossiers fictifs : APK de développement et chemin sans « file:// » (les deux formes déjà vues).
+  const DOSSIER = 'file:///data/user/0/fr.exemple.closeta.dev/files/images/';
+
+  /** Base fictive restée en version 2 : Wishlist, Vestiaire, photos habillées, remplacées, ou absentes. */
+  async function baseEnVersion2() {
+    const db = baseDeTest();
+    await migrer(db, MIGRATIONS.slice(0, 2));
+    const pieces: [string, string, string | null, string | null][] = [
+      ['w1', 'souhaite', `${DOSSIER}w1`, 'https://boutique.exemple/w1.jpg'],
+      ['w2', 'souhaite', `${DOSSIER}w2-1732400000000`, null],
+      ['w3', 'souhaite', null, 'https://boutique.exemple/w3.jpg'],
+      ['v1', 'achete', `${DOSSIER}v1`, null],
+      ['v2', 'achete', '/data/user/0/fr.exemple.closeta/files/images/v2-1732500000000', null],
+      ['v3', 'achete', 'file:///data/user/0/fr.exemple.closeta/cache/ailleurs/v3.jpg', null],
+    ];
+    for (const [id, statut, image, source] of pieces) {
+      db.brute
+        .prepare(
+          `INSERT INTO article (id, nom, type, origine, statut, image_locale, image_source, date_ajout, date_maj)
+           VALUES (?, 'Pièce fictive', 'vetement', 'manuel', ?, ?, ?, '2026-03-01T10:00:00Z', '2026-03-01T10:00:00Z')`,
+        )
+        .run(id, statut, image, source);
+    }
+    db.brute.exec(`INSERT INTO releve_prix (id, article_id, date, prix, devise, disponibilite, dispo_taille, source)
+      VALUES ('r1', 'w1', '2026-03-01T10:00:00Z', 420, 'EUR', 'inconnue', 'inconnue', 'ajout')`);
+    return db;
+  }
+
+  it('ne garde que le nom des photos rangées dans le dossier de l’app, Wishlist et Vestiaire', async () => {
+    const db = await baseEnVersion2();
+    await migrer(db);
+    expect(db.brute.prepare('SELECT id, image_locale, image_source FROM article ORDER BY id').all()).toEqual([
+      { id: 'v1', image_locale: 'v1', image_source: null },
+      { id: 'v2', image_locale: 'v2-1732500000000', image_source: null },
+      // Hors du dossier des photos : gardée entière, jamais perdue.
+      { id: 'v3', image_locale: 'file:///data/user/0/fr.exemple.closeta/cache/ailleurs/v3.jpg', image_source: null },
+      { id: 'w1', image_locale: 'w1', image_source: 'https://boutique.exemple/w1.jpg' },
+      { id: 'w2', image_locale: 'w2-1732400000000', image_source: null },
+      { id: 'w3', image_locale: null, image_source: 'https://boutique.exemple/w3.jpg' },
+    ]);
+  });
+
+  it('ne touche à rien d’autre (pièces, statuts, relevés)', async () => {
+    const db = await baseEnVersion2();
+    const avant = db.brute.prepare('SELECT id, statut, nom, date_maj FROM article ORDER BY id').all();
+    await migrer(db);
+    expect(db.brute.prepare('SELECT id, statut, nom, date_maj FROM article ORDER BY id').all()).toEqual(avant);
+    expect(db.brute.prepare('SELECT id, article_id FROM releve_prix').all()).toEqual([{ id: 'r1', article_id: 'w1' }]);
+  });
+
+  it('retrouve, au démarrage, le chemin complet de chaque photo', async () => {
+    const db = await baseEnVersion2();
+    await migrer(db);
+    const lignes = db.brute.prepare("SELECT image_locale FROM article WHERE id IN ('w1', 'w2', 'v1') ORDER BY id").all() as {
+      image_locale: string;
+    }[];
+    expect(lignes.map((l) => versCheminDePhoto(l.image_locale, DOSSIER))).toEqual([
+      `${DOSSIER}v1`,
+      `${DOSSIER}w1`,
+      `${DOSSIER}w2-1732400000000`,
+    ]);
+  });
+
+  it('crée la table suppression (id, table, date)', async () => {
+    const db = baseDeTest();
+    await migrer(db);
+    const colonnes = db.brute.prepare('PRAGMA table_info(suppression)').all() as { name: string }[];
+    expect(colonnes.map((c) => c.name)).toEqual(['id', 'table', 'date']);
+    expect(() => db.brute.exec(`INSERT INTO suppression (id, "table", date) VALUES ('x', 'photo', '2026-01-01')`)).toThrow();
   });
 });

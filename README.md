@@ -27,6 +27,14 @@ npx tsc --noEmit
 npx jest
 ```
 
+## Sauvegarder et restaurer ses données
+
+Les données ne quittent jamais le téléphone, sauf par une sauvegarde lancée à la main.
+
+- **Sauvegarder** (Réglages > Sauvegarde) : crée un fichier `closeta-AAAA-MM-JJ.closeta` (pièces de la Wishlist et du Vestiaire, historique des prix, photos) et ouvre le partage d'Android pour le ranger (Drive, mail, fichiers…). Le fichier ne contient ni jeton, ni jeton d'administration, ni adresse du relais, ni identifiant d'installation : après une restauration sur un nouveau téléphone, configurer le relais (Réglages > Relais ou QR).
+- **Restaurer** : choisir un fichier `.closeta` ; l'app affiche son résumé (« 42 pièces, 37 photos ») et, après « Remplacer », **remplace toutes les données du téléphone**. Un fichier abîmé ou venant d'une version plus récente de l'app est refusé sans rien toucher.
+- Une sauvegarde passe d'un téléphone à l'autre, et de l'APK de développement à celui de production (la base ne garde que le nom des photos, leur dossier est recalculé sur chaque téléphone).
+
 ## Construire les APK (GitHub Actions)
 
 Les APK se construisent sur GitHub, sans rien installer. Onglet **Actions** du dépôt, choisir le workflow, puis **Run workflow** en sélectionnant la branche. Un build dure 20 à 30 minutes.

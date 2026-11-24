@@ -1,3 +1,4 @@
+import { definirDossierPhotos } from '@/domain/cheminPhoto';
 import { marquerAchete } from '@/domain/article';
 import { articleFictif } from '@/domain/__fixtures__/articles';
 
@@ -72,6 +73,33 @@ describe('articles en base', () => {
     await enregistrerArticle(db, articleFictif({ id: 'x' }));
     await supprimerArticle(db, 'x');
     expect(await lireArticle(db, 'x')).toBeNull();
+  });
+
+  it('range en base le nom seul de la photo et rend le chemin complet à la lecture', async () => {
+    const dossier = 'file:///data/user/0/fr.exemple.closeta/files/images/';
+    definirDossierPhotos(dossier);
+    try {
+      const db = await basePrete();
+      await enregistrerArticle(db, articleFictif({ id: 'x', imageLocale: `${dossier}x-1732400000000` }));
+      expect(db.brute.prepare("SELECT image_locale FROM article WHERE id = 'x'").get()).toEqual({ image_locale: 'x-1732400000000' });
+      expect((await lireArticle(db, 'x'))?.imageLocale).toBe(`${dossier}x-1732400000000`);
+    } finally {
+      definirDossierPhotos(null);
+    }
+  });
+
+  it('laisse une trace de la pièce et de chacun de ses relevés supprimés', async () => {
+    const db = await basePrete();
+    await enregistrerArticle(db, articleFictif({ id: 'x', prix: 100 }), {
+      id: 'r1', articleId: 'x', date: '2026-03-01T10:00:00.000Z', prix: 100, devise: 'EUR',
+      disponibilite: 'inconnue', dispoTaille: 'inconnue', source: 'ajout',
+    });
+    await enregistrerArticle(db, articleFictif({ id: 'y' }));
+    await supprimerArticle(db, 'x', new Date('2026-04-01T12:00:00.000Z'));
+    expect(db.brute.prepare('SELECT id, "table", date FROM suppression ORDER BY "table"').all()).toEqual([
+      { id: 'x', table: 'article', date: '2026-04-01T12:00:00.000Z' },
+      { id: 'r1', table: 'releve_prix', date: '2026-04-01T12:00:00.000Z' },
+    ]);
   });
 });
 

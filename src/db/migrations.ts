@@ -81,4 +81,24 @@ export const MIGRATIONS: readonly Migration[] = [
         WHERE statut = 'souhaite' AND prix IS NOT NULL;
     `,
   },
+  {
+    version: 3,
+    description: 'Photos rangées par leur seul nom de fichier, table suppression',
+    // Le nom du dossier (« images », settings.imagesDirectory au moment de cette migration) est écrit en dur :
+    // une migration livrée ne change plus. Seules les photos rangées dans ce dossier de l'app sont reprises ;
+    // toute autre valeur reste telle quelle (versCheminDePhoto la garde entière), aucune photo n'est perdue.
+    // rtrim(x, <x sans « / »>) garde x jusqu'au dernier « / » : on retire ce début pour ne garder que le nom.
+    // `table` est un mot réservé de SQL, d'où les guillemets.
+    sql: `
+      UPDATE article
+        SET image_locale = replace(image_locale, rtrim(image_locale, replace(image_locale, '/', '')), '')
+        WHERE image_locale LIKE '%/images/%' AND substr(image_locale, -1) <> '/';
+
+      CREATE TABLE suppression (
+        id      TEXT NOT NULL,
+        "table" TEXT NOT NULL CHECK ("table" IN ('article', 'releve_prix')),
+        date    TEXT NOT NULL
+      );
+    `,
+  },
 ];

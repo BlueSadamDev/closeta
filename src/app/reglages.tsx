@@ -12,6 +12,7 @@ import { Entete } from '@/components/Entete';
 import { Etiquette } from '@/components/Etiquette';
 import { RichText } from '@/components/RichText';
 import { SectionInstallations } from '@/components/SectionInstallations';
+import { SectionSauvegarde } from '@/components/SectionSauvegarde';
 import { lienConfiguration, lireAdresseRelais } from '@/domain/configuration';
 import { nettoyerJeton, niveauQuota, type Quota } from '@/domain/relais';
 import { settings } from '@/domain/settings';
@@ -31,8 +32,8 @@ const r = texts.reglages;
 
 /**
  * Écran Réglages : relais (adresse, jeton, test, QR de configuration), recherches du mois,
- * installations (avec un jeton d'administration), version
- * (docs/SPEC.md, « 5. Réglages » et « Lot 3 », étapes 1 et 10).
+ * sauvegarde et restauration, installations (avec un jeton d'administration), version
+ * (docs/SPEC.md, « 5. Réglages » et « Lot 3 », étapes 1, 10 et 11).
  */
 export default function Reglages() {
   const ecran = useWindowDimensions();
@@ -203,6 +204,9 @@ export default function Reglages() {
               <Text style={[type.body, styles.valeur]}>{Constants.expoConfig?.version ?? ''}</Text>
             </View>
           </View>
+
+          <Etiquette style={styles.section}>{r.sectionSauvegarde}</Etiquette>
+          <SectionSauvegarde />
 
           <Etiquette style={styles.section}>{r.sectionInstallations}</Etiquette>
           <Champ libelle={r.jetonAdmin}>
