@@ -11,6 +11,7 @@ import { Entete } from '@/components/Entete';
 import { Etiquette } from '@/components/Etiquette';
 import { Icone } from '@/components/Icone';
 import { PhotoArticle } from '@/components/PhotoArticle';
+import { PhotoPleinEcran } from '@/components/PhotoPleinEcran';
 import { RichText } from '@/components/RichText';
 import { enregistrerArticle, lireArticle, lireReleves, supprimerArticle } from '@/db/articles';
 import { appliquerLecture, aRelire, bandeauEpuise, disponibiliteAffichee, variationPrix } from '@/domain/actualisation';
@@ -42,6 +43,8 @@ export default function Fiche() {
   const [echecLecture, setEchecLecture] = useState(false);
   // Une seule tentative de relecture par ouverture de la fiche (pas de nouvel essai à chaque retour sur l'écran).
   const relectureTentee = useRef(false);
+  // Photo agrandie en plein écran (toucher la photo de la fiche).
+  const [photoAgrandie, setPhotoAgrandie] = useState(false);
 
   /**
    * Relecture de la page boutique (docs/SPEC.md, lot 3, étape 3) : la fiche est déjà affichée, elle se met à jour ensuite.
@@ -170,6 +173,7 @@ export default function Fiche() {
   const bandeau = bandeauEpuise(article);
   const voirAlternatives = () => router.push(`/alternatives?id=${article.id}`);
   const dateAchat = dateAchatLongue(article.dateAchat);
+  const photo = article.imageLocale ?? article.imageSource;
   const details: [string, string | null][] = [
     [texts.fiche.taille, article.taille],
     [texts.fiche.couleur, article.couleur],
@@ -198,7 +202,13 @@ export default function Fiche() {
             {quotaAtteint ? null : <Icone nom="suivant" taille={18} />}
           </Pressable>
         ) : null}
-        <PhotoArticle article={article} hauteur={420} tailleLettre={120} />
+        {photo ? (
+          <Pressable accessibilityRole="imagebutton" accessibilityLabel={texts.accessibilite.agrandirPhoto} onPress={() => setPhotoAgrandie(true)}>
+            <PhotoArticle article={article} hauteur={420} tailleLettre={120} />
+          </Pressable>
+        ) : (
+          <PhotoArticle article={article} hauteur={420} tailleLettre={120} />
+        )}
 
         {article.marque ? <Etiquette style={styles.marque}>{article.marque}</Etiquette> : null}
         <Text style={[type.sheetName, styles.nom]}>{article.nom}</Text>
@@ -304,6 +314,7 @@ export default function Fiche() {
           <Bouton libelle={texts.fiche.supprimer} variante="danger" onPress={supprimer} />
         </View>
       </ScrollView>
+      {photo ? <PhotoPleinEcran uri={photo} visible={photoAgrandie} onFermer={() => setPhotoAgrandie(false)} /> : null}
     </SafeAreaView>
   );
 }

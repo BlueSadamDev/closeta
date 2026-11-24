@@ -37,6 +37,8 @@ export const settings = {
   photoVestiaire: { largeur: 1200, hauteur: 1600 },
   /** Qualité JPEG de la photo du Vestiaire, gardée sur le téléphone : plus nette que la copie envoyée. */
   photoVestiaireCompression: 0.9,
+  /** Photo agrandie (fiche) : zoom au pincement de 1 (photo entière) à zoomMax ; double toucher = zoomDouble. */
+  photoPleinEcran: { zoomMax: 4, zoomDouble: 2.5 },
   /**
    * Habillage des photos du Vestiaire (docs/SPEC.md, « Étape 8 ») : pièce détourée sur le téléphone (ML Kit),
    * centrée sur le fond `photo3` du thème, avec une ombre légère.

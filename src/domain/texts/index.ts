@@ -431,6 +431,9 @@ export const texts = {
     fermerPriseDeVue: 'Fermer la prise de vue',
     fermerScanner: 'Fermer le lecteur de QR',
     qrConfiguration: 'QR de configuration',
+    agrandirPhoto: 'Agrandir la photo',
+    photoAgrandie: 'Photo agrandie. Pince pour zoomer, touche pour fermer.',
+    fermerPhoto: 'Fermer la photo',
   },
 
   /** Lecteur de QR de configuration (Réglages). */
