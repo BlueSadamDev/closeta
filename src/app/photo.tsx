@@ -121,6 +121,7 @@ export default function ParPhoto() {
         {etat.etape === 'choix' ? (
           <>
             <RichText style={styles.texte}>{etat.message ?? (pourVestiaire ? t.guidee.consigne : t.conseil)}</RichText>
+            <Text style={styles.rappel}>{t.rappel}</Text>
             <View style={styles.actions}>
               <Bouton libelle={t.prendre} onPress={() => choisir('camera')} />
               <Bouton libelle={t.choisir} variante="secondaire" onPress={() => choisir('galerie')} />
@@ -231,6 +232,7 @@ const styles = StyleSheet.create({
   contenu: { padding: spacing.screen, paddingBottom: 48 },
   titre: { color: colors.ink, marginTop: 8, marginBottom: 6 },
   texte: { ...type.body, color: colors.ink, marginTop: 16 },
+  rappel: { ...type.body, color: colors.inkMuted, marginTop: 8 },
   attente: { fontFamily: fonts.serifItalic, fontSize: 20, color: colors.ink, marginTop: 20 },
   apercu: { marginTop: 12 },
   compte: { marginTop: 20, marginBottom: 4 },

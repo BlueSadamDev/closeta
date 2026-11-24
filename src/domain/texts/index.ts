@@ -267,6 +267,8 @@ export const texts = {
     saisir: 'Saisir à la main',
     cameraRefusee: 'L’appareil photo n’est pas autorisé. *Autorise-le dans les réglages d’Android*, ou choisis une photo.',
     photoIllisible: 'Cette photo ne s’ouvre pas. *Essaie-en une autre*.',
+    /** Rappel sur chaque écran photo : la photo peut partir chez Google Lens (docs/CONFIDENTIALITE.md). */
+    rappel: 'Photographie la pièce seule, sans personne.',
     /** Prise de vue guidée du Vestiaire (docs/SPEC.md, « Lot 3 », « Étape 7 »). */
     guidee: {
       consigne: 'Suspends la pièce sur un cintre, devant un mur uni. *Entière dans le cadre*, crochet en haut.',
@@ -401,6 +403,9 @@ export const texts = {
       restauree: 'Sauvegarde *restaurée*.',
       nonRestauree: 'Rien n’a changé sur ce téléphone. *Réessaie*.',
     },
+    /** Section « Confidentialité » (docs/SPEC.md, « Lot 4 », « Étape 8 »). */
+    sectionConfidentialite: 'Confidentialité',
+    confidentialite: 'Ce que deviennent tes données',
     tester: 'Tester la connexion',
     testEnCours: 'On interroge le relais…',
     version: 'Version',
@@ -422,6 +427,20 @@ export const texts = {
       injoignable: 'Le relais ne répond pas. *Vérifie ta connexion* et réessaie.',
       inattendu: 'Le relais a répondu de façon inattendue. *Réessaie plus tard*.',
     },
+  },
+
+  /** Écran « Confidentialité » : résumé de docs/CONFIDENTIALITE.md (docs/SPEC.md, « Lot 4 », « Étape 8 »). */
+  confidentialite: {
+    titre: 'Confidentialité',
+    resume: [
+      'Ta Wishlist, ton Vestiaire et tes photos restent *sur ton téléphone*.',
+      'Le relais lit les pages des boutiques et lance les recherches. Il garde seulement le nom de ton installation et le nombre de tes recherches du mois.',
+      'Il tient aussi un catalogue anonyme des pièces et des prix observés, *sans lien avec toi*.',
+      'Une photo envoyée passe par Google Lens, via SerpApi, puis elle est *effacée du relais*.',
+      'Aucune publicité, aucune statistique, aucun suivi.',
+    ],
+    lire: 'Lire le document complet',
+    lienEchec: 'Le document ne s’ouvre pas. *Vérifie ta connexion*.',
   },
 
   accessibilite: {

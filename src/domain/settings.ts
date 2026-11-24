@@ -7,6 +7,8 @@ export const settings = {
   databaseName: 'closeta.db',
   /** Adresse du relais Cloudflare (pas un secret ; le jeton, lui, est saisi dans les Réglages). */
   relayUrl: 'https://closeta-relay.bluesadam-dev.workers.dev',
+  /** Document de confidentialité complet, ouvert dans le navigateur depuis l'écran « Confidentialité ». */
+  urlConfidentialite: 'https://github.com/BlueSadamDev/closeta/blob/main/docs/CONFIDENTIALITE.md',
   /** Version des routes du relais (« /v1/extract »). */
   relayPrefixe: '/v1',
   /** Temps maximal d'attente d'une réponse du relais (docs/SPEC.md : 20 s). */
