@@ -4,6 +4,7 @@
  */
 import type { Article } from './article';
 import type { ChampManquant } from './lien';
+import { genrePourRelais, type GenreRecherche } from './genre';
 import { lireProposition } from './photo';
 import { enCentimes, prixPourSaisie } from './prix';
 import { STATUT_MISE_A_JOUR } from './relais';
@@ -46,8 +47,9 @@ export function imagePourRecherche(a: Pick<Article, 'imageSource' | 'imageLocale
 }
 
 /** Corps de la demande envoyée au relais. `photo` : JPEG en base64, seulement sans image de boutique. */
-export function demandeAlternatives(a: Article, photo: string | null): Record<string, string | null> {
+export function demandeAlternatives(a: Article, photo: string | null, genre: GenreRecherche = 'mixte'): Record<string, string | null> {
   const image = imagePourRecherche(a);
+  const genreRelais = genrePourRelais(genre);
   return {
     ...(image && 'url' in image ? { image_url: image.url } : {}),
     ...(photo && !(image && 'url' in image) ? { photo } : {}),
@@ -56,6 +58,7 @@ export function demandeAlternatives(a: Article, photo: string | null): Record<st
     categorie: a.categorie,
     couleur: a.couleur,
     url_exclue: a.urlBoutique,
+    ...(genreRelais ? { genre: genreRelais } : {}),
   };
 }
 

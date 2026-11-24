@@ -15,6 +15,8 @@ export const settings = {
   relayTokenKey: 'closeta.jeton-relais',
   /** Clé du coffre où est rangée l'adresse du relais saisie dans les Réglages (sinon : relayUrl). */
   relayUrlKey: 'closeta.adresse-relais',
+  /** Clé du coffre où est rangé le genre des recherches d'alternatives (Réglages ; absent = mixte). */
+  genreRechercheKey: 'closeta.genre-recherche',
   /** Clé du coffre où est rangé le jeton d'administration (section « Installations » des Réglages). */
   adminTokenKey: 'closeta.jeton-admin',
   /** Début du lien d'un QR de configuration : closeta://config?relais=<adresse>&jeton=<jeton>. */
