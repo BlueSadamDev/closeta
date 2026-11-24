@@ -41,7 +41,7 @@ Une seule table `article` porte la wishlist et le futur vestiaire ; c'est le cha
 | prix | décimal (€) | non | prix relevé au moment de l'ajout |
 | devise | texte | non | EUR par défaut |
 | url_boutique | texte | non | lien d'origine |
-| image_locale | chemin | non | copie locale de la photo |
+| image_locale | texte | non | nom du fichier de la copie locale de la photo (le dossier est recalculé sur chaque téléphone, depuis la migration v3) |
 | image_source | texte | non | URL de l'image d'origine |
 | priorite | enum | oui | `forte`, `moyenne`, `un_jour` (défaut `moyenne`) |
 | notes | texte | non | |
@@ -411,6 +411,15 @@ Décisions du 24 novembre 2026 (plan de l'étape 10) :
 - **Sauvegarde** (Réglages) : un fichier unique `closeta-AAAA-MM-JJ.closeta` (JSON : version du schéma, articles, relevés, photos encodées), proposé au partage Android (Drive, mail, fichiers…). Ni jeton ni identifiant d'installation dans la sauvegarde.
 - **Restauration** (Réglages) : choix d'un fichier `.closeta`, résumé (« 42 pièces, 37 photos »), confirmation, puis **remplacement** de toutes les données du téléphone. Fusion de deux téléphones : hors lot.
 - Dépendances à valider au plan de l'étape : partage et choix de fichier (`expo-sharing`, `expo-document-picker`).
+
+Décisions du 24 novembre 2026 (plan de l'étape 11) :
+
+- Dépendance : `expo-sharing` seul (menu de partage d'Android, sans son extension « recevoir un partage »). Le choix du fichier passe par le sélecteur d'`expo-file-system`, déjà présent : `expo-document-picker` n'est pas ajouté. Aucune permission Android ; nouvel APK de développement nécessaire.
+- Migration v3 : seules les photos rangées dans le dossier `images/` de l'app passent au nom seul ; toute autre valeur reste entière et s'affiche comme avant. Dans l'app, une pièce porte toujours le chemin complet ; seule la base garde le nom.
+- Le fichier contient, pour chaque pièce et chaque relevé, une liste fixe de champs recopiés un à un : aucun réglage, jeton ou identifiant ne peut y entrer. Les traces de `suppression` n'y sont pas ; une restauration les efface.
+- Lecture : fichier entièrement vérifié avant tout changement (format, version, champs, photos encodées, noms de photos sans dossier). Version plus récente refusée avec « Mets l’app à jour » ; seule la version 3 existe.
+- Remplacement : photos écrites dans un dossier à part, base remplacée d'un seul bloc, puis photos mises en place ; une restauration interrompue après le remplacement de la base se termine au démarrage suivant.
+- Le fichier est préparé en mémoire (photos encodées) : adapté à quelques centaines de pièces.
 
 **Étape 12 — Production**
 
