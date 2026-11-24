@@ -453,3 +453,113 @@ Retours du test de production (24 novembre 2026), ajoutés avant la fin du lot :
 ### Hors lot 3
 
 Notifications de baisse, actualisation des pièces du Vestiaire, comptes utilisateurs, synchronisation ou partage entre téléphones, fusion de sauvegardes, retrait de l'ancien jeton partagé, alternatives depuis le Vestiaire, habillage si l'étape 8 n'est pas validée, lots suivants (bien tailler, plan d'achat, style : voir ROADMAP.md).
+
+## Lot 4 — Robustesse et catalogue partagé
+
+Lot technique, préparé le 24 novembre 2026 à partir de [ARCHITECTURE.md](ARCHITECTURE.md) (faiblesses n° 1 à 3 et 5 à 10). But : rendre le relais fiable et économe avant d'ouvrir ClosetA à d'autres personnes, sans rien changer aux usages quotidiens. Comme au lot 3, chaque étape est validée sur l'APK de développement et **un seul APK de production** est testé, à la dernière étape. Deux pistes, menables en parallèle : **A · Relais** (étapes 1 à 5) et **B · App et conformité** (étapes 6 à 8).
+
+Décisions validées par l'utilisateur le 24 novembre 2026 :
+
+- Durées de conservation du catalogue : page produit 24 h ; Google Shopping 7 jours ; Lens sur l'image d'une boutique 30 jours ; Lens sur une photo (empreinte) 30 jours ; historique des prix conservé.
+- Historique partagé affiché sur la fiche de la Wishlist : « Prix le plus bas observé : 79 € (octobre 2026) », seulement s'il existe au moins 2 observations.
+- Code d'invitation : 12 caractères lisibles (`CLST-7K4Q-9M2P`, sans 0/O ni 1/I), usage unique, valable 7 jours.
+- Mises à jour : chaque APK de production publié en **release GitHub** (`vX.Y.Z`), l'app propose la nouvelle version au plus une fois par jour.
+- Alerte de quota : visible dans Réglages pour l'installation qui a le jeton d'administration, à 80 % du quota global.
+
+### Règle modifiée (à partir de l'étape 2)
+
+« Le relais ne conserve rien » devient : **le relais ne conserve aucune donnée personnelle.** Il garde :
+
+- les installations (empreintes des jetons, nom, dates) et les compteurs de quota ;
+- un **catalogue anonyme** : produits, prix observés et résultats de recherche, aux durées ci-dessus.
+
+Jamais : identifiant d'installation ou jeton dans le catalogue, lien entre une recherche et la personne qui l'a faite, photo d'utilisateur (seulement son empreinte SHA-256, comme clé de cache), copie d'image de boutique (seulement son adresse).
+
+### Piste A · Relais
+
+**Étape 1 — Compteurs de quota dans un Durable Object**
+
+- Un Durable Object `Quota` (stockage SQLite, disponible en offre gratuite) remplace les compteurs de KV : table `compteur (mois, cle, utilise)`, `cle` = `global` ou l'identifiant d'installation.
+- `reserver()` vérifie le seuil global et celui de l'installation, puis compte les deux **dans une seule opération** : plus de recherche comptée en trop ou en moins, même quand deux téléphones cherchent en même temps.
+- Reprise : au premier appel du mois en cours, les compteurs encore présents dans KV sont recopiés une fois, puis KV n'est plus utilisé pour le quota (les installations y restent : elles changent rarement).
+- `GET /v1/quota` et `GET /v1/admin/installations` lisent le Durable Object ; leurs réponses ne changent pas de forme.
+- Mise en ligne : la classe est déclarée dans `wrangler.toml` (migration `new_sqlite_classes`), aucune nouvelle variable GitHub.
+- Tests : réservations simultanées, seuil global, seuil par installation, changement de mois, reprise depuis KV.
+
+**Étape 2 — Catalogue partagé et cache (Cloudflare D1)**
+
+- Base D1 `CATALOGUE` (identifiant fourni par une nouvelle variable GitHub `RELAIS_D1_ID`, créée par l'utilisateur ; commande exacte donnée au plan de l'étape). Schéma versionné (`relay/migrations/`), appliqué par le workflow de mise en ligne.
+- Tables :
+
+| Table | Champs |
+| --- | --- |
+| `produit` | `id`, `url` (adresse canonique), `boutique`, `nom`, `marque`, `image_url`, `categorie`, `couleur`, `genre`, `premiere_vue`, `derniere_vue` |
+| `observation_prix` | `produit_id`, `date`, `prix`, `devise`, `disponibilite`, `dispo_tailles` (JSON) |
+| `recherche` | `cle` (empreinte de : type + entrée normalisée + genre), `type` (`lens_image`, `lens_photo`, `shopping`), `resultats` (JSON), `cree_le`, `expire_le` |
+
+- Adresse canonique : adresse de la page sans les paramètres de suivi connus (`utm_*`, `gclid`, `fbclid`…), les autres paramètres sont gardés (ils peuvent désigner une taille ou une couleur).
+- `/v1/extract` : si le produit a été lu il y a moins de 24 h, réponse depuis le catalogue sans relire la page ; sinon lecture, mise à jour de `produit`, et nouvelle observation **seulement si le prix ou la disponibilité a changé**.
+- `/v1/identify` et `/v1/alternatives` : avant d'appeler SerpApi, recherche de la clé dans `recherche` ; un résultat valide est renvoyé tel quel et **ne consomme pas le quota** de l'installation. Les réponses indiquent `depuis_cache: true|false`.
+- Purge : tâche planifiée Cloudflare chaque nuit (3 h UTC), suppression des `recherche` expirées.
+- Durées dans `relay/src/settings.ts`, jamais en dur ailleurs.
+- Mise à jour de la règle dans CLAUDE.md (section « Relais Cloudflare ») et dans ce document.
+- Tests : clé de cache (même entrée = même clé, genre différent = clé différente), expiration, adresse canonique, observation créée seulement en cas de changement, aucun identifiant d'installation écrit dans D1.
+
+**Étape 3 — Historique de prix partagé**
+
+- `/v1/extract` renvoie en plus `historique : { prix_min, date_prix_min, observations, depuis }` quand le produit compte au moins 2 observations.
+- App, fiche d'une pièce de la Wishlist : sous l'historique local, ligne « Prix le plus bas observé : *79 €* (octobre 2026) » ; rien si l'information manque.
+- Le relevé local du téléphone (`releve_prix`) ne change pas.
+
+**Étape 4 — Interface de recherche indépendante du fournisseur**
+
+- Les appels à SerpApi passent par une interface unique (`lens(image)`, `shopping(requete, genre)`) avec une implémentation SerpApi ; aucune autre partie du relais ne connaît SerpApi.
+- Variable `RECHERCHE_FOURNISSEUR` (défaut `serpapi`), pour pouvoir changer de fournisseur plus tard sans toucher aux routes.
+- Aucune différence visible ; les tests existants doivent rester verts sans modification de leurs attentes.
+
+**Étape 5 — Supervision et photos temporaires**
+
+- Journaux Cloudflare activés (`[observability]` dans `wrangler.toml`), en JSON : route, durée, résultat, `depuis_cache`, code d'erreur. **Jamais** de jeton, d'identifiant d'installation, d'adresse IP, d'URL de photo ni de requête de recherche dans les journaux.
+- `GET /v1/admin/etat` (jeton d'administration) : quota global du mois, taux de réponses depuis le cache, nombre d'erreurs des 24 dernières heures.
+- Photos R2 : le workflow de mise en ligne vérifie que la règle « suppression après 1 jour » existe sur le bucket, et l'ajoute sinon (`wrangler r2 bucket lifecycle`).
+
+### Piste B · App et conformité
+
+**Étape 6 — Codes d'invitation**
+
+- Section « Installations » (jeton d'administration) : « Inviter quelqu'un » → nom → code d'invitation affiché, avec un lien à partager `closeta://invitation?relais=<adresse>&code=<code>` (QR et texte). Contrairement au QR de configuration, le lien **ne contient aucun jeton** : il peut être envoyé par message.
+- Relais : `POST /v1/admin/invitations` (création ; seule l'empreinte du code est gardée, dans KV, 7 jours) et `POST /v1/invitations/utiliser` (`{ code, installation }`, sans jeton, limite de débit par adresse) → crée l'installation et renvoie son jeton une seule fois ; le code est aussitôt invalidé.
+- App : Réglages « J'ai un code d'invitation » (saisie ou lien ouvert), puis jeton rangé dans le coffre du téléphone ; la section « Installations » liste les invitations en attente (nom, expiration) et permet de les annuler.
+
+**Étape 7 — Vérification de mise à jour**
+
+- Workflow de production : publie l'APK signé dans une **release GitHub** `vX.Y.Z` (version de `app.json`, refus si elle existe déjà).
+- Relais : `GET /v1/version` → `{ derniere, url }`, lu dans la dernière release GitHub et gardé 1 h (l'app ne parle qu'au relais).
+- App : au plus une fois par jour, si une version plus récente existe, bandeau discret « Nouvelle version 1.2.0 disponible » avec un lien vers la release (navigateur). Rien si le relais ne répond pas.
+
+**Étape 8 — Confidentialité**
+
+- `docs/CONFIDENTIALITE.md` : données traitées (sur le téléphone, par le relais, dans le catalogue), finalités, durées, sous-traitants (Cloudflare ; SerpApi ; Google via Lens et Shopping) et transferts hors UE, droits et contact. Relu et validé par l'utilisateur.
+- `docs/REGISTRE.md` : registre des traitements au format usuel (une fiche par traitement : relais, catalogue, installations).
+- App : Réglages « Confidentialité » (résumé en quelques lignes et lien vers le document) ; sur les écrans photo, rappel « Photographie la pièce seule, sans personne. »
+
+**Étape 9 — Production**
+
+- Vérifications complètes (expo-doctor, lint, tsc, jest, tests du relais), mise en ligne du relais, APK de production publié en release, **test unique** par l'utilisateur.
+
+### Critères d'acceptation
+
+- [ ] Deux recherches lancées en même temps depuis deux téléphones sont comptées exactement deux fois
+- [ ] Les compteurs du mois en cours sont repris sans remise à zéro
+- [ ] Une même demande d'alternatives refaite le lendemain répond depuis le catalogue, sans consommer de recherche
+- [ ] Une page produit relue moins de 24 h après ne déclenche pas de nouvelle lecture
+- [ ] La base D1 ne contient aucun identifiant d'installation, jeton, adresse IP ni photo
+- [ ] La fiche affiche le prix le plus bas observé quand le catalogue en connaît au moins 2 observations
+- [ ] Aucun jeton, identifiant d'installation, adresse IP ni URL de photo dans les journaux
+- [ ] Un code d'invitation configure un nouveau téléphone, ne fonctionne qu'une fois, et plus après 7 jours
+- [ ] L'app signale une version plus récente publiée en release
+- [ ] Le document de confidentialité et le registre existent, validés par l'utilisateur
+
+### Hors lot 4
+
+Comptes utilisateurs, synchronisation, partage de Wishlist, inscription libre (sans invitation), Play Store, modèle de financement, retrait de l'ancien jeton partagé, changement effectif de fournisseur de recherche.
