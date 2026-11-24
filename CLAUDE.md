@@ -87,7 +87,7 @@ Fin du lot :
 Une étape = une branche, validée sur l'APK de développement ; **un seul APK de production testé**, à l'étape 9 (même exception de fusion qu'au lot 3). Deux pistes, menables dans deux sessions. Détail : docs/SPEC.md, « Lot 4 — Robustesse et catalogue partagé », et docs/ARCHITECTURE.md. Les 5 décisions de la spec (durées du catalogue, historique partagé, codes d'invitation, releases GitHub, alerte de quota) sont validées.
 
 Piste A · Relais :
-1. Compteurs de quota dans un Durable Object `Quota` (SQLite) : réservation atomique global + installation, reprise des compteurs KV du mois.
+1. Compteurs de quota dans un Durable Object `Quota` (SQLite) : réservation atomique global + installation, reprise des compteurs KV du mois. **Terminée, fusionnée via la PR #32** : Durable Object `Quota` (table `compteur`, lien `QUOTAS`, migration `new_sqlite_classes`), réservation des deux seuils en une seule opération, reprise unique des compteurs KV du mois, mois de plus de 2 mois effacés ; KV ne garde plus que les installations.
 2. Catalogue partagé et cache dans D1 (`produit`, `observation_prix`, `recherche`) : lecture des pages en cache 24 h, recherches en cache (sans consommer le quota), purge nocturne ; variable GitHub `RELAIS_D1_ID` à créer par l'utilisateur ; règle « Relais Cloudflare » mise à jour.
 3. Historique de prix partagé : `historique` dans `/v1/extract`, « Prix le plus bas observé » sur la fiche de la Wishlist.
 4. Interface de recherche indépendante du fournisseur (`RECHERCHE_FOURNISSEUR`, défaut `serpapi`).
