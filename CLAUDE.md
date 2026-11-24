@@ -84,7 +84,7 @@ Fin du lot :
 12. Production : vérifications complètes, APK de production, test unique par l'utilisateur. **Terminée, fusionnée via la PR #29** : vérifications complètes, aucun secret (dépôt, APK), test unique validé sur l'APK de production (points 1 à 7 ; QR de configuration à tester plus tard) ; retours ajoutés : photo agrandie avec zoom sur la fiche, genre des recherches d'alternatives (Réglages « Je cherche pour », relais `/alternatives` et `/identify`) ; variables GitHub `RELAIS_*` créées, relais remis en ligne.
 
 ## Lots suivants
-Lots 4 à 6 (bien tailler, plan d'achat, style) : voir [docs/ROADMAP.md](docs/ROADMAP.md). Chaque lot sera détaillé dans docs/SPEC.md avant son développement.
+Lots 4 à 7 (robustesse et catalogue partagé, bien tailler, plan d'achat, style) : voir [docs/ROADMAP.md](docs/ROADMAP.md). Chaque lot sera détaillé dans docs/SPEC.md avant son développement. Architecture, coûts et passage à plusieurs utilisateurs : [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), à lire avant toute évolution du relais.
 
 Tenir ces listes à jour : marquer chaque étape « terminée, fusionnée via la PR #n » avec une ligne de résumé.
 
