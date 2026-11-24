@@ -244,6 +244,31 @@ describe('relais : /identify', () => {
     expect(photos.fichiers.size).toBe(0);
   });
 
+  it('genre « homme » : ajouté à la recherche Shopping des alternatives, Lens inchangé', async () => {
+    const { e } = env();
+    const recherches: string[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (adresse: string) => {
+        if (adresse.includes('google_lens')) return new Response('{}', { status: 500 });
+        recherches.push(new URL(adresse).searchParams.get('q') ?? '');
+        return jsonOk(shopping);
+      }),
+    );
+    const requete = envoi(PHOTO);
+    const r = await relais.fetch(new Request('https://relais.exemple.test/identify?genre=homme', requete), e);
+    expect(r.status).toBe(200);
+    expect(recherches).toHaveLength(1);
+    expect(recherches[0]).toMatch(/ homme$/);
+  });
+
+  it('refuse un genre inconnu', async () => {
+    const { e } = env();
+    const r = await relais.fetch(new Request('https://relais.exemple.test/identify?genre=enfant', envoi(PHOTO)), e);
+    expect(r.status).toBe(400);
+    expect(await r.json()).toEqual({ erreur: 'requete_invalide' });
+  });
+
   it('signale une panne si aucune recherche n’aboutit (clé SerpApi absente)', async () => {
     const { e } = env({ cle: undefined });
     const espion = vi.fn();

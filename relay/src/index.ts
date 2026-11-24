@@ -1,6 +1,7 @@
 import { chercherAlternatives, DemandeInvalide, lireDemande } from './alternatives';
 import { extraireProduit } from './extract';
 import type { IA } from './ia';
+import { lireGenre, type Genre } from './genre';
 import { clePhoto, estJpeg, identifiantValide, identifier, QuotaAtteint, RechercheIndisponible, type Stockage } from './identify';
 import {
   creerInstallation,
@@ -187,9 +188,16 @@ async function routeIdentify(requete: Request, env: Env, installation: Installat
   const quota = compteur(env, installation);
   // Seuil atteint : réponse immédiate, sans IA ni SerpApi.
   if (await quota.atteint()) return erreur('quota_atteint', 429);
+  let genre: Genre | null;
+  try {
+    genre = lireGenre(new URL(requete.url).searchParams.get('genre'));
+  } catch {
+    return erreur('requete_invalide', 400);
+  }
   const origine = new URL(requete.url).origin;
   try {
     const resultat = await identifier(photo, {
+      genre,
       ia: env.AI,
       stockage: env.PHOTOS,
       cleSerpApi: env.SERPAPI_KEY,

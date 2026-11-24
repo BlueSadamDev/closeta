@@ -42,7 +42,16 @@ describe('demande de l’app', () => {
       categorie: 'Veste',
       couleur: 'Marron',
       urlExclue: 'https://boutique.exemple.test/veste-fictive',
+      genre: null,
     });
+  });
+
+  it('lit le genre choisi dans les Réglages ; mixte ou absent = aucun filtre ; autre valeur refusée', () => {
+    expect(lireDemande({ ...PIECE, genre: 'femme' }).genre).toBe('femme');
+    expect(lireDemande({ ...PIECE, genre: 'homme' }).genre).toBe('homme');
+    expect(lireDemande({ ...PIECE, genre: 'mixte' }).genre).toBeNull();
+    expect(() => lireDemande({ ...PIECE, genre: 'enfant' })).toThrow('requete_invalide');
+    expect(() => lireDemande({ ...PIECE, genre: 3 })).toThrow('requete_invalide');
   });
 
   it('refuse une demande sans nom', () => {
@@ -143,6 +152,33 @@ describe('relais : /alternatives', () => {
   it('refuse sans jeton', async () => {
     const { e } = env();
     expect((await relais.fetch(envoi(PIECE, null), e)).status).toBe(401);
+  });
+
+  it('genre « femme » : ajouté à la recherche Shopping, pièces pour homme écartées', async () => {
+    const { e } = env();
+    const recherches: string[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (adresse: string) => {
+        const u = new URL(adresse);
+        expect(u.searchParams.get('engine')).toBe('google_shopping');
+        recherches.push(u.searchParams.get('q') ?? '');
+        return jsonOk(shopping);
+      }),
+    );
+    const r = await relais.fetch(envoi({ nom: 'Veste velours', genre: 'femme' }), e);
+    expect(r.status).toBe(200);
+    const { resultats } = (await r.json()) as { resultats: Alternative[] };
+    expect(recherches).toEqual(['Veste velours femme']);
+    expect(resultats.length).toBeGreaterThan(0);
+    expect(resultats.some((p) => /homme/i.test(p.nom))).toBe(false);
+  });
+
+  it('refuse un genre inconnu', async () => {
+    const { e } = env();
+    const r = await relais.fetch(envoi({ ...PIECE, genre: 'enfant' }), e);
+    expect(r.status).toBe(400);
+    expect(await r.json()).toEqual({ erreur: 'requete_invalide' });
   });
 
   it('refuse une demande illisible ou sans nom', async () => {
