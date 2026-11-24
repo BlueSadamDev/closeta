@@ -15,7 +15,7 @@ import {
   PRINCIPALE,
   revoquerInstallation,
 } from './installations';
-import { Compteur, lireLimite, lireLimiteInstallation, QuotaInstallation } from './quota';
+import { type EspaceQuota, lireLimite, lireLimiteInstallation, objetQuota, QuotaInstallation } from './quota';
 import { settings } from './settings';
 import { urlPublique } from './url';
 import { miseAJourRequise } from './version';
@@ -37,8 +37,10 @@ export interface Env {
   AI: IA;
   /** Stockage temporaire des photos, le temps de la recherche Google Lens. */
   PHOTOS: Stockage;
-  /** Compteur des recherches SerpApi du mois et liste des installations (Cloudflare KV). */
+  /** Liste des installations (Cloudflare KV) ; anciens compteurs SerpApi, lus une fois pour la reprise. */
   QUOTA: MagasinListable;
+  /** Compteur des recherches SerpApi du mois (Durable Object `Quota`). */
+  QUOTAS: EspaceQuota;
   /** Seuil mensuel de recherches SerpApi, réglé dans wrangler.toml ([vars]). */
   SERPAPI_LIMITE_MOIS?: string;
   /** Seuil mensuel par installation (vide : même seuil que le global). */
@@ -170,10 +172,7 @@ async function routeExtract(requete: Request): Promise<Response> {
 function compteur(env: Env, installation: Installation): QuotaInstallation {
   const global = lireLimite(env.SERPAPI_LIMITE_MOIS);
   const propre = lireLimiteInstallation(env.SERPAPI_LIMITE_INSTALLATION, global);
-  return new QuotaInstallation(
-    new Compteur(env.QUOTA, global),
-    new Compteur(env.QUOTA, propre, undefined, installation.id),
-  );
+  return new QuotaInstallation(objetQuota(env.QUOTAS), installation.id, { global, installation: propre });
 }
 
 /** GET /quota : recherches SerpApi du mois, `{ installation: { utilise, limite }, global: { utilise, limite }, mois }`. */
@@ -278,13 +277,8 @@ async function routeAdmin(requete: Request, env: Env, id: string | null): Promis
 
   if (requete.method === 'GET' && id === null) {
     const installations = [PRINCIPALE, ...(await listerInstallations(env.QUOTA))];
-    const mois = (await compteur(env, PRINCIPALE).etat()).mois;
-    return json({
-      installations: await Promise.all(
-        installations.map(async (i) => ({ ...i, utilise: (await compteur(env, i).etat()).installation.utilise })),
-      ),
-      mois,
-    });
+    const { mois, utilises } = await objetQuota(env.QUOTAS).utilises(installations.map((i) => i.id));
+    return json({ installations: installations.map((i) => ({ ...i, utilise: utilises[i.id] ?? 0 })), mois });
   }
   if (requete.method === 'POST' && id === null) {
     let corps: unknown;
@@ -308,6 +302,9 @@ async function routeAdmin(requete: Request, env: Env, id: string | null): Promis
 
 /** Routes de l'app ; servies sous /v1/…, les adresses sans préfixe restent des alias pour les anciens APK. */
 const ROUTES_APP = ['POST /extract', 'POST /identify', 'POST /alternatives', 'GET /quota'];
+
+/** Durable Object du compteur SerpApi : la classe doit être exportée par le Worker. */
+export { Quota } from './quotaObjet';
 
 export default {
   async fetch(requete: Request, env: Env): Promise<Response> {
