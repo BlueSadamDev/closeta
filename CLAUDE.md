@@ -31,10 +31,10 @@
 
 ## Relais Cloudflare
 - Les clés d'API (IA, SerpApi) sont des secrets Cloudflare (`wrangler secret put`), jamais dans `wrangler.toml` ni dans le code.
-- `wrangler.toml` ne contient aucun identifiant propre au compte : l'identifiant du compte vient du secret `CLOUDFLARE_ACCOUNT_ID`, le nom du Worker, l'espace KV et le bucket R2 des variables GitHub `RELAIS_NOM_WORKER`, `RELAIS_KV_ID` et `RELAIS_BUCKET_R2` (ajoutés par le workflow de mise en ligne).
+- `wrangler.toml` ne contient aucun identifiant propre au compte : l'identifiant du compte vient du secret `CLOUDFLARE_ACCOUNT_ID`, le nom du Worker, l'espace KV, le bucket R2 et la base D1 des variables GitHub `RELAIS_NOM_WORKER`, `RELAIS_KV_ID`, `RELAIS_BUCKET_R2` et `RELAIS_D1_ID` (ajoutés par le workflow de mise en ligne).
 - Le relais refuse toute requête sans jeton valide (en-tête `Authorization`) et limite le débit à 30 requêtes par minute.
 - `/extract` n'accepte que des URL `https` publiques (pas d'adresse IP locale ou privée).
-- Le relais ne conserve rien. Exception au lot 1b : si SerpApi Lens exige une URL d'image, dépôt temporaire dans Cloudflare R2, supprimé juste après la recherche.
+- Le relais ne conserve **aucune donnée personnelle** (depuis le lot 4, étape 2). Il garde les installations (empreintes des jetons) et les compteurs de quota, et un **catalogue anonyme** dans Cloudflare D1 (produits, prix observés, résultats de recherche, aux durées de `relay/src/settings.ts`). Jamais dans le catalogue : identifiant d'installation, jeton, adresse IP, lien entre une recherche et la personne qui l'a faite, photo (seulement son empreinte SHA-256, comme clé), copie d'image de boutique (seulement son adresse). Photos pour Google Lens : dépôt temporaire dans Cloudflare R2, supprimé juste après la recherche.
 - Ne jamais créer ni modifier toi-même un secret Cloudflare : donner la commande exacte à l'utilisateur.
 
 ## Règles de l'app
@@ -88,7 +88,7 @@ Une étape = une branche, validée sur l'APK de développement ; **un seul APK d
 
 Piste A · Relais :
 1. Compteurs de quota dans un Durable Object `Quota` (SQLite) : réservation atomique global + installation, reprise des compteurs KV du mois. **Terminée, fusionnée via la PR #32** : Durable Object `Quota` (table `compteur`, lien `QUOTAS`, migration `new_sqlite_classes`), réservation des deux seuils en une seule opération, reprise unique des compteurs KV du mois, mois de plus de 2 mois effacés ; KV ne garde plus que les installations.
-2. Catalogue partagé et cache dans D1 (`produit`, `observation_prix`, `recherche`) : lecture des pages en cache 24 h, recherches en cache (sans consommer le quota), purge nocturne ; variable GitHub `RELAIS_D1_ID` à créer par l'utilisateur ; règle « Relais Cloudflare » mise à jour.
+2. Catalogue partagé et cache dans D1 (`produit`, `observation_prix`, `recherche`) : lecture des pages en cache 24 h, recherches en cache (sans consommer le quota), purge nocturne ; variable GitHub `RELAIS_D1_ID` à créer par l'utilisateur ; règle « Relais Cloudflare » mise à jour. **En cours** (branche `ccr-a3ac6b5d-zcu9k5`).
 3. Historique de prix partagé : `historique` dans `/v1/extract`, « Prix le plus bas observé » sur la fiche de la Wishlist.
 4. Interface de recherche indépendante du fournisseur (`RECHERCHE_FOURNISSEUR`, défaut `serpapi`).
 5. Supervision et photos temporaires : journaux JSON sans donnée personnelle, `GET /v1/admin/etat`, règle d'expiration R2 vérifiée par le workflow.

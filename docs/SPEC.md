@@ -401,7 +401,7 @@ Décisions du 24 novembre 2026 (plan de l'étape 10) :
 - Un lien `closeta://config` ouvert par Android (QR lu avec l'appareil photo du téléphone) mène à la même confirmation que le scan dans les Réglages : rien n'est enregistré sans « Configurer ».
 - QR dessiné avec `qrcode-generator` (calcul seul, sans code natif) et `react-native-svg` ; le lecteur de codes d'`expo-camera` est activé (`barcodeScannerEnabled`), d'où un nouvel APK de développement.
 - Le jeton d'un téléphone ajouté n'existe que dans son QR, affiché une seule fois : il n'est rangé nulle part sur le téléphone qui administre.
-- Variables GitHub : `RELAIS_NOM_WORKER`, `RELAIS_KV_ID`, `RELAIS_BUCKET_R2`. Le workflow ajoute à `wrangler.toml`, le temps de la mise en ligne, les blocs de l'espace KV et du bucket R2, et passe le nom avec `wrangler deploy --name`.
+- Variables GitHub : `RELAIS_NOM_WORKER`, `RELAIS_KV_ID`, `RELAIS_BUCKET_R2`. Le workflow ajoute à `wrangler.toml`, le temps de la mise en ligne, les blocs de l'espace KV et du bucket R2, et passe le nom avec `wrangler deploy --name`. Depuis le lot 4, étape 2 : aussi `RELAIS_D1_ID` (bloc de la base D1).
 - Sur un nouveau relais, le premier téléphone se configure avec `RELAY_TOKEN` ; les suivants avec « Ajouter un téléphone ».
 
 **Étape 11 — Données portables : chemins relatifs et sauvegarde**
@@ -503,6 +503,7 @@ Jamais : identifiant d'installation ou jeton dans le catalogue, lien entre une r
 - Purge : tâche planifiée Cloudflare chaque nuit (3 h UTC), suppression des `recherche` expirées.
 - Durées dans `relay/src/settings.ts`, jamais en dur ailleurs.
 - Mise à jour de la règle dans CLAUDE.md (section « Relais Cloudflare ») et dans ce document.
+- Réalisé en plus : `depuis_cache` aussi sur `/v1/extract` ; une recherche déjà en catalogue reste servie quand le quota est atteint (seules les recherches nouvelles sont refusées) ; `categorie`, `couleur` et `genre` de `produit` restent vides tant que la lecture des pages ne les fournit pas.
 - Tests : clé de cache (même entrée = même clé, genre différent = clé différente), expiration, adresse canonique, observation créée seulement en cas de changement, aucun identifiant d'installation écrit dans D1.
 
 **Étape 3 — Historique de prix partagé**
