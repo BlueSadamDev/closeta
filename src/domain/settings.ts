@@ -13,6 +13,16 @@ export const settings = {
   relayTimeoutMs: 20_000,
   /** Nom sous lequel le jeton du relais est rangé dans le coffre du téléphone (expo-secure-store). */
   relayTokenKey: 'closeta.jeton-relais',
+  /** Clé du coffre où est rangée l'adresse du relais saisie dans les Réglages (sinon : relayUrl). */
+  relayUrlKey: 'closeta.adresse-relais',
+  /** Clé du coffre où est rangé le jeton d'administration (section « Installations » des Réglages). */
+  adminTokenKey: 'closeta.jeton-admin',
+  /** Début du lien d'un QR de configuration : closeta://config?relais=<adresse>&jeton=<jeton>. */
+  lienConfiguration: 'closeta://config',
+  /** Longueur maximale du nom d'un téléphone ajouté (la même que celle du relais). */
+  nomInstallationMax: 40,
+  /** Lecteur de QR : délai avant de relire un code refusé (évite de répéter le message en boucle). */
+  scanPauseMs: 1_500,
   /** Clé du coffre du téléphone où est rangé l'identifiant d'installation. */
   installationKey: 'closeta.installation',
   /** Temps maximal pour copier sur le téléphone la photo d'une pièce ajoutée par lien. */
