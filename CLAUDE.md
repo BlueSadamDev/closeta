@@ -76,7 +76,7 @@ Piste B · Vestiaire :
 8. Habillage de la photo (exploration) : essai de détourage sur 5 photos, décision de l'utilisateur avant tout développement.
 
 Piste C · Fondations multi-installations (ajoutée le 23 novembre 2026) :
-9. Identité, jetons par installation et versions : identifiant d'installation, jetons par installation (empreintes dans KV), jeton d'administration et routes `/v1/admin/installations`, quota et limite de débit par installation, routes `/v1/…` avec alias, `VERSION_APP_MIN` ; `RELAY_TOKEN` toujours accepté (installation « Principale »).
+9. Identité, jetons par installation et versions : identifiant d'installation, jetons par installation (empreintes dans KV), jeton d'administration et routes `/v1/admin/installations`, quota et limite de débit par installation, routes `/v1/…` avec alias, `VERSION_APP_MIN` ; `RELAY_TOKEN` toujours accepté (installation « Principale »). **Terminée, fusionnée via la PR #25** : jetons par installation (empreintes dans KV, révocation), `ADMIN_TOKEN` et routes `/v1/admin/installations`, quota et limite de débit par installation, routes `/v1` avec alias, `VERSION_APP_MIN` (426, « Mets ClosetA à jour pour continuer. »), identifiant d'installation et version envoyés par l'app.
 10. Configuration par QR code et relais déployable par un autre : adresse du relais modifiable, QR `closeta://config`, section « Installations » (ajout, révocation), `wrangler.toml` sans identifiant de compte (variables GitHub), guide « Installer son propre relais ».
 11. Données portables : photos en nom de fichier (migration v3), table `suppression`, sauvegarde et restauration d'un fichier `.closeta`.
 

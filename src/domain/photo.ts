@@ -5,6 +5,7 @@
 import type { TypeArticle } from './article';
 import type { ChampManquant } from './lien';
 import { prixPourSaisie } from './prix';
+import { STATUT_MISE_A_JOUR } from './relais';
 import { BROUILLON_VIDE, type Brouillon } from './validation';
 
 /** Ce que l'IA a vu sur la photo ; null = non vu (jamais inventé). */
@@ -32,6 +33,7 @@ export type EchecIdentification =
   | 'jeton_refuse'
   | 'limite'
   | 'quota_atteint'
+  | 'mise_a_jour_requise'
   | 'injoignable'
   | 'indisponible'
   | 'photo_refusee';
@@ -129,6 +131,7 @@ export function lireIdentification(statut: number | null, corps: unknown): Resul
   if (statut === null) return { ok: false, raison: 'injoignable' };
   if (statut === 401) return { ok: false, raison: 'jeton_absent' };
   if (statut === 403) return { ok: false, raison: 'jeton_refuse' };
+  if (statut === STATUT_MISE_A_JOUR) return { ok: false, raison: 'mise_a_jour_requise' };
   const c = objet(corps);
   // 429 : seuil mensuel de recherches atteint, ou trop de demandes en une minute.
   if (statut === 429) return { ok: false, raison: c?.erreur === 'quota_atteint' ? 'quota_atteint' : 'limite' };

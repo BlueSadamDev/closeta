@@ -372,10 +372,17 @@ Constats de départ : un seul jeton partagé (`RELAY_TOKEN`), quota SerpApi glob
 - Relais : **un jeton par installation**. Liste dans Cloudflare KV : empreinte SHA-256 du jeton (jamais le jeton en clair) → `{ id, nom, cree_le, actif }`. Un jeton révoqué (`actif = faux`) est refusé immédiatement.
 - Relais : **jeton d'administration** (`ADMIN_TOKEN`, secret Cloudflare saisi par l'utilisateur, comme les autres) qui seul ouvre les routes `GET /v1/admin/installations` (liste, avec le quota du mois de chacune), `POST /v1/admin/installations` (`{ nom }` → crée l'installation et renvoie son jeton **une seule fois**) et `DELETE /v1/admin/installations/{id}` (révocation).
 - Transition : `RELAY_TOKEN` reste accepté et compte comme l'installation « Principale » tant qu'il existe ; l'app actuelle continue donc de marcher sans rien faire. Son retrait est hors lot.
-- Quota : compteur SerpApi **par installation en plus du global** (le seuil global reste la limite dure ; seuil par installation réglable, défaut = global). `GET /quota` renvoie `{ installation: { utilise }, global: { utilise, limite }, mois }`.
+- Quota : compteur SerpApi **par installation en plus du global** (le seuil global reste la limite dure ; seuil par installation réglable, défaut = global). `GET /quota` renvoie `{ installation: { utilise, limite }, global: { utilise, limite }, mois }`.
 - Limite de débit par installation (et non plus par jeton partagé).
 - Versions : routes servies sous `/v1/…` ; les routes actuelles sans préfixe restent des alias tant que des APK anciens existent. Variable `VERSION_APP_MIN` : une app plus ancienne reçoit `mise_a_jour_requise` (HTTP 426) et affiche « Mets ClosetA à jour pour continuer. »
 - Tests du relais : jeton inconnu, révoqué, administration sans jeton admin, quota par installation, alias sans préfixe, version trop ancienne.
+
+Décisions du 23 novembre 2026 (plan de l'étape 9) :
+
+- Réglages et fiche affichent le compteur **global** (la limite dure) ; « épuisé » s'affiche aussi quand le seuil du téléphone est atteint (d'où `limite` dans `installation`).
+- L'en-tête `X-ClosetA-Installation` est seulement contrôlé (forme d'un UUID) ; c'est le **jeton** qui désigne l'installation pour le quota et la limite de débit.
+- Révocation : effective en **moins d'une minute** (délai de diffusion de Cloudflare KV).
+- `VERSION_APP_MIN` est vide au départ ; une app qui n'envoie pas sa version compte comme trop ancienne une fois la variable remplie.
 
 **Étape 10 — Configuration par QR code et relais déployable par un autre**
 

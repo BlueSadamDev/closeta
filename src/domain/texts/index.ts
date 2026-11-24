@@ -5,6 +5,9 @@
  * Espaces :   = insécable (avant : ; ! ? et €),   = fine insécable.
  */
 
+/** Relais plus récent que l'app (version minimale non atteinte) : même message partout. */
+const miseAJour = '*Mets ClosetA à jour* pour continuer.';
+
 const pieces = (n: number) => (n <= 1 ? `${n} pièce` : `${n} pièces`);
 
 export const texts = {
@@ -196,6 +199,7 @@ export const texts = {
         jeton_absent: 'Aucun jeton pour l’instant. *Ajoute-le dans les Réglages*, puis complète la fiche.',
         jeton_refuse: 'Le relais ne te reconnaît pas. *Vérifie ton jeton* dans les Réglages.',
         limite: 'Trop de demandes en une minute. *Complète la fiche* à la main.',
+        mise_a_jour_requise: miseAJour,
         injoignable: 'Le relais ne répond pas. *Complète la fiche* à la main.',
       },
     },
@@ -262,6 +266,7 @@ export const texts = {
       jeton_refuse: 'Le relais ne te reconnaît pas. *Vérifie ton jeton* dans les Réglages.',
       limite: 'Trop de demandes en une minute. *Réessaie dans un instant*.',
       quota_atteint: 'Les recherches du mois sont épuisées. *Saisis l’article* à la main.',
+      mise_a_jour_requise: miseAJour,
       injoignable: 'Le relais ne répond pas. *Vérifie ta connexion*, ou saisis l’article.',
       indisponible: 'La recherche est indisponible pour l’instant. *Saisis l’article* à la main.',
       photo_refusee: 'Cette photo ne passe pas. *Essaie-en une autre*.',
@@ -293,6 +298,7 @@ export const texts = {
       jeton_refuse: 'Le relais ne te reconnaît pas. *Vérifie ton jeton* dans les Réglages.',
       limite: 'Trop de demandes en une minute. *Réessaie dans un instant*.',
       quota_atteint: 'Les recherches du mois sont épuisées. *Elles reviennent le 1er*.',
+      mise_a_jour_requise: miseAJour,
       injoignable: 'Le relais ne répond pas. *Vérifie ta connexion* et réessaie.',
       indisponible: 'La recherche est indisponible pour l’instant. *Réessaie plus tard*.',
       photo_refusee: 'La photo de cette pièce ne passe pas. *Change-la* en modifiant la pièce.',
@@ -334,6 +340,7 @@ export const texts = {
       jeton_absent: 'Aucun jeton pour l’instant. *Colle ton jeton* au-dessus.',
       jeton_refuse: 'Le relais ne te reconnaît pas. *Vérifie ton jeton*.',
       limite: 'Trop de demandes en une minute. *Réessaie dans un instant*.',
+      mise_a_jour_requise: miseAJour,
       injoignable: 'Le relais ne répond pas. *Vérifie ta connexion* et réessaie.',
       inattendu: 'Le relais a répondu de façon inattendue. *Réessaie plus tard*.',
     },
