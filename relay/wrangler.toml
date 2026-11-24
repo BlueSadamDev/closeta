@@ -21,11 +21,23 @@ simple = { limit = 30, period = 60 }
 [ai]
 binding = "AI"
 
+# Compteur des recherches SerpApi du mois : Durable Object « Quota » (un seul exemplaire, base SQLite,
+# disponible en offre gratuite). Il traite les demandes une par une : comptage exact, même quand deux
+# téléphones cherchent en même temps. Au premier appel d'un mois, il reprend une fois les compteurs de KV.
+[[durable_objects.bindings]]
+name = "QUOTAS"
+class_name = "Quota"
+
+# Création de la classe chez Cloudflare (une fois ; ne jamais modifier ni retirer une migration déjà en ligne).
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Quota"]
+
 # Ajoutés par le workflow de mise en ligne (voir en tête de fichier) :
 # - [[r2_buckets]] binding "PHOTOS" : stockage temporaire des photos, le temps de la recherche Google Lens
 #   (supprimées aussitôt après ; règle du bucket : suppression après 1 jour) ;
-# - [[kv_namespaces]] binding "QUOTA" : compteur des recherches SerpApi du mois (global et par installation,
-#   effacé de lui-même après 40 jours) et liste des installations (empreintes des jetons, jamais les jetons).
+# - [[kv_namespaces]] binding "QUOTA" : liste des installations (empreintes des jetons, jamais les jetons) ;
+#   les anciens compteurs SerpApi qui s'y trouvent ne sont plus lus qu'une fois, pour la reprise.
 
 # Seuil mensuel de recherches SerpApi (offre gratuite : 250). Au seuil, /identify répond « quota_atteint ».
 [vars]

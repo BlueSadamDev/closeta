@@ -4,6 +4,7 @@ import relais, { type Env } from '../src/index';
 import shopifyTailles from './fixtures/shopify-tailles.html?raw';
 import shopify from './fixtures/shopify.html?raw';
 import { magasin } from './kv';
+import { espaceQuota } from './quotaObjet';
 
 const JETON = 'jeton-fictif-de-test';
 
@@ -14,6 +15,7 @@ function env(autorise = true): Env {
     AI: { run: async () => ({}) },
     PHOTOS: { put: async () => null, get: async () => null, delete: async () => undefined },
     QUOTA: magasin(),
+    QUOTAS: espaceQuota(magasin()).espace,
   };
 }
 

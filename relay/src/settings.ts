@@ -19,8 +19,10 @@ export const settings = {
   limiteSerpApiDefaut: 250,
   /** Le mois du compteur suit l'heure de Paris (remise à zéro le 1er à minuit). */
   fuseauQuota: 'Europe/Paris',
-  /** Durée de vie d'une case mensuelle dans KV : 40 jours, puis effacée d'elle-même. */
-  dureeCaseQuotaS: 40 * 24 * 3600,
+  /** Nom de l'unique exemplaire du Durable Object `Quota` (toutes les installations y sont comptées). */
+  nomObjetQuota: 'global',
+  /** Mois gardés dans le compteur : le mois en cours et le précédent ; les plus anciens sont effacés. */
+  moisQuotaGardes: 2,
 
   // --- Installations ---
   /** Longueur maximale du nom d'une installation (« Téléphone de Léa »). */

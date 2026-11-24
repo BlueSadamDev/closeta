@@ -8,8 +8,9 @@ Analyse du 24 novembre 2026, après la fin du lot 3. Elle sert de référence po
 Téléphone (une installation)       Cloudflare (relais)                Services externes
 App ClosetA                        Worker : /v1/extract,              Pages des boutiques
   données en local (SQLite)  ───▶    /v1/identify, /v1/alternatives ─▶ Workers AI (vision)
-  photos en local                  KV : installations, quotas         SerpApi (Lens, Shopping)
-  sauvegarde .closeta              R2 : photos le temps d'une recherche
+  photos en local                  KV : installations                 SerpApi (Lens, Shopping)
+  sauvegarde .closeta              Durable Object : quotas
+                                   R2 : photos le temps d'une recherche
 ```
 
 - **Local d'abord** : Wishlist, Vestiaire, relevés de prix et photos vivent sur le téléphone. Aucune base centrale de données personnelles.
@@ -55,7 +56,7 @@ Passer à l'offre payante Cloudflare (5 $ par mois) dès le premier utilisateur 
 
 | # | Faiblesse | Risque | Solution | Quand |
 | --- | --- | --- | --- | --- |
-| 1 | Compteurs de quota dans KV : lecture puis écriture séparées, mise à jour partout avec un délai, 1 000 écritures par jour en gratuit | Recherches comptées en trop ou en moins, dépassement, erreurs | Compteurs dans un **Durable Object** (comptage exact même en accès simultanés), disponible en gratuit avec SQLite | Lot 4 |
+| 1 | Compteurs de quota dans KV : lecture puis écriture séparées, mise à jour partout avec un délai, 1 000 écritures par jour en gratuit | Recherches comptées en trop ou en moins, dépassement, erreurs | Compteurs dans un **Durable Object** (comptage exact même en accès simultanés), disponible en gratuit avec SQLite | Lot 4, étape 1 : fait |
 | 2 | Aucun cache de nos résultats au-delà de l'heure de SerpApi | Même recherche payée plusieurs fois | **Catalogue partagé et cache** dans D1 (section 5) | Lot 4 |
 | 3 | Inscription par QR généré depuis le téléphone administrateur | Impossible au-delà de quelques proches | **Codes d'invitation** à usage unique (expiration 7 jours) ; plus tard, vraie inscription | Lot 4 |
 | 4 | Pas de compte utilisateur | Téléphone perdu sans sauvegarde = données perdues ; pas de synchronisation | Sauvegarde `.closeta` (en place) ; comptes et synchronisation facultative (section 6) | Plus tard |
