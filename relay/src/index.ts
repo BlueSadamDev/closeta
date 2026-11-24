@@ -1,5 +1,6 @@
 import { chercherAlternatives, DemandeInvalide, lireDemande } from './alternatives';
-import { extraireProduit } from './extract';
+import { adresseCanonique, type BaseD1, Catalogue } from './catalogue';
+import { extraireAvecTailles } from './extract';
 import type { IA } from './ia';
 import { lireGenre, type Genre } from './genre';
 import { clePhoto, estJpeg, identifiantValide, identifier, QuotaAtteint, RechercheIndisponible, type Stockage } from './identify';
@@ -47,7 +48,11 @@ export interface Env {
   SERPAPI_LIMITE_INSTALLATION?: string;
   /** Version minimale de l'app (vide : aucune exigence). */
   VERSION_APP_MIN?: string;
+  /** Catalogue partagé et anonyme (Cloudflare D1) ; absent = relais sans cache. */
+  CATALOGUE?: BaseD1;
 }
+
+const catalogueDe = (env: Env) => (env.CATALOGUE ? new Catalogue(env.CATALOGUE) : null);
 
 export type CodeErreur =
   | 'jeton_absent'
@@ -141,8 +146,11 @@ async function lirePhoto(requete: Request): Promise<Uint8Array | null> {
   return estJpeg(photo) ? photo : null;
 }
 
-/** POST /extract : lecture d'une page produit. */
-async function routeExtract(requete: Request): Promise<Response> {
+/**
+ * POST /extract : lecture d'une page produit. Lue il y a moins de 24 h (par n'importe qui) → réponse
+ * depuis le catalogue, sans relire la page ; sinon lecture, puis mise à jour du catalogue.
+ */
+async function routeExtract(requete: Request, env: Env): Promise<Response> {
   let corps: unknown;
   try {
     corps = await requete.json();
@@ -153,7 +161,16 @@ async function routeExtract(requete: Request): Promise<Response> {
   const url = urlPublique((corps as { url?: unknown } | null)?.url);
   if (!url) return erreur('url_refusee', 400);
 
-  // Lecture de la page et extraction. Rien n'est conservé.
+  // Taille de la pièce (facultative), pour lire sa disponibilité.
+  const taille = (corps as { taille?: unknown }).taille;
+  const tailleLue = typeof taille === 'string' && taille.trim() !== '' ? taille.trim().slice(0, settings.tailleMaxTaille) : null;
+
+  const catalogue = catalogueDe(env);
+  const canonique = adresseCanonique(url);
+  const enCache = await catalogue?.produitRecent(canonique, tailleLue);
+  if (enCache) return json({ ...enCache, url: url.toString(), depuis_cache: true });
+
+  // Lecture de la page et extraction.
   let page: { html: string; url: URL } | null;
   try {
     page = await lirePage(url);
@@ -162,10 +179,9 @@ async function routeExtract(requete: Request): Promise<Response> {
   }
   if (!page) return erreur('page_illisible', 502);
 
-  // Taille de la pièce (facultative), pour lire sa disponibilité.
-  const taille = (corps as { taille?: unknown }).taille;
-  const tailleLue = typeof taille === 'string' && taille.trim() !== '' ? taille.trim().slice(0, settings.tailleMaxTaille) : null;
-  return json({ ...extraireProduit(page.html, page.url, tailleLue), url: url.toString() });
+  const { extraction, dispoTailles } = extraireAvecTailles(page.html, page.url, tailleLue);
+  await catalogue?.enregistrerLecture(canonique, extraction, dispoTailles);
+  return json({ ...extraction, url: url.toString(), depuis_cache: false });
 }
 
 /** Compteur global et compteur de l'installation (chaque recherche compte dans les deux). */
@@ -185,8 +201,10 @@ async function routeIdentify(requete: Request, env: Env, installation: Installat
   const photo = await lirePhoto(requete);
   if (!photo) return erreur('photo_refusee', 400);
   const quota = compteur(env, installation);
-  // Seuil atteint : réponse immédiate, sans IA ni SerpApi.
-  if (await quota.atteint()) return erreur('quota_atteint', 429);
+  const catalogue = catalogueDe(env);
+  // Seuil atteint et pas de catalogue : réponse immédiate, sans IA ni SerpApi
+  // (avec le catalogue, une recherche déjà faite reste servie, sans compter).
+  if (!catalogue && (await quota.atteint())) return erreur('quota_atteint', 429);
   let genre: Genre | null;
   try {
     genre = lireGenre(new URL(requete.url).searchParams.get('genre'));
@@ -202,6 +220,7 @@ async function routeIdentify(requete: Request, env: Env, installation: Installat
       cleSerpApi: env.SERPAPI_KEY,
       quota,
       adressePhoto: (id) => `${origine}/photo/${id}`,
+      catalogue,
     });
     return json(resultat);
   } catch (e) {
@@ -225,8 +244,10 @@ async function routeAlternatives(requete: Request, env: Env, installation: Insta
     return erreur(e instanceof DemandeInvalide ? e.code : 'requete_invalide', 400);
   }
   const quota = compteur(env, installation);
-  // Seuil atteint : réponse immédiate, sans appel à SerpApi.
-  if (await quota.atteint()) return erreur('quota_atteint', 429);
+  const catalogue = catalogueDe(env);
+  // Seuil atteint et pas de catalogue : réponse immédiate, sans appel à SerpApi
+  // (avec le catalogue, une recherche déjà faite reste servie, sans compter).
+  if (!catalogue && (await quota.atteint())) return erreur('quota_atteint', 429);
   const origine = new URL(requete.url).origin;
   try {
     return json(
@@ -235,6 +256,7 @@ async function routeAlternatives(requete: Request, env: Env, installation: Insta
         cleSerpApi: env.SERPAPI_KEY,
         quota,
         adressePhoto: (id) => `${origine}/photo/${id}`,
+        catalogue,
       }),
     );
   } catch (e) {
@@ -348,6 +370,11 @@ export default {
     if (chemin === '/quota') return routeQuota(env, installation);
     if (chemin === '/alternatives') return routeAlternatives(requete, env, installation);
     if (chemin === '/identify') return routeIdentify(requete, env, installation);
-    return routeExtract(requete);
+    return routeExtract(requete, env);
+  },
+
+  /** Tâche planifiée (wrangler.toml, [triggers], chaque nuit à 3 h UTC) : purge des recherches expirées. */
+  async scheduled(_evenement: unknown, env: Env): Promise<void> {
+    await catalogueDe(env)?.purger();
   },
 };

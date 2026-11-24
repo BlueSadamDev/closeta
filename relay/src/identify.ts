@@ -6,9 +6,10 @@
  *    (à partir de la recherche écrite par l'IA), étiquetés « alternative ».
  * La photo n'est déposée dans R2 que le temps de la recherche Lens, puis supprimée.
  */
+import { type Catalogue, depuisCache, empreinte, nouveauSuivi, viaCatalogue } from './catalogue';
 import { filtrerGenre, rechercheAvecGenre, type Genre } from './genre';
 import { DESCRIPTION_VIDE, decrirePhoto, type Description, type IA } from './ia';
-import { adresseLens, adresseShopping, appelerSerpApi, lireLens, lireShopping, type Proposition } from './recherche';
+import { adresseLens, adresseShopping, appelerSerpApi, lireLens, lireShopping, prixDevant, type Proposition } from './recherche';
 import { classer } from './pertinence';
 import { settings } from './settings';
 
@@ -19,7 +20,13 @@ export interface Stockage {
   delete(cle: string): Promise<void>;
 }
 
-export type Identification = { description: Description; resultats: Proposition[]; incidents?: string[] };
+export type Identification = {
+  description: Description;
+  resultats: Proposition[];
+  /** Vrai quand toutes les recherches viennent du catalogue (aucune recherche payée ni comptée). */
+  depuis_cache: boolean;
+  incidents?: string[];
+};
 
 /** Une photo JPEG commence toujours par les octets FF D8 FF. */
 export const estJpeg = (o: Uint8Array) => o.length > 3 && o[0] === 0xff && o[1] === 0xd8 && o[2] === 0xff;
@@ -88,14 +95,22 @@ export async function identifier(
     cleSerpApi: string | undefined;
     quota: Reservation;
     adressePhoto: (id: string) => string;
+    /** Catalogue partagé : recherches déjà faites, réutilisées sans consommer le quota (absent = sans cache). */
+    catalogue?: Catalogue | null;
   },
 ): Promise<Identification> {
-  const { ia, stockage, cleSerpApi, quota } = outils;
+  const { ia, stockage, cleSerpApi, quota, catalogue } = outils;
+  const genre = outils.genre ?? null;
   const id = nouvelIdentifiant();
   // Étapes en échec, renvoyées seulement en cas de panne (aucun secret dedans).
   const incidents: string[] = [];
+  const suivi = nouveauSuivi();
 
-  const lens = async (): Promise<Proposition[] | null> => {
+  // La photo ne sert de clé que par son empreinte : elle n'est jamais gardée.
+  const lens = async (): Promise<Proposition[] | null> =>
+    viaCatalogue(catalogue, 'lens_photo', await empreinte(photo), genre, suivi, lensPayee);
+
+  const lensPayee = async (): Promise<Proposition[] | null> => {
     if (!cleSerpApi) {
       incidents.push('cle_serpapi_absente');
       return null;
@@ -111,7 +126,7 @@ export async function identifier(
       return null;
     }
     try {
-      return lireLens(await appelerSerpApi(adresseLens(cleSerpApi, outils.adressePhoto(id)), settings.delaiLensMs));
+      return lireLens(await appelerSerpApi(adresseLens(cleSerpApi, outils.adressePhoto(id)), settings.delaiLensMs), false);
     } catch (e) {
       incidents.push(`lens: ${resume(e, cleSerpApi)}`);
       return null;
@@ -121,32 +136,39 @@ export async function identifier(
     }
   };
 
-  const [description, trouves] = await Promise.all([
+  const [description, lensBrut] = await Promise.all([
     decrirePhoto(ia, photo, (e) => incidents.push(`ia: ${resume(e, cleSerpApi)}`)).catch(() => DESCRIPTION_VIDE),
     lens().catch((e: unknown) => {
       incidents.push(`lens: ${resume(e, cleSerpApi)}`);
       return null;
     }),
   ]);
+  // Gardés dans l'ordre de Lens ; ici, les pièces avec un prix passent devant.
+  const trouves = lensBrut === null ? null : prixDevant(lensBrut);
+
+  // Shopping payé : réservation, puis appel ; null = non fait ou en échec.
+  const shoppingPaye = async (requete: string): Promise<Proposition[] | null> => {
+    if (!cleSerpApi) return null;
+    if (!(await quota.reserver())) {
+      // Seuil atteint après Lens : on garde ce que Lens a trouvé.
+      incidents.push('quota_atteint');
+      return null;
+    }
+    try {
+      return lireShopping(await appelerSerpApi(adresseShopping(cleSerpApi, requete), settings.delaiShoppingMs));
+    } catch (e) {
+      // Shopping en échec : on garde ce que Lens a trouvé.
+      incidents.push(`shopping: ${resume(e, cleSerpApi)}`);
+      return null;
+    }
+  };
 
   // null = recherche Shopping non faite ou en échec.
   let shopping: Proposition[] | null = null;
-  if ((trouves?.length ?? 0) < settings.resultatsMin && cleSerpApi && description.recherche) {
-    if (await quota.reserver()) {
-      try {
-        const genre = outils.genre ?? null;
-        shopping = filtrerGenre(
-          lireShopping(await appelerSerpApi(adresseShopping(cleSerpApi, rechercheAvecGenre(description.recherche, genre)), settings.delaiShoppingMs)),
-          genre,
-        );
-      } catch (e) {
-        // Shopping en échec : on garde ce que Lens a trouvé.
-        incidents.push(`shopping: ${resume(e, cleSerpApi)}`);
-      }
-    } else {
-      // Seuil atteint après Lens : on garde ce que Lens a trouvé.
-      incidents.push('quota_atteint');
-    }
+  if ((trouves?.length ?? 0) < settings.resultatsMin && (cleSerpApi || catalogue) && description.recherche) {
+    const requete = rechercheAvecGenre(description.recherche, genre);
+    const brut = await viaCatalogue(catalogue, 'shopping', requete, genre, suivi, () => shoppingPaye(requete));
+    shopping = brut === null ? null : filtrerGenre(brut, genre);
   } else if (trouves === null && !description.recherche) {
     incidents.push('ia_sans_recherche');
   }
@@ -158,5 +180,6 @@ export async function identifier(
 
   const resultats = assembler(trouves ?? [], shopping ?? [], description);
   // Les étapes en échec (IA trop lente, Shopping en panne…) accompagnent la réponse : utile au diagnostic.
-  return incidents.length > 0 ? { description, resultats, incidents } : { description, resultats };
+  const reponse = { description, resultats, depuis_cache: depuisCache(suivi) };
+  return incidents.length > 0 ? { ...reponse, incidents } : reponse;
 }

@@ -24,6 +24,23 @@ export const settings = {
   /** Mois gardés dans le compteur : le mois en cours et le précédent ; les plus anciens sont effacés. */
   moisQuotaGardes: 2,
 
+  // --- Catalogue partagé (Cloudflare D1) ---
+  /** Une page produit lue il y a moins de 24 h est servie depuis le catalogue, sans la relire. */
+  dureePageMs: 24 * 3600_000,
+  /** Durée de validité d'un résultat de recherche, par type (ensuite purgé la nuit). */
+  dureesRecherche: {
+    shopping: 7 * 24 * 3600_000,
+    lens_image: 30 * 24 * 3600_000,
+    lens_photo: 30 * 24 * 3600_000,
+  },
+  /** Paramètres de suivi retirés de l'adresse d'une page (les autres sont gardés : taille, couleur…). */
+  parametresSuivi: [
+    'gclid', 'gbraid', 'wbraid', 'dclid', 'fbclid', 'msclkid', 'yclid', 'ttclid', 'twclid', 'igshid',
+    'mc_cid', 'mc_eid', '_ga', '_gl', 'srsltid', 'epik',
+  ],
+  /** Préfixes de paramètres de suivi (utm_source, utm_medium…). */
+  prefixesSuivi: ['utm_'],
+
   // --- Installations ---
   /** Longueur maximale du nom d'une installation (« Téléphone de Léa »). */
   nomInstallationMax: 40,
