@@ -15,6 +15,8 @@ export const settings = {
   relayTokenKey: 'closeta.jeton-relais',
   /** Clé du coffre où est rangée l'adresse du relais saisie dans les Réglages (sinon : relayUrl). */
   relayUrlKey: 'closeta.adresse-relais',
+  /** Clé du coffre où est rangé le genre des recherches d'alternatives (Réglages ; absent = mixte). */
+  genreRechercheKey: 'closeta.genre-recherche',
   /** Clé du coffre où est rangé le jeton d'administration (section « Installations » des Réglages). */
   adminTokenKey: 'closeta.jeton-admin',
   /** Début du lien d'un QR de configuration : closeta://config?relais=<adresse>&jeton=<jeton>. */
@@ -37,6 +39,8 @@ export const settings = {
   photoVestiaire: { largeur: 1200, hauteur: 1600 },
   /** Qualité JPEG de la photo du Vestiaire, gardée sur le téléphone : plus nette que la copie envoyée. */
   photoVestiaireCompression: 0.9,
+  /** Photo agrandie (fiche) : zoom au pincement de 1 (photo entière) à zoomMax ; double toucher = zoomDouble. */
+  photoPleinEcran: { zoomMax: 4, zoomDouble: 2.5 },
   /**
    * Habillage des photos du Vestiaire (docs/SPEC.md, « Étape 8 ») : pièce détourée sur le téléphone (ML Kit),
    * centrée sur le fond `photo3` du thème, avec une ombre légère.

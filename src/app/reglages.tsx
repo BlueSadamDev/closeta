@@ -12,6 +12,7 @@ import { Entete } from '@/components/Entete';
 import { Etiquette } from '@/components/Etiquette';
 import { RichText } from '@/components/RichText';
 import { SectionInstallations } from '@/components/SectionInstallations';
+import { SectionRecherches } from '@/components/SectionRecherches';
 import { SectionSauvegarde } from '@/components/SectionSauvegarde';
 import { lienConfiguration, lireAdresseRelais } from '@/domain/configuration';
 import { nettoyerJeton, niveauQuota, type Quota } from '@/domain/relais';
@@ -204,6 +205,9 @@ export default function Reglages() {
               <Text style={[type.body, styles.valeur]}>{Constants.expoConfig?.version ?? ''}</Text>
             </View>
           </View>
+
+          <Etiquette style={styles.section}>{r.sectionRecherches}</Etiquette>
+          <SectionRecherches />
 
           <Etiquette style={styles.section}>{r.sectionSauvegarde}</Etiquette>
           <SectionSauvegarde />

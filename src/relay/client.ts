@@ -4,6 +4,7 @@
 import { File, UploadType } from 'expo-file-system';
 
 import { demandeAlternatives, lireAlternatives, type ResultatAlternatives } from '@/domain/alternatives';
+import { genrePourRelais } from '@/domain/genre';
 import type { Article } from '@/domain/article';
 import { lireExtraction, type ResultatExtraction } from '@/domain/lien';
 import { lireIdentification, type ResultatIdentification } from '@/domain/photo';
@@ -17,6 +18,7 @@ import {
 import { adresseRelais, entetesRelais, lireQuota, lireTestConnexion, type EtatConnexion, type Quota } from '@/domain/relais';
 import { settings } from '@/domain/settings';
 
+import { lireGenre } from './genre';
 import { identite } from './installation';
 import { lireAdresse } from './jeton';
 
@@ -100,7 +102,9 @@ export async function identifier(photo: string, jeton: string): Promise<Resultat
   if (!jeton) return { ok: false, raison: 'jeton_absent' };
   let minuteur: ReturnType<typeof setTimeout> | undefined;
   try {
-    const envoi = new File(photo).createUploadTask(await adresse('/identify'), {
+    const genre = genrePourRelais(await lireGenre());
+    const route = genre ? `/identify?genre=${genre}` : '/identify';
+    const envoi = new File(photo).createUploadTask(await adresse(route), {
       httpMethod: 'POST',
       uploadType: UploadType.BINARY_CONTENT,
       headers: entetesRelais(await identite(jeton), { 'Content-Type': 'image/jpeg' }),
@@ -134,7 +138,7 @@ export async function chercherAlternatives(article: Article, photo: string | nul
     const reponse = await fetch(await adresse('/alternatives'), {
       method: 'POST',
       headers: entetesRelais(await identite(jeton), { 'Content-Type': 'application/json' }),
-      body: JSON.stringify(demandeAlternatives(article, photo)),
+      body: JSON.stringify(demandeAlternatives(article, photo, await lireGenre())),
       signal: arret.signal,
     });
     return lireAlternatives(reponse.status, await reponse.json().catch(() => null));

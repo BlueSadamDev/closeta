@@ -81,7 +81,7 @@ Piste C · Fondations multi-installations (ajoutée le 23 novembre 2026) :
 11. Données portables : photos en nom de fichier (migration v3), table `suppression`, sauvegarde et restauration d'un fichier `.closeta`. **Terminée, fusionnée via la PR #28** : migration v3 (nom seul des photos, dossier recalculé au démarrage), table `suppression`, section « Sauvegarde » des Réglages (fichier `.closeta` partagé avec `expo-sharing`, restauration vérifiée puis remplacement complet, sans aucun secret).
 
 Fin du lot :
-12. Production : vérifications complètes, APK de production, test unique par l'utilisateur.
+12. Production : vérifications complètes, APK de production, test unique par l'utilisateur. **Terminée, fusionnée via la PR #29** : vérifications complètes, aucun secret (dépôt, APK), test unique validé sur l'APK de production (points 1 à 7 ; QR de configuration à tester plus tard) ; retours ajoutés : photo agrandie avec zoom sur la fiche, genre des recherches d'alternatives (Réglages « Je cherche pour », relais `/alternatives` et `/identify`) ; variables GitHub `RELAIS_*` créées, relais remis en ligne.
 
 ## Lots suivants
 Lots 4 à 6 (bien tailler, plan d'achat, style) : voir [docs/ROADMAP.md](docs/ROADMAP.md). Chaque lot sera détaillé dans docs/SPEC.md avant son développement.
@@ -103,6 +103,7 @@ Lire [DESIGN.md](DESIGN.md) avant toute modification d'interface et le respecter
 ## Dépendances
 - Ajouter un module Expo avec `npx expo install <nom>`, jamais `npm install`, pour garantir la compatibilité avec le SDK.
 - Modules prévus (à ajouter seulement quand l'étape en a besoin, avec validation) : `expo-sqlite`, `expo-file-system`, `expo-image-picker`, `expo-image-manipulator`, `expo-secure-store`, `expo-font`, `expo-clipboard`, `expo-dev-client`, `expo-build-properties`, `jest-expo`.
+- Session distante sans accès à exp.host (`getaddrinfo ENOTFOUND exp.host`) : `EXPO_OFFLINE=1 npx expo install <nom>` (versions lues dans le SDK installé). `expo-doctor` y échoue sur 2 contrôles réseau, sans rapport avec le projet.
 - Ne jamais ajouter manuellement `expo-modules-core` ni `expo-modules-autolinking` dans `package.json`. Lancer `npx expo install --fix` si nécessaire.
 - **Dependabot** : ne jamais fusionner une PR Dependabot qui touche les dépendances npm de l'app. À la place : `npx expo install --check`, puis `npx expo install --fix` sur une branche dédiée, et fermer la PR Dependabot avec une explication. Les PR Dependabot sur `.github/workflows` ou `relay/` peuvent être fusionnées après un build et des tests réussis.
 

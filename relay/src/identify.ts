@@ -6,6 +6,7 @@
  *    (à partir de la recherche écrite par l'IA), étiquetés « alternative ».
  * La photo n'est déposée dans R2 que le temps de la recherche Lens, puis supprimée.
  */
+import { filtrerGenre, rechercheAvecGenre, type Genre } from './genre';
 import { DESCRIPTION_VIDE, decrirePhoto, type Description, type IA } from './ia';
 import { adresseLens, adresseShopping, appelerSerpApi, lireLens, lireShopping, type Proposition } from './recherche';
 import { classer } from './pertinence';
@@ -80,6 +81,8 @@ export const resume = (e: unknown, secret: string | undefined) => {
 export async function identifier(
   photo: Uint8Array,
   outils: {
+    /** Genre choisi dans les Réglages : appliqué aux seules alternatives (Google Shopping), pas à Lens. */
+    genre?: Genre | null;
     ia: IA;
     stockage: Stockage;
     cleSerpApi: string | undefined;
@@ -131,7 +134,11 @@ export async function identifier(
   if ((trouves?.length ?? 0) < settings.resultatsMin && cleSerpApi && description.recherche) {
     if (await quota.reserver()) {
       try {
-        shopping = lireShopping(await appelerSerpApi(adresseShopping(cleSerpApi, description.recherche), settings.delaiShoppingMs));
+        const genre = outils.genre ?? null;
+        shopping = filtrerGenre(
+          lireShopping(await appelerSerpApi(adresseShopping(cleSerpApi, rechercheAvecGenre(description.recherche, genre)), settings.delaiShoppingMs)),
+          genre,
+        );
       } catch (e) {
         // Shopping en échec : on garde ce que Lens a trouvé.
         incidents.push(`shopping: ${resume(e, cleSerpApi)}`);

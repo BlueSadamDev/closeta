@@ -381,6 +381,11 @@ export const texts = {
       },
     },
     /** Section « Sauvegarde » (docs/SPEC.md, « Lot 3 », « Étape 11 »). */
+    /** Section « Recherches » : genre appliqué aux alternatives (docs/SPEC.md, « Lot 3 », « Étape 12 »). */
+    sectionRecherches: 'Recherches',
+    genre: 'Je cherche pour',
+    genres: { femme: 'Femme', homme: 'Homme', mixte: 'Mixte' },
+    genreAide: 'Les alternatives proposées suivent ce choix. Mixte : aucun filtre.',
     sectionSauvegarde: 'Sauvegarde',
     sauvegarde: {
       explication: 'Un fichier avec toutes tes pièces et leurs photos, à ranger où tu veux. Sans jeton ni réglage du relais.',
@@ -431,6 +436,9 @@ export const texts = {
     fermerPriseDeVue: 'Fermer la prise de vue',
     fermerScanner: 'Fermer le lecteur de QR',
     qrConfiguration: 'QR de configuration',
+    agrandirPhoto: 'Agrandir la photo',
+    photoAgrandie: 'Photo agrandie. Pince pour zoomer, touche pour fermer.',
+    fermerPhoto: 'Fermer la photo',
   },
 
   /** Lecteur de QR de configuration (Réglages). */

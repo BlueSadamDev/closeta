@@ -306,7 +306,7 @@ Règles :
 
 **Étape 2 — Alternatives depuis une fiche de la Wishlist**
 
-- Relais : route `POST /alternatives`, entrée `{ image_url?, photo?, nom, marque, categorie, couleur, url_exclue }` → `{ resultats: [ { nom, marque, image, prix, devise, boutique, url } ] }`, au plus 5.
+- Relais : route `POST /alternatives`, entrée `{ image_url?, photo?, nom, marque, categorie, couleur, url_exclue, genre? }` (`genre` ajouté à l'étape 12) → `{ resultats: [ { nom, marque, image, prix, devise, boutique, url } ] }`, au plus 5.
   - Recherche visuelle Google Lens sur l'image de la pièce (URL d'origine si elle existe, sinon photo locale envoyée et déposée un instant dans R2, comme `/identify`).
   - Classement par **ressemblance** (pertinence Lens puis proximité nom / catégorie / couleur), le prix n'entre pas dans le classement.
   - Exclus : la page d'origine (`url_exclue`), les réseaux sociaux, les résultats sans boutique.
@@ -425,6 +425,12 @@ Décisions du 24 novembre 2026 (plan de l'étape 11) :
 
 - Vérifications complètes (expo-doctor, lint, tsc, jest, tests du relais), APK de production, **test unique** par l'utilisateur, fin du lot.
 - Le test couvre en particulier : migration des photos (aucune perdue), ancien jeton toujours accepté, sauvegarde puis restauration sur l'APK de dev.
+
+Retours du test de production (24 novembre 2026), ajoutés avant la fin du lot :
+
+- **Photo agrandie** : toucher la photo d'une fiche (Wishlist ou Vestiaire) l'ouvre en plein écran sur fond `paper` ; pincer pour zoomer (jusqu'à × 4, réglage `photoPleinEcran`), glisser pour se déplacer, double toucher pour zoomer ou revenir ; un toucher, la croix ou le retour Android referment. Dépendances `react-native-gesture-handler`, `react-native-reanimated` et `react-native-worklets`, déjà présentes via expo-router, déclarées aux versions du SDK.
+- **Genre des recherches** : Réglages, section « Recherches », « Je cherche pour : Femme · Homme · Mixte » (défaut Mixte = aucun filtre), rangé dans le coffre du téléphone, hors sauvegarde. Envoyé au relais (`genre` dans `/alternatives`, `?genre=` sur `/identify`) : ajouté à la recherche Google Shopping ; les résultats dont le nom désigne l'autre genre (« homme », « men », « femme », « women »…) sont écartés, sauf s'ils citent les deux. Sur `/identify`, seules les alternatives Shopping sont concernées, pas les correspondances Lens. Valeur inconnue refusée (`requete_invalide`).
+- Le **style** dans les alternatives viendra avec le lot 6 (voir ROADMAP.md).
 
 ### Critères d'acceptation
 

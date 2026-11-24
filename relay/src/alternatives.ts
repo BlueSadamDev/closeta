@@ -5,7 +5,9 @@
  * 2) Sont écartés : la page d'origine, les réseaux sociaux, les résultats sans boutique.
  * 3) Classement par ressemblance (ordre de Lens, puis proximité nom / catégorie / couleur) : le prix n'y entre pas.
  * 4) Moins de 3 résultats : Google Shopping complète à partir de nom + marque + catégorie + couleur.
+ * Genre choisi dans les Réglages : ajouté à la recherche Shopping ; les résultats de l'autre genre sont écartés.
  */
+import { filtrerGenre, GenreInvalide, lireGenre, rechercheAvecGenre, type Genre } from './genre';
 import type { Description } from './ia';
 import { clePhoto, estJpeg, nouvelIdentifiant, QuotaAtteint, RechercheIndisponible, resume, type Reservation, type Stockage } from './identify';
 import { classer } from './pertinence';
@@ -25,6 +27,8 @@ export type Demande = {
   couleur: string | null;
   /** Page boutique de la pièce elle-même, à ne pas reproposer. */
   urlExclue: string | null;
+  /** Genre choisi dans les Réglages (null = mixte, aucun filtre). */
+  genre: Genre | null;
 };
 
 /** Une alternative renvoyée à l'app. */
@@ -70,6 +74,13 @@ export function lireDemande(corps: unknown): Demande {
   // Une adresse d'image non publique est ignorée (Lens ne saurait pas la lire) : la photo prend le relais.
   const image = urlPublique(c.image_url);
   const exclue = urlPublique(c.url_exclue);
+  let genre: Genre | null;
+  try {
+    genre = lireGenre(c.genre);
+  } catch (e) {
+    if (e instanceof GenreInvalide) throw new DemandeInvalide('requete_invalide');
+    throw e;
+  }
   return {
     imageUrl: image ? image.toString() : null,
     photo,
@@ -78,6 +89,7 @@ export function lireDemande(corps: unknown): Demande {
     categorie: texte(c.categorie, 40),
     couleur: texte(c.couleur, 40),
     urlExclue: exclue ? exclue.toString() : null,
+    genre,
   };
 }
 
@@ -103,13 +115,16 @@ export function filtrer(propositions: Proposition[], urlExclue: string | null, d
   });
 }
 
-/** Recherche écrite pour Google Shopping : nom, marque, catégorie, couleur, sans répéter ce que le nom dit déjà. */
-export function rechercheTexte(d: Pick<Demande, 'nom' | 'marque' | 'categorie' | 'couleur'>): string {
+/**
+ * Recherche écrite pour Google Shopping : nom, marque, catégorie, couleur, sans répéter ce que le nom dit déjà,
+ * puis le genre choisi dans les Réglages.
+ */
+export function rechercheTexte(d: Pick<Demande, 'nom' | 'marque' | 'categorie' | 'couleur'> & { genre?: Genre | null }): string {
   let recherche = d.nom;
   for (const morceau of [d.marque, d.categorie, d.couleur]) {
     if (morceau && !recherche.toLowerCase().includes(morceau.toLowerCase())) recherche += ` ${morceau}`;
   }
-  return recherche;
+  return rechercheAvecGenre(recherche, d.genre ?? null);
 }
 
 /** Ce que l'on sait de la pièce, sous la forme attendue par le classement par ressemblance. */
@@ -125,11 +140,11 @@ export const descriptionDe = (d: Demande): Description => ({
 /** Liste finale : Lens d'abord, Shopping en complément, chaque groupe classé par ressemblance, au plus 5. */
 export function assemblerAlternatives(lens: Proposition[], shopping: Proposition[], d: Demande): Alternative[] {
   const description = descriptionDe(d);
-  const retenusLens = filtrer(lens, d.urlExclue);
+  const retenusLens = filtrer(filtrerGenre(lens, d.genre), d.urlExclue);
   const complement =
     retenusLens.length >= settings.resultatsMin
       ? []
-      : filtrer(shopping, d.urlExclue, new Set(retenusLens.map((p) => clePage(p.url) ?? '')));
+      : filtrer(filtrerGenre(shopping, d.genre), d.urlExclue, new Set(retenusLens.map((p) => clePage(p.url) ?? '')));
   return [...classer(retenusLens, description), ...classer(complement, description)]
     .slice(0, settings.resultatsMax)
     .map(({ alternative: _a, ...reste }) => reste);
@@ -184,7 +199,7 @@ export async function chercherAlternatives(
   };
 
   const trouves = await lens();
-  const retenus = filtrer(trouves ?? [], d.urlExclue).length;
+  const retenus = filtrer(filtrerGenre(trouves ?? [], d.genre), d.urlExclue).length;
 
   // null = recherche Shopping non faite ou en échec.
   let shopping: Proposition[] | null = null;
