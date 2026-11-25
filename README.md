@@ -66,7 +66,7 @@ Cormorant Garamond et Jost, sous licence SIL Open Font License (fichiers de lice
 
 ## Relais Cloudflare (dossier `relay/`)
 
-Petit programme hébergé chez Cloudflare (gratuit). L'app lui envoie un lien produit ou une photo ; il renvoie ce qu'il a trouvé (une information introuvable reste vide). Il ne conserve rien.
+Petit programme hébergé chez Cloudflare (gratuit). L'app lui envoie un lien produit ou une photo ; il renvoie ce qu'il a trouvé (une information introuvable reste vide). Il ne conserve aucune donnée personnelle (voir « Catalogue partagé » ci-dessous).
 
 - `POST /extract`, corps `{ "url": "https://…", "taille": "M" }` (`taille` facultative) : lit la page de la boutique et renvoie nom, marque, image, prix, devise, `disponibilite` et `dispo_taille` (`en_stock`, `epuise` ou `inconnue` si la boutique ne publie rien). N'accepte que des liens `https` publics.
 - `POST /identify[?genre=femme|homme]`, corps = la photo JPEG (`Content-Type: image/jpeg`, 2 Mo au plus) : l'IA de Cloudflare décrit la pièce, Google Lens (via SerpApi) cherche l'article, Google Shopping complète avec des alternatives. Renvoie de 0 à 5 résultats. La photo est déposée un instant dans le stockage R2 (Lens a besoin d'une adresse pour la lire, `GET /photo/<id>`), puis supprimée.
@@ -75,6 +75,15 @@ Petit programme hébergé chez Cloudflare (gratuit). L'app lui envoie un lien pr
 - Routes servies sous `/v1/…` (`/v1/extract`, `/v1/identify`, `/v1/alternatives`, `/v1/quota`) ; les adresses sans `/v1` restent des alias pour les anciens APK.
 - En-tête `Authorization: Bearer <jeton>` obligatoire ; limite de 30 requêtes par minute et par installation. L'app envoie aussi `X-ClosetA-Installation` (identifiant du téléphone) et `X-ClosetA-Version` (version de l'app).
 - Tests : `cd relay && npm ci && npm test`.
+
+### Catalogue partagé (Cloudflare D1)
+
+- Base D1 `closeta-catalogue` (lien `CATALOGUE`), tables créées par les fichiers de `relay/migrations/` à chaque mise en ligne. Elle est **anonyme** : produits, prix observés et résultats de recherche ; jamais de jeton, d'identifiant d'installation, d'adresse IP ni de photo (une photo ne sert de clé que par son empreinte SHA-256).
+- `/extract` : une page lue il y a moins de 24 h (par n'importe quel téléphone) est servie depuis le catalogue, sans la relire. L'adresse est comparée sans ses paramètres de suivi (`utm_*`, `gclid`, `fbclid`…). Un nouveau relevé de prix n'est ajouté que si le prix ou la disponibilité a changé ; l'historique est conservé.
+- `/identify` et `/alternatives` : une recherche Google Lens ou Shopping déjà faite (même entrée, même genre) est réutilisée **sans consommer le quota**, même quand il est atteint : Shopping 7 jours, Lens 30 jours.
+- Les trois réponses indiquent `depuis_cache: true` quand rien n'a été relu ni payé.
+- Purge des recherches expirées chaque nuit à 3 h UTC (tâche planifiée, `[triggers]` dans `wrangler.toml`). Durées dans `relay/src/settings.ts`.
+- Sans base D1 ou en cas de panne, le relais fonctionne comme avant, sans cache.
 
 ### Installations (un jeton par téléphone)
 
@@ -96,7 +105,7 @@ Petit programme hébergé chez Cloudflare (gratuit). L'app lui envoie un lien pr
 ### Mise en ligne
 
 1. Une fois : secrets GitHub `CLOUDFLARE_API_TOKEN` et `CLOUDFLARE_ACCOUNT_ID` (Settings > Secrets and variables > Actions > onglet **Secrets**).
-2. Une fois : variables GitHub `RELAIS_NOM_WORKER`, `RELAIS_KV_ID` et `RELAIS_BUCKET_R2` (même page, onglet **Variables**). Elles sont propres au compte Cloudflare : `relay/wrangler.toml` n'en contient aucune, le workflow les ajoute juste avant l'envoi et s'arrête avec un message clair s'il en manque une.
+2. Une fois : variables GitHub `RELAIS_NOM_WORKER`, `RELAIS_KV_ID`, `RELAIS_BUCKET_R2` et `RELAIS_D1_ID` (même page, onglet **Variables**). Elles sont propres au compte Cloudflare : `relay/wrangler.toml` n'en contient aucune, le workflow les ajoute juste avant l'envoi et s'arrête avec un message clair s'il en manque une.
 3. Onglet **Actions** > **Mettre en ligne le relais** > **Run workflow**.
 4. Une fois, après la première mise en ligne : dans le tableau de bord Cloudflare, Workers & Pages > le Worker (`RELAIS_NOM_WORKER`) > Settings > Variables and Secrets, ajouter le secret `RELAY_TOKEN` (le jeton à saisir ensuite dans l'app). Il est conservé lors des mises en ligne suivantes.
 5. Pour gérer plusieurs téléphones : ajouter de la même façon le secret `ADMIN_TOKEN` (jeton d'administration, différent de `RELAY_TOKEN`).
@@ -107,7 +116,8 @@ Petit programme hébergé chez Cloudflare (gratuit). L'app lui envoie un lien pr
 2. **Jeton GitHub → Cloudflare** : le jeton du secret `CLOUDFLARE_API_TOKEN` doit avoir les droits « Workers R2 Storage : Edit » et « Workers AI : Read ».
 3. **SerpApi** : créer un compte sur serpapi.com (offre gratuite), puis ajouter sa clé comme secret Cloudflare `SERPAPI_KEY` (même chemin que `RELAY_TOKEN`).
 4. **Installations et compteur des recherches** : l'espace Cloudflare KV `closeta-quota` (créé par `npx wrangler kv namespace create closeta-quota`, ou tableau de bord > Storage & Databases > Workers KV) garde la liste des installations. Son identifiant va dans la variable GitHub `RELAIS_KV_ID`. Le jeton `CLOUDFLARE_API_TOKEN` doit aussi avoir le droit « Workers KV Storage : Edit ». Les recherches SerpApi du mois du calendrier (heure de Paris) sont comptées par un Durable Object `Quota`, déclaré dans `wrangler.toml` et créé tout seul à la mise en ligne (rien à préparer). Le seuil se règle dans `wrangler.toml` (`SERPAPI_LIMITE_MOIS`, 250 par défaut) : une fois atteint, `/identify` et `/alternatives` répondent `quota_atteint` sans appeler SerpApi.
-5. L'IA (Cloudflare Workers AI) ne demande ni compte ni clé : offre gratuite avec quota quotidien, qui s'arrête net une fois atteint. Le modèle se change dans `relay/src/settings.ts` (`modeleIA`).
+5. **Catalogue partagé** : tableau de bord Cloudflare > Storage & Databases > D1 SQL Database > **Create Database**, nom `closeta-catalogue`. Son **Database ID** (36 caractères) va dans la variable GitHub `RELAIS_D1_ID`. Le jeton `CLOUDFLARE_API_TOKEN` doit avoir le droit « D1 : Edit » (le workflow crée les tables).
+6. L'IA (Cloudflare Workers AI) ne demande ni compte ni clé : offre gratuite avec quota quotidien, qui s'arrête net une fois atteint. Le modèle se change dans `relay/src/settings.ts` (`modeleIA`).
 
 ## Installer son propre relais
 
@@ -117,7 +127,8 @@ Pour utiliser ClosetA avec **ton propre** relais (ton compte Cloudflare, ta clé
 2. **Compte Cloudflare** : créer un compte sur cloudflare.com (offre gratuite). Noter l'**Account ID** (tableau de bord > Workers & Pages, colonne de droite).
 3. **Bucket R2** (photos temporaires) : tableau de bord > R2 > activer R2 (gratuit, une carte peut être demandée sans être débitée) > **Create bucket**, nom au choix, par exemple `closeta-photos-temp`. Dans le bucket : Settings > Object lifecycle rules > supprimer les objets après 1 jour.
 4. **Espace KV** (compteur et installations) : tableau de bord > Storage & Databases > Workers KV > **Create**, nom `closeta-quota`. Noter son **ID** (32 caractères).
-5. **Jeton d'API Cloudflare** (permet à GitHub de mettre le relais en ligne) : My Profile > API Tokens > **Create Token** > modèle « Edit Cloudflare Workers ». Vérifier qu'il contient « Workers Scripts : Edit », « Workers KV Storage : Edit » et « Workers R2 Storage : Edit », ajouter « Workers AI : Read », puis créer et copier le jeton (il ne s'affiche qu'une fois).
+   **Base D1** (catalogue partagé) : tableau de bord > Storage & Databases > D1 SQL Database > **Create Database**, nom `closeta-catalogue`. Noter son **Database ID** (36 caractères, avec des tirets).
+5. **Jeton d'API Cloudflare** (permet à GitHub de mettre le relais en ligne) : My Profile > API Tokens > **Create Token** > modèle « Edit Cloudflare Workers ». Vérifier qu'il contient « Workers Scripts : Edit », « Workers KV Storage : Edit » et « Workers R2 Storage : Edit », ajouter « Workers AI : Read » et « D1 : Edit », puis créer et copier le jeton (il ne s'affiche qu'une fois).
 6. **SerpApi** (recherche par photo et alternatives) : créer un compte sur serpapi.com (offre gratuite, 250 recherches par mois), copier la clé (Dashboard > Your Private API Key).
 7. **Secrets GitHub** (ta copie > Settings > Secrets and variables > Actions > onglet **Secrets** > New repository secret) :
    - `CLOUDFLARE_API_TOKEN` : le jeton de l'étape 5 ;
@@ -125,7 +136,8 @@ Pour utiliser ClosetA avec **ton propre** relais (ton compte Cloudflare, ta clé
 8. **Variables GitHub** (même page, onglet **Variables** > New repository variable) :
    - `RELAIS_NOM_WORKER` : nom du relais, en minuscules et tirets, par exemple `closeta-relay` (il fait partie de l'adresse) ;
    - `RELAIS_KV_ID` : l'ID de l'étape 4 ;
-   - `RELAIS_BUCKET_R2` : le nom du bucket de l'étape 3.
+   - `RELAIS_BUCKET_R2` : le nom du bucket de l'étape 3 ;
+   - `RELAIS_D1_ID` : le Database ID de la base D1 de l'étape 4.
 9. **Première mise en ligne** : onglet **Actions** > activer les workflows si GitHub le demande > **Mettre en ligne le relais** > **Run workflow**. À la fin, l'adresse du relais s'affiche dans le journal de l'étape « Mettre en ligne sur Cloudflare », de la forme `https://<RELAIS_NOM_WORKER>.<ton-sous-domaine>.workers.dev`.
 10. **Secrets Cloudflare** (tableau de bord > Workers & Pages > ton relais > Settings > Variables and Secrets > Add, type **Secret**) :
     - `SERPAPI_KEY` : la clé de l'étape 6 ;
@@ -136,4 +148,4 @@ Pour utiliser ClosetA avec **ton propre** relais (ton compte Cloudflare, ta clé
 12. **Premier jeton d'administration** : sur ce même téléphone, Réglages > Installations : coller `ADMIN_TOKEN`, **Enregistrer**. La liste des installations apparaît (« Principale » = le jeton `RELAY_TOKEN`).
 13. **Autres téléphones** : « Ajouter un téléphone », donner un nom, puis sur le nouveau téléphone, Réglages > « Scanner un QR de configuration ». Le QR ne s'affiche qu'une fois ; en cas de perte, révoquer et recommencer.
 
-Le relais ne garde ni les photos (supprimées juste après la recherche) ni les pages lues ; seuls les compteurs du mois et les empreintes des jetons sont conservés dans KV.
+Le relais ne garde aucune donnée personnelle : les photos sont supprimées juste après la recherche ; KV garde les empreintes des jetons, le Durable Object `Quota` les compteurs du mois, et la base D1 un catalogue anonyme (produits, prix observés, résultats de recherche).

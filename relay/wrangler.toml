@@ -1,10 +1,11 @@
 # Relais ClosetA (Cloudflare Worker).
 # Aucun identifiant propre à un compte Cloudflare ici, pour que chacun puisse installer son propre relais :
 # - l'identifiant du compte vient du secret GitHub CLOUDFLARE_ACCOUNT_ID ;
-# - le nom du Worker, l'identifiant de l'espace KV et le nom du bucket R2 viennent des variables GitHub
-#   RELAIS_NOM_WORKER, RELAIS_KV_ID et RELAIS_BUCKET_R2 : le workflow de mise en ligne
-#   (.github/workflows/deploy-relay.yml) ajoute les blocs [[kv_namespaces]] et [[r2_buckets]] à la fin
-#   de ce fichier juste avant l'envoi, et passe le nom avec « wrangler deploy --name ».
+# - le nom du Worker, l'identifiant de l'espace KV, le nom du bucket R2 et l'identifiant de la base D1
+#   viennent des variables GitHub RELAIS_NOM_WORKER, RELAIS_KV_ID, RELAIS_BUCKET_R2 et RELAIS_D1_ID :
+#   le workflow de mise en ligne (.github/workflows/deploy-relay.yml) ajoute les blocs [[kv_namespaces]],
+#   [[r2_buckets]] et [[d1_databases]] à la fin de ce fichier juste avant l'envoi, et passe le nom avec
+#   « wrangler deploy --name ».
 # Les secrets RELAY_TOKEN, ADMIN_TOKEN et SERPAPI_KEY sont saisis dans le tableau de bord Cloudflare, jamais dans ce fichier.
 main = "src/index.ts"
 compatibility_date = "2026-10-01"
@@ -33,11 +34,17 @@ class_name = "Quota"
 tag = "v1"
 new_sqlite_classes = ["Quota"]
 
+# Purge nocturne du catalogue (recherches expirées), chaque nuit à 3 h UTC.
+[triggers]
+crons = ["0 3 * * *"]
+
 # Ajoutés par le workflow de mise en ligne (voir en tête de fichier) :
 # - [[r2_buckets]] binding "PHOTOS" : stockage temporaire des photos, le temps de la recherche Google Lens
 #   (supprimées aussitôt après ; règle du bucket : suppression après 1 jour) ;
 # - [[kv_namespaces]] binding "QUOTA" : liste des installations (empreintes des jetons, jamais les jetons) ;
-#   les anciens compteurs SerpApi qui s'y trouvent ne sont plus lus qu'une fois, pour la reprise.
+#   les anciens compteurs SerpApi qui s'y trouvent ne sont plus lus qu'une fois, pour la reprise ;
+# - [[d1_databases]] binding "CATALOGUE" : catalogue partagé et anonyme (produits, prix observés, résultats
+#   de recherche ; aucune donnée personnelle). Tables créées par les fichiers de migrations/.
 
 # Seuil mensuel de recherches SerpApi (offre gratuite : 250). Au seuil, /identify répond « quota_atteint ».
 [vars]

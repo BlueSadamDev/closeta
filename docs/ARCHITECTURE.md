@@ -112,7 +112,7 @@ Capacité : l'offre gratuite de D1 (5 millions de lignes lues et 100 000 écrite
 
 ### Règle à réécrire
 
-CLAUDE.md et docs/SPEC.md disent aujourd'hui « le relais ne conserve rien ». Avec le lot 4, la règle devient : **le relais ne conserve aucune donnée personnelle** ; il garde un catalogue anonyme (produits, prix observés, résultats de recherche) aux durées ci-dessus. À modifier dans la spec du lot 4, pas avant.
+Fait au lot 4, étape 2 : « le relais ne conserve rien » est devenu, dans CLAUDE.md et docs/SPEC.md, **le relais ne conserve aucune donnée personnelle** ; il garde un catalogue anonyme (produits, prix observés, résultats de recherche) aux durées ci-dessus.
 
 ## 6. Hors périmètre pour l'instant : comptes et synchronisation
 
