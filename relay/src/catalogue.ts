@@ -36,9 +36,26 @@ const estSuivi = (nom: string) => {
   return (settings.parametresSuivi as readonly string[]).includes(n) || settings.prefixesSuivi.some((p) => n.startsWith(p));
 };
 
+const estProduit = (nom: string) => (settings.parametresProduit as readonly string[]).includes(nom.toLowerCase());
+
 /**
- * Adresse canonique d'une page : sans les paramètres de suivi connus (utm_*, gclid, fbclid…) ni l'ancre (#…).
- * Les autres paramètres sont gardés (ils peuvent désigner une taille ou une couleur), dans l'ordre alphabétique.
+ * Adresse d'une page produit telle qu'elle entre dans le catalogue : sans paramètres de suivi ni ancre,
+ * et seulement avec les paramètres de la liste blanche (référence, taille, couleur, variante), triés.
+ * null s'il reste un autre paramètre : il pourrait être propre à la personne (session, client…), et le
+ * retirer risquerait de confondre deux pièces. La page est alors lue sans passer par le catalogue.
+ */
+export function adresseCatalogue(adresse: string | URL): string | null {
+  const u = new URL(adresse.toString());
+  u.hash = '';
+  const restants = [...u.searchParams].filter(([nom]) => !estSuivi(nom));
+  if (restants.some(([nom]) => !estProduit(nom))) return null;
+  u.search = new URLSearchParams(restants.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))).toString();
+  return u.toString();
+}
+
+/**
+ * Adresse canonique d'une image (clé des recherches Lens, seule son empreinte est gardée) : sans les
+ * paramètres de suivi ni l'ancre ; les autres paramètres sont gardés, triés.
  */
 export function adresseCanonique(adresse: string | URL): string {
   const u = new URL(adresse.toString());

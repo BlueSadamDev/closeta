@@ -1,5 +1,5 @@
 import { chercherAlternatives, DemandeInvalide, lireDemande } from './alternatives';
-import { adresseCanonique, type BaseD1, Catalogue } from './catalogue';
+import { adresseCatalogue, type BaseD1, Catalogue } from './catalogue';
 import { extraireAvecTailles } from './extract';
 import type { IA } from './ia';
 import { lireGenre, type Genre } from './genre';
@@ -172,9 +172,10 @@ async function routeExtract(requete: Request, env: Env): Promise<Response> {
   const taille = (corps as { taille?: unknown }).taille;
   const tailleLue = typeof taille === 'string' && taille.trim() !== '' ? taille.trim().slice(0, settings.tailleMaxTaille) : null;
 
-  const catalogue = catalogueDe(env);
-  const canonique = adresseCanonique(url);
-  const enCache = await catalogue?.produitRecent(canonique, tailleLue);
+  // Catalogue seulement pour une adresse sans paramètre hors liste blanche (sinon : lecture directe, rien gardé).
+  const canonique = adresseCatalogue(url);
+  const catalogue = canonique ? catalogueDe(env) : null;
+  const enCache = canonique ? await catalogue?.produitRecent(canonique, tailleLue) : null;
   if (enCache) return json({ ...enCache, url: url.toString(), depuis_cache: true });
 
   // Lecture de la page et extraction.
@@ -187,7 +188,7 @@ async function routeExtract(requete: Request, env: Env): Promise<Response> {
   if (!page) return erreur('page_illisible', 502);
 
   const { extraction, dispoTailles } = extraireAvecTailles(page.html, page.url, tailleLue);
-  await catalogue?.enregistrerLecture(canonique, extraction, dispoTailles);
+  if (canonique) await catalogue?.enregistrerLecture(canonique, extraction, dispoTailles);
   return json({ ...extraction, url: url.toString(), depuis_cache: false });
 }
 

@@ -9,8 +9,9 @@
 import type { Magasin } from './quota';
 import { settings } from './settings';
 
-/** KV avec la liste des clés (pour la page d'administration). */
+/** KV avec la liste des clés (page d'administration) et la suppression (révocation). */
 export interface MagasinListable extends Magasin {
+  delete(cle: string): Promise<void>;
   list(options: { prefix: string; cursor?: string }): Promise<{
     keys: { name: string }[];
     list_complete: boolean;
@@ -100,27 +101,52 @@ export async function creerInstallation(
   return { installation, jeton };
 }
 
-/** Révoque une installation ; null si elle n'existe pas (la Principale ne se révoque pas ici). */
-export async function revoquerInstallation(id: string, magasin: Magasin): Promise<Installation | null> {
-  const installation = lireInstallation(await magasin.get(cleInstallation(id)));
-  if (!installation) return null;
-  const revoquee = { ...installation, actif: false };
-  await magasin.put(cleInstallation(id), JSON.stringify(revoquee));
-  return revoquee;
-}
-
-/** Toutes les installations enregistrées (sans la Principale), les plus anciennes d'abord. */
-export async function listerInstallations(magasin: MagasinListable): Promise<Installation[]> {
-  const installations: Installation[] = [];
+/** Noms de toutes les clés KV qui commencent par `prefixe`. */
+async function cles(magasin: MagasinListable, prefixe: string): Promise<string[]> {
+  const noms: string[] = [];
   let cursor: string | undefined;
   for (;;) {
-    const page = await magasin.list({ prefix: cleInstallation(''), cursor });
-    for (const { name } of page.keys) {
-      const i = lireInstallation(await magasin.get(name));
-      if (i) installations.push(i);
-    }
+    const page = await magasin.list({ prefix: prefixe, cursor });
+    noms.push(...page.keys.map((k) => k.name));
     if (page.list_complete || !page.cursor) break;
     cursor = page.cursor;
+  }
+  return noms;
+}
+
+/**
+ * Efface une installation de KV : sa fiche (nom, dates) et l'empreinte de son jeton (décision de
+ * confidentialité du 24 novembre 2026 : rien n'est gardé après la révocation).
+ */
+async function effacer(id: string, magasin: MagasinListable): Promise<void> {
+  for (const nom of await cles(magasin, cleJeton(''))) {
+    if ((await magasin.get(nom)) === id) await magasin.delete(nom);
+  }
+  await magasin.delete(cleInstallation(id));
+}
+
+/**
+ * Révoque une installation : sa fiche et l'empreinte de son jeton sont effacées (le jeton est refusé
+ * en moins d'une minute, délai de diffusion de KV). null si elle n'existe pas (la Principale ne se
+ * révoque pas ici). Renvoie l'installation telle qu'elle était, marquée inactive.
+ */
+export async function revoquerInstallation(id: string, magasin: MagasinListable): Promise<Installation | null> {
+  const installation = lireInstallation(await magasin.get(cleInstallation(id)));
+  if (!installation) return null;
+  await effacer(id, magasin);
+  return { ...installation, actif: false };
+}
+
+/**
+ * Installations actives (sans la Principale), les plus anciennes d'abord. Les installations révoquées
+ * avant l'effacement à la révocation (gardées, marquées inactives) sont effacées au passage.
+ */
+export async function listerInstallations(magasin: MagasinListable): Promise<Installation[]> {
+  const installations: Installation[] = [];
+  for (const nom of await cles(magasin, cleInstallation(''))) {
+    const i = lireInstallation(await magasin.get(nom));
+    if (i?.actif) installations.push(i);
+    else if (i) await effacer(i.id, magasin);
   }
   return installations.sort((a, b) => (a.cree_le ?? '').localeCompare(b.cree_le ?? ''));
 }

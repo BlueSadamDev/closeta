@@ -56,6 +56,16 @@ export const settings = {
   ],
   /** Préfixes de paramètres de suivi (utm_source, utm_medium…). */
   prefixesSuivi: ['utm_'],
+  /**
+   * Liste blanche (décision de confidentialité du 24 novembre 2026) : seuls ces paramètres, qui désignent la
+   * pièce (référence, taille, couleur, variante), entrent dans le catalogue. Une adresse qui garde un autre
+   * paramètre (session, client, affiliation…) est lue normalement, mais rien n'est mis au catalogue.
+   */
+  parametresProduit: [
+    'id', 'pid', 'productid', 'product_id', 'product', 'sku', 'ref', 'reference', 'article', 'item', 'model',
+    'style', 'code', 'variant', 'variante', 'variation', 'variation_id', 'color', 'colour', 'couleur', 'coloris',
+    'size', 'taille', 'pointure',
+  ],
 
   // --- Installations ---
   /** Longueur maximale du nom d'une installation (« Téléphone de Léa »). */
