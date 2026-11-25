@@ -21,6 +21,8 @@ export const settings = {
   fuseauQuota: 'Europe/Paris',
   /** Nom de l'unique exemplaire du Durable Object `Quota` (toutes les installations y sont comptées). */
   nomObjetQuota: 'global',
+  /** Juridictions acceptées pour JURIDICTION_DONNEES (wrangler.toml) : exemplaire du Durable Object dans l'UE. */
+  juridictions: ['eu'],
   /** Mois gardés dans le compteur : le mois en cours et le précédent ; les plus anciens sont effacés. */
   moisQuotaGardes: 2,
 

@@ -4,6 +4,8 @@ name: Mettre en ligne le relais
 # Secrets GitHub nécessaires : CLOUDFLARE_API_TOKEN et CLOUDFLARE_ACCOUNT_ID.
 # Variables GitHub nécessaires (Settings > Secrets and variables > Actions > Variables) : RELAIS_NOM_WORKER,
 # RELAIS_KV_ID, RELAIS_BUCKET_R2 et RELAIS_D1_ID. Elles sont propres au compte Cloudflare, d'où leur absence de wrangler.toml.
+# Variable facultative RELAIS_R2_JURIDICTION : « eu » si le bucket R2 a été créé dans la juridiction européenne
+# (wrangler r2 bucket create … --jurisdiction eu) ; vide pour un bucket sans juridiction.
 # Le jeton CLOUDFLARE_API_TOKEN doit avoir la permission « D1 : Edit » (création des tables du catalogue).
 # Les jetons RELAY_TOKEN et ADMIN_TOKEN et la clé SERPAPI_KEY, eux, sont des secrets Cloudflare (tableau de bord), jamais ici.
 # Déclenchement uniquement manuel : onglet Actions > "Run workflow".
@@ -23,6 +25,7 @@ jobs:
       RELAIS_KV_ID: ${{ vars.RELAIS_KV_ID }}
       RELAIS_BUCKET_R2: ${{ vars.RELAIS_BUCKET_R2 }}
       RELAIS_D1_ID: ${{ vars.RELAIS_D1_ID }}
+      RELAIS_R2_JURIDICTION: ${{ vars.RELAIS_R2_JURIDICTION }}
       WRANGLER_SEND_METRICS: "false"
 
     steps:
@@ -46,7 +49,8 @@ jobs:
           [[ "$RELAIS_KV_ID" =~ ^[0-9a-f]{32}$ ]] || { echo "ERREUR : RELAIS_KV_ID doit être l'identifiant de l'espace KV (32 caractères 0-9 a-f)"; exit 1; }
           [[ "$RELAIS_BUCKET_R2" =~ ^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$ ]] || { echo "ERREUR : RELAIS_BUCKET_R2 doit être le nom du bucket R2 (minuscules, chiffres et tirets)"; exit 1; }
           [[ "$RELAIS_D1_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] || { echo "ERREUR : RELAIS_D1_ID doit être l'identifiant (Database ID) de la base D1 (forme 1a2b3c4d-…, 36 caractères)"; exit 1; }
-          echo "Les 4 variables du relais sont présentes"
+          [[ -z "$RELAIS_R2_JURIDICTION" || "$RELAIS_R2_JURIDICTION" == "eu" ]] || { echo "ERREUR : RELAIS_R2_JURIDICTION doit être vide ou « eu »"; exit 1; }
+          echo "Les 4 variables du relais sont présentes (juridiction du bucket R2 : ${RELAIS_R2_JURIDICTION:-aucune})"
 
       - name: Installer Node.js
         uses: actions/setup-node@v7
@@ -71,6 +75,7 @@ jobs:
           [[r2_buckets]]
           binding = "PHOTOS"
           bucket_name = "$RELAIS_BUCKET_R2"
+          $( [ -n "$RELAIS_R2_JURIDICTION" ] && echo "jurisdiction = \"$RELAIS_R2_JURIDICTION\"" )
 
           [[kv_namespaces]]
           binding = "QUOTA"

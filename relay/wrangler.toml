@@ -61,6 +61,10 @@ SERPAPI_LIMITE_INSTALLATION = ""
 # Version minimale de l'app (ex. "1.1.0") ; vide = aucune exigence. Une app plus ancienne reçoit
 # « mise_a_jour_requise » (HTTP 426). Les APK d'avant l'étape 9 n'envoient pas leur version.
 VERSION_APP_MIN = ""
+# Juridiction des compteurs et des invitations (Durable Object « Quota ») : "eu" = stockés et traités dans
+# l'Union européenne. Au premier appel, l'exemplaire « eu » reprend le contenu de l'ancien exemplaire, qui
+# l'efface. Vide = exemplaire sans juridiction (à utiliser si l'offre Cloudflare refuse la juridiction).
+JURIDICTION_DONNEES = "eu"
 # Dépôt GitHub dont les releases annoncent les nouvelles versions de l'app (GET /v1/version) ;
 # vide = aucune annonce. Ce n'est pas un secret : le dépôt est public.
 DEPOT_RELEASES = "BlueSadamDev/closeta"

@@ -8,7 +8,7 @@
  * donc un même code ne peut pas servir deux fois, même essayé au même instant depuis deux téléphones.
  * Le relais ne garde que l'empreinte SHA-256 du code, jamais le code lui-même.
  */
-import type { BaseSql } from './quota';
+import type { BaseSql, Transfert } from './quota';
 import { settings } from './settings';
 
 /** Caractères des codes : lettres et chiffres sans 0/O ni 1/I (32 caractères, faciles à recopier). */
@@ -91,6 +91,31 @@ export class RegistreInvitations {
     const trouvee = this.sql.exec('SELECT id FROM invitation WHERE id = ?', id).toArray().length > 0;
     if (trouvee) this.sql.exec('DELETE FROM invitation WHERE id = ?', id);
     return trouvee;
+  }
+
+  /** Toutes les invitations (empreintes comprises), puis effacement : pour le transfert vers une juridiction. */
+  vider(): Transfert['invitations'] {
+    const lignes = this.sql
+      .exec('SELECT id, empreinte, nom, cree_le, expire_le FROM invitation')
+      .toArray()
+      .map((l) => ({
+        id: String(l.id),
+        empreinte: String(l.empreinte),
+        nom: String(l.nom),
+        cree_le: String(l.cree_le),
+        expire_le: String(l.expire_le),
+      }));
+    this.sql.exec('DELETE FROM invitation');
+    return lignes;
+  }
+
+  importer(invitations: Transfert['invitations']) {
+    for (const i of invitations) {
+      this.sql.exec(
+        'INSERT OR IGNORE INTO invitation (id, empreinte, nom, cree_le, expire_le) VALUES (?, ?, ?, ?, ?)',
+        i.id, i.empreinte, i.nom, i.cree_le, i.expire_le,
+      );
+    }
   }
 
   utiliser(empreinte: string, maintenant: Date): { nom: string } | null {

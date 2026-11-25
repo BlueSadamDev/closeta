@@ -88,7 +88,7 @@ Cloudflare reçoit aussi, comme pour toute requête web, l'**adresse IP** du té
 
 | Donnée | Stockage | Durée |
 | --- | --- | --- |
-| Installations : identifiant (UUID tiré par le relais), **nom choisi par l'administrateur** (par exemple un prénom), date de création, actif ou révoqué | Cloudflare KV | Tant que l'installation est active. Aujourd'hui, une installation révoquée reste dans KV (marquée « révoquée ») ; **[prévu]** suppression de la fiche à la révocation. |
+| Installations : identifiant (UUID tiré par le relais), **nom choisi par l'administrateur** (par exemple un prénom), date de création, actif ou révoqué | Cloudflare KV | Tant que l'installation est active ; fiche et empreinte du jeton effacées à la révocation (depuis le 25 novembre 2026). |
 | Empreinte SHA-256 de chaque jeton → identifiant d'installation | Cloudflare KV | Comme l'installation |
 | Compteur mensuel des recherches SerpApi (global et par installation) | Durable Object `Quota` (base SQLite), depuis l'étape 1 du lot 4 ; avant, Cloudflare KV | Mois en cours et mois précédent ; les plus anciens sont effacés au premier appel d'un nouveau mois. Les anciennes cases KV expirent seules au bout de 40 jours. |
 | Photo envoyée pour une recherche | Cloudflare R2 | Le temps de la recherche (environ 30 s au plus), un jour au maximum en cas d'échec de la suppression |
@@ -104,7 +104,7 @@ Règle du lot 4 : **le relais ne conserve aucune donnée personnelle.** Il garde
 
 | Étape | Changement | Effet sur les données |
 | --- | --- | --- |
-| 1 — Durable Object `Quota` (en ligne) | Les compteurs passent de KV à un Durable Object (stockage SQLite) : table `compteur (mois, cle, utilise)`, `cle` = `global` ou identifiant d'installation. | Mêmes données, stockées ailleurs ; mois en cours et précédent gardés. **[prévu]** Déplacement dans la juridiction `eu` (§ 7). |
+| 1 — Durable Object `Quota` (en ligne) | Les compteurs passent de KV à un Durable Object (stockage SQLite) : table `compteur (mois, cle, utilise)`, `cle` = `global` ou identifiant d'installation. | Mêmes données, stockées ailleurs ; mois en cours et précédent gardés. Dans la juridiction `eu` depuis le correctif du 25 novembre 2026 (§ 7). |
 | 2 — Catalogue D1 (en ligne) | Tables `produit` (adresse canonique, boutique, nom, marque, image, catégorie, couleur, genre, première et dernière vue), `observation_prix` (date, prix, devise, disponibilité, disponibilité par taille), `recherche` (clé = empreinte de type + entrée + genre ; résultats ; dates). | Données de **pièces vendues en ligne**, sans lien avec la personne qui les a demandées : ni identifiant d'installation, ni jeton, ni IP, ni photo (tests prévus). Voir les réserves ci-dessous. |
 | 2 — Cache des recherches | Une recherche déjà faite (Lens ou Shopping, même entrée, même genre) est resservie sans rappeler SerpApi. | Moins de données envoyées à SerpApi et Google. La photo n'est plus envoyée du tout quand son empreinte est en cache. |
 | 3 — Historique partagé | `/v1/extract` renvoie le prix le plus bas observé. | Aucune donnée nouvelle sur la personne. |
@@ -127,7 +127,7 @@ Durées du catalogue (décisions du 24 novembre 2026) :
 
 **Caractère anonyme du catalogue : réserves et mesures** :
 
-1. **Adresse canonique** : un lien partagé depuis un panier, un e-mail ou un compte client peut contenir un identifiant propre à la personne (session, référence client, code d'affiliation). Mesure décidée **[prévu, correctif du relais]** : **liste blanche**, seuls les paramètres reconnus comme taille, couleur ou variante sont gardés, tous les autres sont retirés. L'étape 2, fusionnée avant cette décision, retire seulement les paramètres de suivi connus (`utm_*`, `gclid`, `fbclid`…) : d'ici le correctif, un paramètre propre à une personne peut entrer dans le catalogue.
+1. **Adresse canonique** : un lien partagé depuis un panier, un e-mail ou un compte client peut contenir un identifiant propre à la personne (session, référence client, code d'affiliation). Mesure en place (correctif du 25 novembre 2026) : **liste blanche**. Les paramètres de suivi sont retirés ; seuls les paramètres reconnus comme référence, taille, couleur ou variante sont gardés. Une adresse qui garde un autre paramètre est lue normalement, mais **rien n'est mis au catalogue** (retirer le paramètre risquerait de confondre deux pièces). Entre l'étape 2 et ce correctif, les adresses gardaient leurs paramètres non reconnus comme du suivi : la base D1 de cette période est remplacée par une base neuve (§ 7).
 2. **Empreinte de la photo** : l'empreinte SHA-256 d'une photo de vêtement seul ne permet pas de retrouver la photo, ni la personne. Si la photo montrait une personne, l'empreinte serait une donnée pseudonymisée, d'où le rappel « sans personne ».
 3. **Clé Shopping** : la requête est construite à partir de la fiche (nom, marque, catégorie, couleur, genre), donc normalement sans donnée personnelle. Mais le nom d'une pièce saisi à la main est du texte libre.
 4. **Genre** : le genre recherché (« Je cherche pour ») fait partie des clés de cache et de la table `produit`. Il décrit le rayon (homme, femme, mixte), pas la personne. Il n'est relié à aucune installation.
@@ -176,7 +176,7 @@ Personne d'autre ne reçoit de données : pas de régie publicitaire, pas d'outi
 | SerpApi | États-Unis | **[à vérifier : DPF ou clauses types ; à défaut, transfert sans encadrement documenté, à signaler]** |
 | Google (Lens, Shopping, ML Kit) | États-Unis et monde | Tiers responsable de son traitement ; DPF côté Google **[à vérifier]** |
 
-**Mesure décidée [prévu, piste A]** : base D1 du catalogue recréée avec la juridiction `eu` (celle de l'étape 2 a été créée sans), Durable Object `Quota` déplacé dans la juridiction `eu`, bucket R2 des photos dans la juridiction européenne, pour que les données gardées restent dans l'UE. KV (installations) n'offre pas cette option : il reste répliqué dans le monde entier, sous le DPA de Cloudflare.
+**Mesure décidée** : Durable Object `Quota` dans la juridiction `eu` (variable `JURIDICTION_DONNEES` ; au premier appel, il reprend le contenu de l'ancien exemplaire, qui l'efface) ; base D1 du catalogue recréée avec la juridiction `eu` et bucket R2 des photos dans la juridiction européenne **[prévu : recréation par l'administrateur, puis variables GitHub `RELAIS_D1_ID`, `RELAIS_BUCKET_R2` et `RELAIS_R2_JURIDICTION`]**, pour que les données gardées restent dans l'UE. KV (installations) n'offre pas cette option : il reste répliqué dans le monde entier, sous le DPA de Cloudflare.
 
 ---
 
@@ -187,7 +187,7 @@ Personne d'autre ne reçoit de données : pas de régie publicitaire, pas d'outi
 | Pièces, relevés, photos sur le téléphone | Jusqu'à leur suppression par l'utilisateur ou la désinstallation de l'app |
 | Photo envoyée au relais | Durée de la recherche ; 1 jour au plus en cas d'incident |
 | Pages lues, liens, descriptions IA (aujourd'hui) | Non conservés |
-| Installation (nom, dates, état) et empreinte de jeton | Tant que l'installation est active ; supprimées à la révocation **[prévu]** |
+| Installation (nom, dates, état) et empreinte de jeton | Tant que l'installation est active ; effacées à la révocation |
 | Compteurs de quota | Mois en cours et mois précédent |
 | Limite de débit (IP, installation) | Environ une minute, en mémoire |
 | Catalogue : page produit / Shopping / Lens | 24 h / 7 jours / 30 jours |
@@ -221,7 +221,7 @@ Pour les données **gardées par le relais** (installation et compteurs), écrir
 
 - **Accès** (art. 15) : l'administrateur communique le nom, la date de création et l'état de l'installation, et le compteur du mois.
 - **Rectification** (art. 16) : le nom d'une installation se corrige en la révoquant et en en créant une nouvelle (nouveau QR ou nouvelle invitation).
-- **Effacement** (art. 17) : révocation de l'installation, qui supprime sa fiche et l'empreinte de son jeton **[prévu ; aujourd'hui la fiche reste, marquée « révoquée »]**. Les compteurs disparaissent avec le mois (mois en cours et précédent gardés).
+- **Effacement** (art. 17) : révocation de l'installation, qui efface sa fiche et l'empreinte de son jeton. Les compteurs disparaissent avec le mois (mois en cours et précédent gardés).
 - **Opposition** (art. 21) : cesser d'utiliser le relais, et demander la révocation.
 - **Limitation et portabilité** (art. 18, 20) : sans objet en pratique pour le relais ; la portabilité des pièces est assurée par la sauvegarde `.closeta`.
 - Le catalogue (lot 4) ne contient aucune donnée rattachable à une personne : il n'y a rien à y retrouver pour une personne donnée.
@@ -240,9 +240,9 @@ Décisions du 24 novembre 2026 sur les points relevés à la relecture du code :
 | Sauvegarde automatique d'Android | Désactivée | Fait (étape 8) |
 | Images chargées directement par le téléphone (IP vue par Google, SerpApi, boutiques) | Accepté et documenté | — |
 | Photo publique sans jeton pendant la recherche Lens | Accepté et documenté (identifiant aléatoire, suppression immédiate) | — |
-| Installation révoquée gardée dans KV | Suppression à la révocation ; pas de renommage | Prévu (relais) |
-| Paramètres d'adresse dans le catalogue | Liste blanche | Prévu (correctif du relais ; l'étape 2 retire seulement le suivi connu) |
-| Juridiction UE pour D1, Durable Object, R2 | Oui | Prévu (piste A ; D1 et Durable Object à recréer ou déplacer) |
+| Installation révoquée gardée dans KV | Suppression à la révocation ; pas de renommage | Fait (25 novembre 2026) |
+| Paramètres d'adresse dans le catalogue | Liste blanche | Fait (25 novembre 2026) |
+| Juridiction UE pour D1, Durable Object, R2 | Oui | Durable Object : fait dans le code (25 novembre 2026). D1 et R2 : recréation par l'administrateur |
 | Durée des compteurs mensuels | Mois en cours et précédent | Fait (étape 1) |
 
 Restent à vérifier :
