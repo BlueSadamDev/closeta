@@ -7,6 +7,7 @@
  * 4) Moins de 3 résultats : Google Shopping complète à partir de nom + marque + catégorie + couleur.
  * Genre choisi dans les Réglages : ajouté à la recherche Shopping ; les résultats de l'autre genre sont écartés.
  */
+import { type Catalogue, depuisCache, empreinte, nouveauSuivi, viaCatalogue } from './catalogue';
 import { filtrerGenre, GenreInvalide, lireGenre, rechercheAvecGenre, type Genre } from './genre';
 import type { Description } from './ia';
 import { clePhoto, estJpeg, nouvelIdentifiant, QuotaAtteint, RechercheIndisponible, resume, type Reservation, type Stockage } from './identify';
@@ -156,13 +157,27 @@ export function assemblerAlternatives(lens: Proposition[], shopping: Proposition
  */
 export async function chercherAlternatives(
   d: Demande,
-  outils: { stockage: Stockage; cleSerpApi: string | undefined; quota: Reservation; adressePhoto: (id: string) => string },
-): Promise<{ resultats: Alternative[]; incidents?: string[] }> {
-  const { stockage, cleSerpApi, quota } = outils;
+  outils: {
+    stockage: Stockage;
+    cleSerpApi: string | undefined;
+    quota: Reservation;
+    adressePhoto: (id: string) => string;
+    /** Catalogue partagé : recherches déjà faites, réutilisées sans consommer le quota (absent = sans cache). */
+    catalogue?: Catalogue | null;
+  },
+): Promise<{ resultats: Alternative[]; depuis_cache: boolean; incidents?: string[] }> {
+  const { stockage, cleSerpApi, quota, catalogue } = outils;
   const incidents: string[] = [];
+  const suivi = nouveauSuivi();
 
+  // Clé : adresse de l'image de la boutique, ou empreinte de la photo (jamais la photo elle-même).
   const lens = async (): Promise<Proposition[] | null> => {
-    if (!d.imageUrl && !d.photo) return null;
+    if (d.imageUrl) return viaCatalogue(catalogue, 'lens_image', d.imageUrl, d.genre, suivi, lensPayee);
+    if (d.photo) return viaCatalogue(catalogue, 'lens_photo', await empreinte(d.photo), d.genre, suivi, lensPayee);
+    return null;
+  };
+
+  const lensPayee = async (): Promise<Proposition[] | null> => {
     if (!cleSerpApi) {
       incidents.push('cle_serpapi_absente');
       return null;
@@ -202,17 +217,27 @@ export async function chercherAlternatives(
   const retenus = filtrer(filtrerGenre(trouves ?? [], d.genre), d.urlExclue).length;
 
   // null = recherche Shopping non faite ou en échec.
-  let shopping: Proposition[] | null = null;
-  if (retenus < settings.resultatsMin && cleSerpApi) {
-    if (await quota.reserver()) {
-      try {
-        shopping = lireShopping(await appelerSerpApi(adresseShopping(cleSerpApi, rechercheTexte(d)), settings.delaiShoppingMs));
-      } catch (e) {
-        incidents.push(`shopping: ${resume(e, cleSerpApi)}`);
-      }
-    } else if (!incidents.includes('quota_atteint')) {
-      incidents.push('quota_atteint');
+  const shoppingPaye = async (requete: string): Promise<Proposition[] | null> => {
+    if (!cleSerpApi) {
+      if (!incidents.includes('cle_serpapi_absente')) incidents.push('cle_serpapi_absente');
+      return null;
     }
+    if (!(await quota.reserver())) {
+      if (!incidents.includes('quota_atteint')) incidents.push('quota_atteint');
+      return null;
+    }
+    try {
+      return lireShopping(await appelerSerpApi(adresseShopping(cleSerpApi, requete), settings.delaiShoppingMs));
+    } catch (e) {
+      incidents.push(`shopping: ${resume(e, cleSerpApi)}`);
+      return null;
+    }
+  };
+
+  let shopping: Proposition[] | null = null;
+  if (retenus < settings.resultatsMin && (cleSerpApi || catalogue)) {
+    const requete = rechercheTexte(d);
+    shopping = await viaCatalogue(catalogue, 'shopping', requete, d.genre, suivi, () => shoppingPaye(requete));
   } else if (!cleSerpApi && !incidents.includes('cle_serpapi_absente')) {
     incidents.push('cle_serpapi_absente');
   }
@@ -222,5 +247,6 @@ export async function chercherAlternatives(
   }
 
   const resultats = assemblerAlternatives(trouves ?? [], shopping ?? [], d);
-  return incidents.length > 0 ? { resultats, incidents } : { resultats };
+  const reponse = { resultats, depuis_cache: depuisCache(suivi) };
+  return incidents.length > 0 ? { ...reponse, incidents } : reponse;
 }

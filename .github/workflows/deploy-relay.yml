@@ -3,7 +3,8 @@ name: Mettre en ligne le relais
 # Met en ligne le relais Cloudflare (dossier relay/) après ses tests.
 # Secrets GitHub nécessaires : CLOUDFLARE_API_TOKEN et CLOUDFLARE_ACCOUNT_ID.
 # Variables GitHub nécessaires (Settings > Secrets and variables > Actions > Variables) : RELAIS_NOM_WORKER,
-# RELAIS_KV_ID et RELAIS_BUCKET_R2. Elles sont propres au compte Cloudflare, d'où leur absence de wrangler.toml.
+# RELAIS_KV_ID, RELAIS_BUCKET_R2 et RELAIS_D1_ID. Elles sont propres au compte Cloudflare, d'où leur absence de wrangler.toml.
+# Le jeton CLOUDFLARE_API_TOKEN doit avoir la permission « D1 : Edit » (création des tables du catalogue).
 # Les jetons RELAY_TOKEN et ADMIN_TOKEN et la clé SERPAPI_KEY, eux, sont des secrets Cloudflare (tableau de bord), jamais ici.
 # Déclenchement uniquement manuel : onglet Actions > "Run workflow".
 on:
@@ -21,6 +22,7 @@ jobs:
       RELAIS_NOM_WORKER: ${{ vars.RELAIS_NOM_WORKER }}
       RELAIS_KV_ID: ${{ vars.RELAIS_KV_ID }}
       RELAIS_BUCKET_R2: ${{ vars.RELAIS_BUCKET_R2 }}
+      RELAIS_D1_ID: ${{ vars.RELAIS_D1_ID }}
       WRANGLER_SEND_METRICS: "false"
 
     steps:
@@ -34,16 +36,17 @@ jobs:
           done
           echo "Les 2 secrets Cloudflare sont présents"
 
-      - name: Vérifier les 3 variables du relais (nom du Worker, espace KV, bucket R2)
+      - name: Vérifier les 4 variables du relais (nom du Worker, espace KV, bucket R2, base D1)
         run: |
-          for V in RELAIS_NOM_WORKER RELAIS_KV_ID RELAIS_BUCKET_R2; do
+          for V in RELAIS_NOM_WORKER RELAIS_KV_ID RELAIS_BUCKET_R2 RELAIS_D1_ID; do
             if [ -z "${!V}" ]; then echo "ERREUR : variable $V manquante – ajoute-la dans Settings > Secrets and variables > Actions > onglet Variables"; exit 1; fi
           done
           # Formes attendues (évite aussi d'écrire n'importe quoi dans wrangler.toml).
           [[ "$RELAIS_NOM_WORKER" =~ ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$ ]] || { echo "ERREUR : RELAIS_NOM_WORKER doit être en minuscules, chiffres et tirets"; exit 1; }
           [[ "$RELAIS_KV_ID" =~ ^[0-9a-f]{32}$ ]] || { echo "ERREUR : RELAIS_KV_ID doit être l'identifiant de l'espace KV (32 caractères 0-9 a-f)"; exit 1; }
           [[ "$RELAIS_BUCKET_R2" =~ ^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$ ]] || { echo "ERREUR : RELAIS_BUCKET_R2 doit être le nom du bucket R2 (minuscules, chiffres et tirets)"; exit 1; }
-          echo "Les 3 variables du relais sont présentes"
+          [[ "$RELAIS_D1_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] || { echo "ERREUR : RELAIS_D1_ID doit être l'identifiant (Database ID) de la base D1 (forme 1a2b3c4d-…, 36 caractères)"; exit 1; }
+          echo "Les 4 variables du relais sont présentes"
 
       - name: Installer Node.js
         uses: actions/setup-node@v7
@@ -61,7 +64,7 @@ jobs:
       - name: Lancer les tests du relais
         run: npm test
 
-      - name: Ajouter l'espace KV et le bucket R2 à wrangler.toml (seulement pour cette mise en ligne)
+      - name: Ajouter l'espace KV, le bucket R2 et la base D1 à wrangler.toml (seulement pour cette mise en ligne)
         run: |
           cat >> wrangler.toml <<EOF
 
@@ -72,7 +75,17 @@ jobs:
           [[kv_namespaces]]
           binding = "QUOTA"
           id = "$RELAIS_KV_ID"
+
+          [[d1_databases]]
+          binding = "CATALOGUE"
+          database_name = "closeta-catalogue"
+          database_id = "$RELAIS_D1_ID"
+          migrations_dir = "migrations"
           EOF
+
+      # Tables du catalogue : seules les migrations pas encore appliquées le sont (avant la nouvelle version du code).
+      - name: Créer ou mettre à jour les tables du catalogue (D1)
+        run: npx wrangler d1 migrations apply CATALOGUE --remote
 
       - name: Mettre en ligne sur Cloudflare
         run: npx wrangler deploy --name "$RELAIS_NOM_WORKER"

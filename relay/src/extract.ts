@@ -174,10 +174,22 @@ export function tailleNormalisee(t: string | null | undefined): string | null {
   return n === '' ? null : n;
 }
 
-/** Vrai si un texte de variante (« Manteau - M / Noir », « M », « 42 ») désigne la taille demandée. */
-function nommeLaTaille(texte: string | null, taille: string): boolean {
-  if (!texte) return false;
-  return texte.split(/[-–—/|,:()]/).some((morceau) => tailleNormalisee(morceau) === taille);
+/** Tailles qu'un texte de variante peut désigner (« Manteau - M / Noir » → manteau, m, noir). */
+function taillesDuTexte(texte: string | null): string[] {
+  if (!texte) return [];
+  return texte.split(/[-–—/|,:()]/).map(tailleNormalisee).filter((t): t is string => t !== null);
+}
+
+/**
+ * Disponibilité de chaque variante, avec les tailles qu'elle peut désigner : gardée dans le catalogue
+ * (`dispo_tailles`), pour répondre ensuite pour n'importe quelle taille sans relire la page.
+ */
+export type DispoTaille = { tailles: string[]; etat: Disponibilite };
+
+/** Disponibilité d'une taille (« M », « 42 ») d'après les variantes ; taille absente ou inconnue → `inconnue`. */
+export function dispoDeLaTaille(variantes: DispoTaille[], taille: string | null | undefined): Disponibilite {
+  const t = tailleNormalisee(taille);
+  return t ? reunir(variantes.filter((v) => v.tailles.includes(t)).map((v) => v.etat)) : 'inconnue';
 }
 
 type Variante = { textes: (string | null)[]; etat: Disponibilite };
@@ -229,11 +241,8 @@ function disponibilites(html: string, produit: Objet | null, metas: Map<string, 
     const stock = html.match(/<p\b[^>]*class\s*=\s*["'][^"']*\bstock\b[^"']*\b(in-stock|out-of-stock)\b/i)?.[1];
     if (stock) disponibilite = stock.toLowerCase() === 'in-stock' ? 'en_stock' : 'epuise';
   }
-  const t = tailleNormalisee(taille);
-  const dispo_taille: Disponibilite = t
-    ? reunir(variantes.filter((v) => v.textes.some((x) => nommeLaTaille(x, t))).map((v) => v.etat))
-    : 'inconnue';
-  return { disponibilite, dispo_taille };
+  const dispoTailles: DispoTaille[] = variantes.map((v) => ({ tailles: [...new Set(v.textes.flatMap(taillesDuTexte))], etat: v.etat }));
+  return { disponibilite, dispo_taille: dispoDeLaTaille(dispoTailles, taille), dispoTailles };
 }
 
 // ---------- 2) balises meta ----------
@@ -338,6 +347,11 @@ function sansSuffixe(nom: string | null, ...noms: (string | null)[]): string | n
 
 /** `taille` : taille de la pièce (« M », « 42 »), pour lire sa disponibilité si la boutique la publie. */
 export function extraireProduit(html: string, page: URL, taille: string | null = null): Extraction {
+  return extraireAvecTailles(html, page, taille).extraction;
+}
+
+/** Comme extraireProduit, avec en plus la disponibilité de chaque variante (pour le catalogue). */
+export function extraireAvecTailles(html: string, page: URL, taille: string | null = null): { extraction: Extraction; dispoTailles: DispoTaille[] } {
   const produit = trouverProduit(blocsJsonLd(html));
   const metas = balisesMeta(html);
   const titre = texteNet(html.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)?.[1]);
@@ -372,13 +386,9 @@ export function extraireProduit(html: string, page: URL, taille: string | null =
   if (prix === null) ({ prix, devise } = prixAfficheWoo(html));
   if (prix === null) devise = null;
 
+  const { disponibilite, dispo_taille, dispoTailles } = disponibilites(html, produit, metas, taille);
   return {
-    nom,
-    marque,
-    image,
-    prix,
-    devise: devise ? devise.toUpperCase() : null,
-    url: page.toString(),
-    ...disponibilites(html, produit, metas, taille),
+    extraction: { nom, marque, image, prix, devise: devise ? devise.toUpperCase() : null, url: page.toString(), disponibilite, dispo_taille },
+    dispoTailles,
   };
 }

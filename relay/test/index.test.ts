@@ -111,6 +111,7 @@ describe('relais : extraction', () => {
       url: 'https://boutique.exemple.test/ancien',
       disponibilite: 'en_stock',
       dispo_taille: 'inconnue',
+      depuis_cache: false,
     });
     expect(appels).toEqual(['https://boutique.exemple.test/ancien', 'https://boutique.exemple.test/products/manteau-fictif']);
   });

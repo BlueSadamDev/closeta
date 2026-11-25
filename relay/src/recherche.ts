@@ -109,9 +109,14 @@ export function lireLens(reponse: unknown, prixDabord = true): Proposition[] {
       alternative: false,
     });
   }
-  if (!prixDabord) return propositions;
-  return [...propositions.filter((p) => p.prix !== null), ...propositions.filter((p) => p.prix === null)];
+  return prixDabord ? prixDevant(propositions) : propositions;
 }
+
+/** Les pièces avec un prix passent devant, chaque groupe dans l'ordre de Lens. */
+export const prixDevant = (propositions: Proposition[]) => [
+  ...propositions.filter((p) => p.prix !== null),
+  ...propositions.filter((p) => p.prix === null),
+];
 
 /** Résultats Google Shopping, tous étiquetés « alternative ». */
 export function lireShopping(reponse: unknown): Proposition[] {
