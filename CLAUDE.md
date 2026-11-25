@@ -96,7 +96,7 @@ Piste A · Relais :
 Piste B · App et conformité :
 6. Codes d'invitation : création depuis « Installations », lien `closeta://invitation` sans jeton, code à usage unique valable 7 jours.
 7. Vérification de mise à jour : release GitHub à chaque APK de production, `GET /v1/version`, bandeau dans l'app.
-8. Confidentialité : `docs/CONFIDENTIALITE.md`, `docs/REGISTRE.md`, écran « Confidentialité », rappel sur les écrans photo.
+8. Confidentialité : `docs/CONFIDENTIALITE.md`, `docs/REGISTRE.md`, écran « Confidentialité », rappel sur les écrans photo. **Terminée, fusionnée via la PR #35** : `docs/CONFIDENTIALITE.md` et `docs/REGISTRE.md` (version 1, contact dpo@closeta.fr), écran « Confidentialité » dans Réglages, rappel « sans personne » sur les écrans photo, sauvegarde automatique d'Android désactivée ; décisions pour la piste A notées dans docs/SPEC.md (juridiction `eu`, liste blanche des paramètres, suppression à la révocation).
 
 Fin du lot :
 9. Production : vérifications complètes, relais en ligne, APK publié en release, test unique par l'utilisateur.

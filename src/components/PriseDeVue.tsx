@@ -15,8 +15,10 @@ import { BoutonIcone } from './BoutonIcone';
 import { RichText } from './RichText';
 
 const t = texts.photo.guidee;
-/** Hauteur réservée sous l'aperçu (consigne et deux boutons) et au-dessus (en-tête). */
-const RESERVE = 44 + 72 + spacing.buttonHeight * 2 + 12 + 48;
+/** Rappel « sans personne » : une ligne de texte et sa marge. */
+const RAPPEL = 22;
+/** Hauteur réservée sous l'aperçu (consigne, rappel et deux boutons) et au-dessus (en-tête). */
+const RESERVE = 44 + 72 + 4 + RAPPEL + spacing.buttonHeight * 2 + 12 + 48;
 
 type Props = {
   visible: boolean;
@@ -131,6 +133,7 @@ function Contenu({ onPhoto, onFermer }: Omit<Props, 'visible'>) {
       </View>
 
       <RichText style={styles.consigne}>{message ?? (refusee ? texts.photo.cameraRefusee : t.consigne)}</RichText>
+      <Text style={styles.rappel}>{texts.photo.rappel}</Text>
 
       <View style={styles.actions}>
         <Bouton libelle={t.prendre} onPress={prendre} desactive={!prete || enCours || !permission?.granted} />
@@ -159,5 +162,6 @@ const styles = StyleSheet.create({
   },
   attenteTexte: { fontFamily: fonts.serifItalic, fontSize: 20, color: colors.paper },
   consigne: { ...type.body, color: colors.ink, marginTop: 16, minHeight: 44 },
+  rappel: { ...type.body, color: colors.inkMuted, marginTop: 4, height: RAPPEL },
   actions: { marginTop: 12, gap: 12 },
 });

@@ -212,6 +212,11 @@ export default function Reglages() {
           <Etiquette style={styles.section}>{r.sectionSauvegarde}</Etiquette>
           <SectionSauvegarde />
 
+          <Etiquette style={styles.section}>{r.sectionConfidentialite}</Etiquette>
+          <View style={styles.boutons}>
+            <Bouton libelle={r.confidentialite} variante="secondaire" onPress={() => router.push('/confidentialite')} />
+          </View>
+
           <Etiquette style={styles.section}>{r.sectionInstallations}</Etiquette>
           <Champ libelle={r.jetonAdmin}>
             <Saisie

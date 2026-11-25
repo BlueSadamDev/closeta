@@ -532,6 +532,7 @@ function BlocPhoto({
             <>
               <Bouton libelle={texts.photo.prendre} variante="secondaire" onPress={() => onAjouter('camera')} />
               <Bouton libelle={texts.photo.choisir} variante="secondaire" onPress={() => onAjouter('galerie')} />
+              <Text style={[type.body, styles.discret]}>{texts.photo.rappel}</Text>
             </>
           )}
           {message ? <RichText style={styles.messagePhoto}>{message}</RichText> : null}
