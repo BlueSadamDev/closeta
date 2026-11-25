@@ -171,6 +171,7 @@ export default function Reglages() {
             <Bouton libelle={r.enregistrer} onPress={enregistrer} desactive={enCours} />
             <Bouton libelle={r.tester} variante="secondaire" onPress={tester} desactive={enCours} />
             <Bouton libelle={r.scanner} variante="secondaire" onPress={() => router.push('/scanner')} desactive={enCours} />
+            <Bouton libelle={r.codeInvitation} variante="secondaire" onPress={() => router.push('/invitation')} desactive={enCours} />
             <Bouton libelle={qr ? r.masquerQr : r.afficherQr} variante="secondaire" onPress={basculerQr} desactive={enCours} />
           </View>
 

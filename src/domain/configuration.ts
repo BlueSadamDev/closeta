@@ -57,18 +57,28 @@ export function verifierConfiguration(relais: unknown, jeton: unknown): LectureC
   return { ok: true, relais: adresse.adresse, jeton: propre };
 }
 
-/** Lit le texte d'un QR scanné. Tout ce qui ne commence pas par « closeta://config? » est étranger. */
-export function lireLienConfiguration(texte: string | null | undefined): LectureConfiguration {
+/**
+ * Paramètres d'un lien ClosetA (« closeta://config?relais=…&jeton=… »), décodés ; null si le texte
+ * ne commence pas par `prefixe` (« closeta://config? »). En cas de doublon, la première valeur compte.
+ */
+export function parametresLien(texte: string | null | undefined, prefixe: string): Record<string, string> | null {
   const brut = (texte ?? '').trim();
-  if (brut.slice(0, PREFIXE.length).toLowerCase() !== PREFIXE) return { ok: false, raison: 'etranger' };
+  if (brut.slice(0, prefixe.length).toLowerCase() !== prefixe) return null;
   const valeurs: Record<string, string> = {};
-  for (const morceau of brut.slice(PREFIXE.length).split('&')) {
+  for (const morceau of brut.slice(prefixe.length).split('&')) {
     const egal = morceau.indexOf('=');
     if (egal <= 0) continue;
     const cle = decoder(morceau.slice(0, egal));
     const valeur = decoder(morceau.slice(egal + 1));
     if (cle && valeur !== null && !(cle in valeurs)) valeurs[cle] = valeur;
   }
+  return valeurs;
+}
+
+/** Lit le texte d'un QR scanné. Tout ce qui ne commence pas par « closeta://config? » est étranger. */
+export function lireLienConfiguration(texte: string | null | undefined): LectureConfiguration {
+  const valeurs = parametresLien(texte, PREFIXE);
+  if (!valeurs) return { ok: false, raison: 'etranger' };
   return verifierConfiguration(valeurs.relais, valeurs.jeton);
 }
 
@@ -85,7 +95,7 @@ export type Installation = { id: string; nom: string; creeLe: string | null; act
 /** Échecs possibles d'une demande d'administration. */
 export type EchecAdmin = 'jeton_absent' | 'jeton_refuse' | 'limite' | 'injoignable' | 'inattendu';
 
-function echecAdmin(statut: number | null): EchecAdmin {
+export function echecAdmin(statut: number | null): EchecAdmin {
   if (statut === null) return 'injoignable';
   if (statut === 401) return 'jeton_absent';
   if (statut === 403) return 'jeton_refuse';

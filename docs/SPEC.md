@@ -537,7 +537,8 @@ Jamais : identifiant d'installation ou jeton dans le catalogue, lien entre une r
 **Étape 6 — Codes d'invitation**
 
 - Section « Installations » (jeton d'administration) : « Inviter quelqu'un » → nom → code d'invitation affiché, avec un lien à partager `closeta://invitation?relais=<adresse>&code=<code>` (QR et texte). Contrairement au QR de configuration, le lien **ne contient aucun jeton** : il peut être envoyé par message.
-- Relais : `POST /v1/admin/invitations` (création ; seule l'empreinte du code est gardée, dans KV, 7 jours) et `POST /v1/invitations/utiliser` (`{ code, installation }`, sans jeton, limite de débit par adresse) → crée l'installation et renvoie son jeton une seule fois ; le code est aussitôt invalidé.
+- Relais : `POST /v1/admin/invitations` (création ; seule l'empreinte du code est gardée, 7 jours), `GET` (invitations en attente) et `DELETE /v1/admin/invitations/<id>` (annulation), et `POST /v1/invitations/utiliser` (`{ code }`, sans jeton ni identifiant du téléphone, 5 essais par minute et par adresse) → crée l'installation et renvoie son jeton une seule fois ; le code est effacé dans la même opération que sa vérification.
+- Décisions du 25 novembre 2026 : invitations rangées dans le Durable Object `Quota` (et non dans KV, dont la diffusion peut prendre une minute) pour garantir l'usage unique ; l'app n'envoie que le code, le relais tire lui-même l'identifiant de l'installation ; code `CLST-` suivi de 8 caractères tirés au hasard (40 bits).
 - App : Réglages « J'ai un code d'invitation » (saisie ou lien ouvert), puis jeton rangé dans le coffre du téléphone ; la section « Installations » liste les invitations en attente (nom, expiration) et permet de les annuler.
 
 **Étape 7 — Vérification de mise à jour**

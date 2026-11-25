@@ -23,6 +23,10 @@ export const settings = {
   adminTokenKey: 'closeta.jeton-admin',
   /** Début du lien d'un QR de configuration : closeta://config?relais=<adresse>&jeton=<jeton>. */
   lienConfiguration: 'closeta://config',
+  /** Lien d'invitation (docs/SPEC.md, « Lot 4 », « Étape 6 ») : adresse du relais et code, jamais de jeton. */
+  lienInvitation: 'closeta://invitation',
+  /** Codes d'invitation : préfixe fixe et caractères tirés au hasard (sans 0/O ni 1/I), comme au relais. */
+  codeInvitation: { prefixe: 'CLST', longueur: 8, alphabet: 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' },
   /** Longueur maximale du nom d'un téléphone ajouté (la même que celle du relais). */
   nomInstallationMax: 40,
   /** Lecteur de QR : délai avant de relire un code refusé (évite de répéter le message en boucle). */

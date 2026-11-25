@@ -15,6 +15,14 @@ import {
   type EchecAdmin,
   type Installation,
 } from '@/domain/configuration';
+import {
+  lireAnnulationInvitation,
+  lireCreationInvitation,
+  lireListeInvitations,
+  lireUtilisationInvitation,
+  type EchecUtilisation,
+  type InvitationEnAttente,
+} from '@/domain/invitation';
 import { adresseRelais, entetesRelais, lireQuota, lireTestConnexion, type EtatConnexion, type Quota } from '@/domain/relais';
 import { settings } from '@/domain/settings';
 
@@ -202,4 +210,56 @@ export async function revoquerInstallation(jetonAdmin: string, id: string): Prom
   if (!jetonAdmin) return { ok: false, raison: 'jeton_absent' };
   const r = await demandeAdmin(jetonAdmin, 'DELETE', `/admin/installations/${encodeURIComponent(id)}`);
   return lireRevocation(r?.statut ?? null);
+}
+
+/* ---------- Invitations (docs/SPEC.md, « Lot 4 », « Étape 6 ») ---------- */
+
+/** Invitations en attente (nom, expiration) ; le relais ne garde pas les codes. Ne lève jamais d'exception. */
+export async function listerInvitations(jetonAdmin: string): Promise<{ ok: true; invitations: InvitationEnAttente[] } | Echec> {
+  if (!jetonAdmin) return { ok: false, raison: 'jeton_absent' };
+  const r = await demandeAdmin(jetonAdmin, 'GET', '/admin/invitations');
+  return lireListeInvitations(r?.statut ?? null, r?.corps ?? null);
+}
+
+/** Crée une invitation ; son code n'est donné qu'ici, une seule fois. Ne lève jamais d'exception. */
+export async function inviter(
+  jetonAdmin: string,
+  nom: string,
+): Promise<{ ok: true; invitation: InvitationEnAttente; code: string } | Echec> {
+  if (!jetonAdmin) return { ok: false, raison: 'jeton_absent' };
+  const r = await demandeAdmin(jetonAdmin, 'POST', '/admin/invitations', { nom });
+  return lireCreationInvitation(r?.statut ?? null, r?.corps ?? null);
+}
+
+/** Annule une invitation en attente : son code ne fonctionne plus. Ne lève jamais d'exception. */
+export async function annulerInvitation(jetonAdmin: string, id: string): Promise<{ ok: true } | Echec> {
+  if (!jetonAdmin) return { ok: false, raison: 'jeton_absent' };
+  const r = await demandeAdmin(jetonAdmin, 'DELETE', `/admin/invitations/${encodeURIComponent(id)}`);
+  return lireAnnulationInvitation(r?.statut ?? null);
+}
+
+/**
+ * Utilise un code d'invitation auprès du relais `relais` : sans jeton, et sans l'identifiant de ce
+ * téléphone (le relais crée lui-même l'installation). Renvoie le jeton, donné une seule fois.
+ * Ne lève jamais d'exception.
+ */
+export async function utiliserInvitation(
+  relais: string,
+  code: string,
+): Promise<{ ok: true; jeton: string } | { ok: false; raison: EchecUtilisation }> {
+  const arret = new AbortController();
+  const minuteur = setTimeout(() => arret.abort(), settings.relayTimeoutMs);
+  try {
+    const reponse = await fetch(adresseRelais(relais, '/invitations/utiliser'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+      signal: arret.signal,
+    });
+    return lireUtilisationInvitation(reponse.status, await reponse.json().catch(() => null));
+  } catch {
+    return lireUtilisationInvitation(null, null);
+  } finally {
+    clearTimeout(minuteur);
+  }
 }

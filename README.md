@@ -93,14 +93,17 @@ Petit programme hébergé chez Cloudflare (gratuit). L'app lui envoie un lien pr
 - Administration, avec le secret Cloudflare `ADMIN_TOKEN` (en-tête `Authorization: Bearer <jeton d'administration>`) :
   - `GET /v1/admin/installations` : liste (nom, date, active ou non, recherches du mois) ;
   - `POST /v1/admin/installations`, corps `{ "nom": "Téléphone de Léa" }` : crée l'installation et renvoie son jeton **une seule fois** ;
-  - `DELETE /v1/admin/installations/<id>` : révoque l'installation.
+  - `DELETE /v1/admin/installations/<id>` : révoque l'installation ;
+  - `POST /v1/admin/invitations`, corps `{ "nom": "Téléphone de Léa" }` : crée une invitation et renvoie son code (`CLST-7K4Q-9M2P`) **une seule fois** ; `GET /v1/admin/invitations` : invitations en attente ; `DELETE /v1/admin/invitations/<id>` : annule une invitation.
+- Codes d'invitation : `POST /v1/invitations/utiliser`, corps `{ "code": "CLST-7K4Q-9M2P" }`, **sans jeton** : crée l'installation prévue et renvoie son jeton une seule fois. Le code sert une fois, 7 jours au plus ; seule son empreinte est gardée, dans le Durable Object `Quota`. Limite : 5 essais par minute et par adresse (`LIMITEUR_INVITATION`).
 - Version minimale de l'app : `VERSION_APP_MIN` dans `wrangler.toml` (vide = aucune exigence). Une app plus ancienne, ou qui n'envoie pas sa version (APK d'avant l'étape 9 du lot 3), reçoit `mise_a_jour_requise` (HTTP 426) et affiche « Mets ClosetA à jour pour continuer. »
 
 ### Configurer un téléphone (Réglages de l'app)
 
 - **Relais** : adresse du relais (par défaut celle de `src/domain/settings.ts`), jeton, « Tester la connexion ». Les deux sont rangés dans le coffre du téléphone (`expo-secure-store`), jamais dans l'APK.
 - **QR de configuration** : `closeta://config?relais=<adresse>&jeton=<jeton>`. « Scanner un QR de configuration » le lit avec l'appareil photo ; un QR lu par l'appareil photo d'Android ouvre aussi ClosetA. Une confirmation est toujours demandée avant d'enregistrer. Seules les adresses `https` sont acceptées. « Afficher le QR de ce téléphone » ne s'affiche qu'à la demande : le code contient le jeton.
-- **Installations** : visible seulement quand un jeton d'administration (`ADMIN_TOKEN`) est saisi sur ce téléphone. Liste des téléphones (nom, date, recherches du mois), « Ajouter un téléphone » (nom, puis QR affiché une seule fois, à scanner depuis le nouveau téléphone), « Révoquer ».
+- **Installations** : visible seulement quand un jeton d'administration (`ADMIN_TOKEN`) est saisi sur ce téléphone. Liste des téléphones (nom, date, recherches du mois), « Ajouter un téléphone » (nom, puis QR affiché une seule fois, à scanner depuis le nouveau téléphone), « Révoquer ». « Inviter quelqu'un » (nom, puis code, QR et bouton « Partager l'invitation ») ; invitations en attente avec « Annuler ».
+- **Invitation** : `closeta://invitation?relais=<adresse>&code=<code>`, sans jeton, donc partageable par message. « J'ai un code d'invitation » (saisie du code pour le relais de ce téléphone), lien ouvert par Android ou QR scanné : confirmation, puis jeton rangé dans le coffre.
 
 ### Mise en ligne
 
