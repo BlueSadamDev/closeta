@@ -1,7 +1,7 @@
 import Constants from 'expo-constants';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { KeyboardAvoidingView, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { KeyboardAvoidingView, Linking, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Bouton } from '@/components/Bouton';
@@ -15,10 +15,12 @@ import { SectionInstallations } from '@/components/SectionInstallations';
 import { SectionRecherches } from '@/components/SectionRecherches';
 import { SectionSauvegarde } from '@/components/SectionSauvegarde';
 import { lienConfiguration, lireAdresseRelais } from '@/domain/configuration';
+import type { VersionPubliee } from '@/domain/miseAJour';
 import { nettoyerJeton, niveauQuota, type Quota } from '@/domain/relais';
 import { settings } from '@/domain/settings';
 import { texts } from '@/domain/texts';
 import { lireQuotaRelais, testerConnexion } from '@/relay/client';
+import { versionDisponible } from '@/relay/miseAJour';
 import {
   enregistrerAdresse,
   enregistrerJeton,
@@ -49,6 +51,8 @@ export default function Reglages() {
   const [saisieAdmin, setSaisieAdmin] = useState('');
   const [jetonAdmin, setJetonAdmin] = useState('');
   const [messageAdmin, setMessageAdmin] = useState<string | null>(null);
+  // Nouvelle version connue (vérifiée au plus une fois par jour depuis la Wishlist), sans appel au relais ici.
+  const [nouvelle, setNouvelle] = useState<VersionPubliee | null>(null);
 
   const actualiserQuota = async (j: string) => setQuota(j ? await lireQuotaRelais(j) : undefined);
 
@@ -62,6 +66,7 @@ export default function Reglages() {
         setJetonAdmin(admin);
         actualiserQuota(j);
       });
+      versionDisponible().then(setNouvelle);
     }, []),
   );
 
@@ -201,9 +206,20 @@ export default function Reglages() {
                 {niveau !== 'normal' ? <RichText style={styles.miseEnGardeQuota}>{r.quota[niveau]}</RichText> : null}
               </View>
             ) : null}
-            <View style={[styles.ligne, styles.ligneHaut]}>
-              <Etiquette>{r.version}</Etiquette>
-              <Text style={[type.body, styles.valeur]}>{Constants.expoConfig?.version ?? ''}</Text>
+            <View style={styles.ligne}>
+              <View style={styles.ligneHaut}>
+                <Etiquette>{r.version}</Etiquette>
+                <Text style={[type.body, styles.valeur]}>{Constants.expoConfig?.version ?? ''}</Text>
+              </View>
+              {nouvelle ? (
+                <Pressable
+                  accessibilityRole="link"
+                  onPress={() => Linking.openURL(nouvelle.url).catch(() => undefined)}
+                  style={styles.nouvelle}
+                >
+                  <RichText style={[type.body, styles.valeur]}>{r.versionDisponible(nouvelle.derniere)}</RichText>
+                </Pressable>
+              ) : null}
             </View>
           </View>
 
@@ -264,4 +280,5 @@ const styles = StyleSheet.create({
   manquant: { color: colors.inkMuted },
   miseEnGardeQuota: { ...type.body, color: colors.ink, marginTop: 8 },
   installations: { marginTop: 20 },
+  nouvelle: { minHeight: 44, justifyContent: 'center', alignItems: 'flex-end' },
 });

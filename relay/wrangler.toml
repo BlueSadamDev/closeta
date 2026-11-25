@@ -61,3 +61,6 @@ SERPAPI_LIMITE_INSTALLATION = ""
 # Version minimale de l'app (ex. "1.1.0") ; vide = aucune exigence. Une app plus ancienne reçoit
 # « mise_a_jour_requise » (HTTP 426). Les APK d'avant l'étape 9 n'envoient pas leur version.
 VERSION_APP_MIN = ""
+# Dépôt GitHub dont les releases annoncent les nouvelles versions de l'app (GET /v1/version) ;
+# vide = aucune annonce. Ce n'est pas un secret : le dépôt est public.
+DEPOT_RELEASES = "BlueSadamDev/closeta"

@@ -546,6 +546,7 @@ Jamais : identifiant d'installation ou jeton dans le catalogue, lien entre une r
 - Workflow de production : publie l'APK signé dans une **release GitHub** `vX.Y.Z` (version de `app.json`, refus si elle existe déjà).
 - Relais : `GET /v1/version` → `{ derniere, url }`, lu dans la dernière release GitHub et gardé 1 h (l'app ne parle qu'au relais).
 - App : au plus une fois par jour, si une version plus récente existe, bandeau discret « Nouvelle version 1.2.0 disponible » avec un lien vers la release (navigateur). Rien si le relais ne répond pas.
+- Décisions du 25 novembre 2026 : le relais lit la page publique `…/releases/latest` (redirection vers `…/tag/vX.Y.Z`) plutôt que l'API GitHub, dont la limite est partagée entre les serveurs de Cloudflare ; dépôt dans la variable `DEPOT_RELEASES` de `wrangler.toml` (vide = aucune annonce) ; réponse gardée 1 h dans KV, rien de gardé si GitHub ne répond pas. Bandeau en haut de la **Wishlist seulement**, avec une croix qui masque la version annoncée jusqu'à la suivante ; la ligne « Version » des Réglages indique aussi la nouvelle version.
 
 **Étape 8 — Confidentialité**
 

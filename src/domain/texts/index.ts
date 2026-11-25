@@ -429,6 +429,8 @@ export const texts = {
     codeInvitation: 'J’ai un code d’invitation',
     testEnCours: 'On interroge le relais…',
     version: 'Version',
+    /** Nouvelle version connue (docs/SPEC.md, « Lot 4 », « Étape 7 ») : lien vers sa release. */
+    versionDisponible: (version: string) => `Version *${version}* disponible`,
     /** Recherches par photo du mois (offre SerpApi limitée). */
     recherches: 'Recherches ce mois',
     /** {utilise} et {limite} sont remplacés par les nombres. */
@@ -469,6 +471,7 @@ export const texts = {
     fermerAjout: 'Fermer',
     rechercher: 'Rechercher',
     fermerRecherche: 'Fermer la recherche',
+    masquerMiseAJour: 'Masquer l’annonce de mise à jour',
     ouvrirFiltres: 'Ouvrir les filtres',
     fermerFiltres: 'Fermer les filtres',
     retour: 'Retour',
@@ -501,6 +504,11 @@ export const texts = {
     enCours: 'On vérifie l’accès…',
     invalide: 'Ce lien de configuration ne convient pas. *Demande un nouveau code*.',
     retour: 'Retour aux Réglages',
+  },
+
+  /** Bandeau de mise à jour, en haut de la Wishlist (docs/SPEC.md, « Lot 4 », « Étape 7 »). */
+  miseAJour: {
+    bandeau: (version: string) => `Nouvelle version *${version}* disponible`,
   },
 
   /** Utilisation d'un code d'invitation (saisi, lien closeta://invitation ou QR). */

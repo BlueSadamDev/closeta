@@ -25,6 +25,9 @@ export const settings = {
   lienConfiguration: 'closeta://config',
   /** Lien d'invitation (docs/SPEC.md, « Lot 4 », « Étape 6 ») : adresse du relais et code, jamais de jeton. */
   lienInvitation: 'closeta://invitation',
+  /** Vérification de mise à jour (docs/SPEC.md, « Lot 4 », « Étape 7 ») : clé du coffre et rythme (au plus une par jour). */
+  miseAJourKey: 'closeta.mise-a-jour',
+  delaiVerificationMiseAJourMs: 24 * 3600_000,
   /** Codes d'invitation : préfixe fixe et caractères tirés au hasard (sans 0/O ni 1/I), comme au relais. */
   codeInvitation: { prefixe: 'CLST', longueur: 8, alphabet: 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' },
   /** Longueur maximale du nom d'un téléphone ajouté (la même que celle du relais). */

@@ -7,6 +7,7 @@ import { demandeAlternatives, lireAlternatives, type ResultatAlternatives } from
 import { genrePourRelais } from '@/domain/genre';
 import type { Article } from '@/domain/article';
 import { lireExtraction, type ResultatExtraction } from '@/domain/lien';
+import { lireVersionPubliee as lireReponseVersion, type VersionPubliee } from '@/domain/miseAJour';
 import { lireIdentification, type ResultatIdentification } from '@/domain/photo';
 import {
   lireCreationInstallation,
@@ -71,6 +72,24 @@ export async function lireQuotaRelais(jeton: string): Promise<Quota | null> {
       signal: arret.signal,
     });
     return lireQuota(reponse.status, await reponse.json().catch(() => null));
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(minuteur);
+  }
+}
+
+/** Dernière version publiée en release (GET /v1/version). Ne lève jamais d'exception : null si rien à lire. */
+export async function lireVersionPubliee(jeton: string): Promise<VersionPubliee | null> {
+  if (!jeton) return null;
+  const arret = new AbortController();
+  const minuteur = setTimeout(() => arret.abort(), settings.relayTimeoutMs);
+  try {
+    const reponse = await fetch(await adresse('/version'), {
+      headers: entetesRelais(await identite(jeton)),
+      signal: arret.signal,
+    });
+    return lireReponseVersion(reponse.status, await reponse.json().catch(() => null));
   } catch {
     return null;
   } finally {
