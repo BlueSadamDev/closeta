@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BandeauMiseAJour } from '@/components/BandeauMiseAJour';
 import { BarreFiltres } from '@/components/BarreFiltres';
 import { Bouton } from '@/components/Bouton';
 import { BoutonIcone } from '@/components/BoutonIcone';
@@ -118,6 +119,8 @@ export default function Wishlist() {
           )
         }
       />
+
+      <BandeauMiseAJour />
 
       <View style={styles.corps}>
         {articles.length === 0 ? (

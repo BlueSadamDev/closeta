@@ -46,6 +46,8 @@ Les APK se construisent sur GitHub, sans rien installer. Onglet **Actions** du d
 
 Récupérer l'APK : ouvrir le build terminé, section **Artifacts**, télécharger le ZIP (conservé 7 jours), l'ouvrir et installer le fichier `.apk` (autoriser l'installation d'applications inconnues si Android le demande).
 
+**Releases (APK de production)** : chaque APK de production est aussi publié dans une release GitHub `vX.Y.Z` (version lue dans `app.json`, fichier `closeta-X.Y.Z.apk`, sans limite de durée). **Avant chaque build de production, augmenter `expo.version` dans `app.json`** (par exemple `1.0.0` → `1.1.0`) : le workflow refuse une version qui a déjà sa release. Le relais lit la dernière release (`GET /v1/version`, dépôt donné par `DEPOT_RELEASES` dans `relay/wrangler.toml`) et l'app affiche, au plus une fois par jour, le bandeau « Nouvelle version 1.2.0 disponible » en haut de la Wishlist.
+
 ### Secrets de signature (APK de production)
 
 À créer une seule fois, dans **Settings > Secrets and variables > Actions** :

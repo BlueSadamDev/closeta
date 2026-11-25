@@ -4,12 +4,18 @@ name: Build APK de production
 # Garde la permission Internet (nécessaire pour joindre le relais Cloudflare).
 # Aucun secret n'est injecté dans l'APK : le jeton du relais se saisit dans l'app.
 # Déclenchement uniquement manuel : onglet Actions > "Run workflow".
+# Chaque APK est aussi publié en release GitHub vX.Y.Z (version de app.json) : l'app propose
+# la nouvelle version grâce au relais (GET /v1/version). Augmenter la version de app.json avant
+# chaque build : le workflow refuse une version qui a déjà sa release.
 on:
   workflow_dispatch:
 
 jobs:
   build-apk:
     runs-on: ubuntu-latest
+    # Écriture des releases du dépôt (et rien d'autre).
+    permissions:
+      contents: write
     env:
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -22,6 +28,20 @@ jobs:
     steps:
       - name: Récupérer le code source
         uses: actions/checkout@v7
+
+      - name: Vérifier que la version n'a pas déjà de release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(jq -r '.expo.version' app.json)
+          if ! echo "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "ERREUR : version « $VERSION » illisible dans app.json (attendu : 1.2.0)"; exit 1
+          fi
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            echo "ERREUR : la release v$VERSION existe déjà – augmente la version dans app.json"; exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "Version à publier : v$VERSION"
 
       - name: Vérifier que les 4 secrets de signature sont présents
         run: |
@@ -77,6 +97,17 @@ jobs:
           name: closeta-apk
           retention-days: 7
           path: android/app/build/outputs/apk/release/*.apk
+
+      - name: Publier l'APK en release GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          APK=$(ls android/app/build/outputs/apk/release/*.apk | head -n 1)
+          cp "$APK" "closeta-$VERSION.apk"
+          gh release create "v$VERSION" "closeta-$VERSION.apk" \
+            --target "$GITHUB_SHA" \
+            --title "ClosetA $VERSION" \
+            --notes "APK de production signé. Sur le téléphone : télécharger closeta-$VERSION.apk, puis l'ouvrir pour installer la mise à jour."
 
       - name: Nettoyer le keystore décodé
         if: always()
