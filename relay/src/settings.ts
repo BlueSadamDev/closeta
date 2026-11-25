@@ -24,6 +24,14 @@ export const settings = {
   /** Mois gardés dans le compteur : le mois en cours et le précédent ; les plus anciens sont effacés. */
   moisQuotaGardes: 2,
 
+  // --- Dernière version publiée (GET /v1/version) ---
+  /** Durée pendant laquelle la dernière version lue sur GitHub est gardée (KV) avant d'être relue. */
+  dureeVersionS: 3600,
+  /** Temps maximal pour interroger GitHub. */
+  delaiVersionMs: 5_000,
+  /** Identité envoyée à GitHub (pas celle d'un navigateur : c'est un programme qui demande). */
+  userAgentVersion: 'ClosetA-relais',
+
   // --- Codes d'invitation ---
   /** Préfixe fixe des codes (`CLST-7K4Q-9M2P`) ; suivi de caractères tirés au hasard. */
   prefixeCodeInvitation: 'CLST',

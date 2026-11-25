@@ -21,7 +21,7 @@ import { normaliserCode, nouveauCode } from './invitations';
 import { type EspaceQuota, lireLimite, lireLimiteInstallation, objetQuota, QuotaInstallation } from './quota';
 import { settings } from './settings';
 import { urlPublique } from './url';
-import { miseAJourRequise } from './version';
+import { lireDepot, lireDerniereRelease, miseAJourRequise, VERSION_INCONNUE, type VersionPubliee } from './version';
 
 /** Limiteur de débit fourni par Cloudflare (déclaré dans wrangler.toml). */
 interface Limiteur {
@@ -52,6 +52,8 @@ export interface Env {
   SERPAPI_LIMITE_INSTALLATION?: string;
   /** Version minimale de l'app (vide : aucune exigence). */
   VERSION_APP_MIN?: string;
+  /** Dépôt GitHub dont les releases annoncent les nouvelles versions (« propriétaire/nom ») ; vide : aucune. */
+  DEPOT_RELEASES?: string;
   /** Catalogue partagé et anonyme (Cloudflare D1) ; absent = relais sans cache. */
   CATALOGUE?: BaseD1;
 }
@@ -377,8 +379,30 @@ async function adminInstallations(requete: Request, env: Env, id: string | null)
   return erreur('route_inconnue', 404);
 }
 
+/**
+ * GET /v1/version : dernière version publiée en release GitHub (`{ derniere, url }`), gardée 1 h dans KV.
+ * GitHub indisponible : `{ derniere: null, url: null }`, rien n'est gardé (l'app n'affiche alors rien).
+ */
+async function routeVersion(env: Env): Promise<Response> {
+  const depot = lireDepot(env.DEPOT_RELEASES);
+  if (!depot) return json(VERSION_INCONNUE);
+  const cle = `version:${depot}`;
+  const gardee = await env.QUOTA.get(cle);
+  if (gardee) {
+    try {
+      return json(JSON.parse(gardee) as VersionPubliee);
+    } catch {
+      // Valeur illisible : relue sur GitHub.
+    }
+  }
+  const lue = await lireDerniereRelease(depot, (adresse, options) => fetch(adresse, options));
+  if (!lue) return json(VERSION_INCONNUE);
+  await env.QUOTA.put(cle, JSON.stringify(lue), { expirationTtl: settings.dureeVersionS });
+  return json(lue);
+}
+
 /** Routes de l'app ; servies sous /v1/…, les adresses sans préfixe restent des alias pour les anciens APK. */
-const ROUTES_APP = ['POST /extract', 'POST /identify', 'POST /alternatives', 'GET /quota'];
+const ROUTES_APP = ['POST /extract', 'POST /identify', 'POST /alternatives', 'GET /quota', 'GET /version'];
 
 /** Durable Object du compteur SerpApi : la classe doit être exportée par le Worker. */
 export { Quota } from './quotaObjet';
@@ -425,6 +449,7 @@ export default {
     }
 
     if (chemin === '/quota') return routeQuota(env, installation);
+    if (chemin === '/version') return routeVersion(env);
     if (chemin === '/alternatives') return routeAlternatives(requete, env, installation);
     if (chemin === '/identify') return routeIdentify(requete, env, installation);
     return routeExtract(requete, env);
