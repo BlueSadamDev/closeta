@@ -24,6 +24,14 @@ export const settings = {
   /** Mois gardés dans le compteur : le mois en cours et le précédent ; les plus anciens sont effacés. */
   moisQuotaGardes: 2,
 
+  // --- Codes d'invitation ---
+  /** Préfixe fixe des codes (`CLST-7K4Q-9M2P`) ; suivi de caractères tirés au hasard. */
+  prefixeCodeInvitation: 'CLST',
+  /** Nombre de caractères tirés au hasard (8 sur 32 possibles : 40 bits). */
+  longueurCodeInvitation: 8,
+  /** Durée de validité d'un code d'invitation, effacé ensuite (ou dès son utilisation). */
+  dureeInvitationMs: 7 * 24 * 3600_000,
+
   // --- Catalogue partagé (Cloudflare D1) ---
   /** Une page produit lue il y a moins de 24 h est servie depuis le catalogue, sans la relire. */
   dureePageMs: 24 * 3600_000,
