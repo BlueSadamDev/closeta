@@ -1,5 +1,6 @@
 /**
- * Durable Object `Quota` : l'unique compteur des recherches SerpApi (logique dans quota.ts).
+ * Durable Object `Quota` : l'unique compteur des recherches SerpApi (logique dans quota.ts), qui range
+ * aussi les codes d'invitation (logique dans invitations.ts) pour garantir leur usage unique.
  * Cloudflare lui transmet les demandes une par une ; chaque opération sur sa base SQLite est
  * synchrone, donc aucune autre demande ne peut s'intercaler entre la vérification et le comptage.
  * Déclaré dans wrangler.toml (lien QUOTAS, migration new_sqlite_classes).
@@ -7,6 +8,7 @@
 import { DurableObject } from 'cloudflare:workers';
 
 import type { MagasinListable } from './installations';
+import { type Invitation, type ObjetInvitations, RegistreInvitations } from './invitations';
 import {
   type BaseSql,
   CLE_GLOBALE,
@@ -47,8 +49,9 @@ export async function casesKv(kv: MagasinListable, mois: string): Promise<Record
   return valeurs;
 }
 
-export class Quota extends DurableObject<EnvQuota> implements ObjetQuota {
+export class Quota extends DurableObject<EnvQuota> implements ObjetQuota, ObjetInvitations {
   private readonly registre: RegistreQuota;
+  private readonly invitations: RegistreInvitations;
 
   constructor(
     ctx: EtatObjet,
@@ -57,6 +60,7 @@ export class Quota extends DurableObject<EnvQuota> implements ObjetQuota {
   ) {
     super(ctx, env);
     this.registre = new RegistreQuota(ctx.storage.sql);
+    this.invitations = new RegistreInvitations(ctx.storage.sql);
   }
 
   /**
@@ -87,5 +91,21 @@ export class Quota extends DurableObject<EnvQuota> implements ObjetQuota {
   async utilises(installations: string[]): Promise<Utilises> {
     const mois = await this.moisPret();
     return this.registre.utilises(mois, installations);
+  }
+
+  async creerInvitation(empreinte: string, nom: string): Promise<Invitation> {
+    return this.invitations.creer(empreinte, nom, this.maintenant());
+  }
+
+  async listerInvitations(): Promise<Invitation[]> {
+    return this.invitations.lister(this.maintenant());
+  }
+
+  async annulerInvitation(id: string): Promise<boolean> {
+    return this.invitations.annuler(id);
+  }
+
+  async utiliserInvitation(empreinte: string): Promise<{ nom: string } | null> {
+    return this.invitations.utiliser(empreinte, this.maintenant());
   }
 }

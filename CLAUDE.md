@@ -94,7 +94,7 @@ Piste A · Relais :
 5. Supervision et photos temporaires : journaux JSON sans donnée personnelle, `GET /v1/admin/etat`, règle d'expiration R2 vérifiée par le workflow.
 
 Piste B · App et conformité :
-6. Codes d'invitation : création depuis « Installations », lien `closeta://invitation` sans jeton, code à usage unique valable 7 jours.
+6. Codes d'invitation : création depuis « Installations », lien `closeta://invitation` sans jeton, code à usage unique valable 7 jours. **Terminée, fusionnée via la PR #36** : routes `/v1/admin/invitations` et `POST /v1/invitations/utiliser` (`{ code }` seul), code `CLST-XXXX-XXXX` dont seule l'empreinte est gardée, usage unique garanti par le Durable Object `Quota`, 5 essais par minute et par adresse ; « Inviter quelqu'un » (code, QR, partage), invitations en attente annulables, « J'ai un code d'invitation » (saisie, lien ou QR).
 7. Vérification de mise à jour : release GitHub à chaque APK de production, `GET /v1/version`, bandeau dans l'app.
 8. Confidentialité : `docs/CONFIDENTIALITE.md`, `docs/REGISTRE.md`, écran « Confidentialité », rappel sur les écrans photo. **Terminée, fusionnée via la PR #35** : `docs/CONFIDENTIALITE.md` et `docs/REGISTRE.md` (version 1, contact dpo@closeta.fr), écran « Confidentialité » dans Réglages, rappel « sans personne » sur les écrans photo, sauvegarde automatique d'Android désactivée ; décisions pour la piste A notées dans docs/SPEC.md (juridiction `eu`, liste blanche des paramètres, suppression à la révocation).
 

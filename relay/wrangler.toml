@@ -17,6 +17,12 @@ name = "LIMITEUR"
 namespace_id = "1001"
 simple = { limit = 30, period = 60 }
 
+# Utilisation d'un code d'invitation (sans jeton) : 5 essais par minute et par adresse, contre les essais au hasard.
+[[ratelimits]]
+name = "LIMITEUR_INVITATION"
+namespace_id = "1002"
+simple = { limit = 5, period = 60 }
+
 # IA de Cloudflare (Workers AI) qui décrit les photos de /identify. Offre gratuite : quota quotidien,
 # arrêt net une fois atteint (aucune facture possible sur l'offre Workers gratuite).
 [ai]
@@ -25,6 +31,7 @@ binding = "AI"
 # Compteur des recherches SerpApi du mois : Durable Object « Quota » (un seul exemplaire, base SQLite,
 # disponible en offre gratuite). Il traite les demandes une par une : comptage exact, même quand deux
 # téléphones cherchent en même temps. Au premier appel d'un mois, il reprend une fois les compteurs de KV.
+# Il range aussi les codes d'invitation (empreintes seulement), effacés à leur utilisation ou au bout de 7 jours.
 [[durable_objects.bindings]]
 name = "QUOTAS"
 class_name = "Quota"

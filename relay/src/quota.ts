@@ -9,6 +9,7 @@
  * Reprise : au premier appel d'un mois, les cases que KV avait encore pour ce mois (`serpapi:2026-11`,
  * `serpapi:2026-11:<id>`) sont recopiées une fois ; ensuite KV ne sert plus au quota.
  */
+import type { ObjetInvitations } from './invitations';
 import { settings } from './settings';
 
 /** Stockage clé → valeur Cloudflare KV (déclaré dans wrangler.toml). */
@@ -78,10 +79,10 @@ export interface ObjetQuota {
   utilises(installations: string[]): Promise<Utilises>;
 }
 
-/** Accès au Durable Object, déclaré dans wrangler.toml (lien QUOTAS). */
+/** Accès au Durable Object, déclaré dans wrangler.toml (lien QUOTAS) : compteur et invitations. */
 export interface EspaceQuota {
   idFromName(nom: string): unknown;
-  get(id: unknown): ObjetQuota;
+  get(id: unknown): ObjetQuota & ObjetInvitations;
 }
 
 /** L'unique exemplaire du compteur : toutes les installations passent par lui. */

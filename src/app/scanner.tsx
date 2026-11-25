@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BoutonIcone } from '@/components/BoutonIcone';
 import { RichText } from '@/components/RichText';
 import { lireLienConfiguration } from '@/domain/configuration';
+import { lireLienInvitation } from '@/domain/invitation';
 import { settings } from '@/domain/settings';
 import { texts } from '@/domain/texts';
 import { colors, spacing, type } from '@/theme';
@@ -40,7 +41,14 @@ export default function Scanner() {
       router.replace({ pathname: '/config', params: { relais: config.relais, jeton: config.jeton } });
       return;
     }
-    setMessage(t[config.raison]);
+    // QR d'invitation (sans jeton) : même parcours que le lien closeta://invitation.
+    const invitation = lireLienInvitation(data);
+    if (invitation.ok) {
+      fini.current = true;
+      router.replace({ pathname: '/invitation', params: { relais: invitation.relais, code: invitation.code } });
+      return;
+    }
+    setMessage(t[invitation.raison === 'etranger' ? config.raison : invitation.raison]);
     pause.current = true;
     setTimeout(() => {
       pause.current = false;

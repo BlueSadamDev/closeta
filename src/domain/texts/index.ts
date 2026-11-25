@@ -144,6 +144,12 @@ export const texts = {
       message: 'Elle disparaît pour de bon.',
       confirmer: 'Supprimer',
     },
+    /** Annulation d'une invitation en attente (section « Installations »). */
+    annulationInvitation: {
+      titre: 'Annuler l’invitation ?',
+      message: 'Son code ne fonctionnera plus.',
+      confirmer: 'Annuler l’invitation',
+    },
     /** Restauration d'une sauvegarde (Réglages) : résumé du fichier, puis remplacement de tout. */
     restauration: {
       titre: 'Remplacer tes données ?',
@@ -374,6 +380,19 @@ export const texts = {
       /** Le QR d'un téléphone ajouté ne s'affiche qu'une fois (le relais ne redonne jamais son jeton). */
       nouveauQr: (nom: string) => `Scanne ce code depuis *${nom}*. Il ne s’affichera plus.`,
       termine: 'C’est scanné',
+      /** Invitations (docs/SPEC.md, « Lot 4 », « Étape 6 ») : un code sans jeton, valable 7 jours. */
+      inviter: 'Inviter quelqu’un',
+      nomInviteExemple: 'Téléphone de Léa',
+      creerInvitation: 'Créer l’invitation',
+      nouvelleInvitation: (nom: string) => `Invitation prête pour *${nom}*. Partage le lien, ou donne le code. Il sert une fois, pendant 7 jours.`,
+      partager: 'Partager l’invitation',
+      /** Message partagé (le lien est ajouté à la ligne suivante). */
+      messagePartage: (code: string) => `Rejoins ClosetA : ouvre ce lien sur ton téléphone, ou saisis le code ${code} dans les Réglages.`,
+      invitationsEnAttente: 'Invitations en attente',
+      expireLe: (date: string) => `Expire le ${date}`,
+      annulerInvitation: 'Annuler',
+      invitationAnnulee: 'Invitation *annulée*.',
+      invitationTerminee: 'Terminé',
       echec: {
         jeton_absent: 'Aucun jeton d’administration. *Colle-le* au-dessus.',
         jeton_refuse: 'Le relais ne reconnaît pas ce jeton d’administration. *Vérifie-le*.',
@@ -407,6 +426,7 @@ export const texts = {
     sectionConfidentialite: 'Confidentialité',
     confidentialite: 'Ce que deviennent tes données',
     tester: 'Tester la connexion',
+    codeInvitation: 'J’ai un code d’invitation',
     testEnCours: 'On interroge le relais…',
     version: 'Version',
     /** Recherches par photo du mois (offre SerpApi limitée). */
@@ -455,6 +475,7 @@ export const texts = {
     fermerPriseDeVue: 'Fermer la prise de vue',
     fermerScanner: 'Fermer le lecteur de QR',
     qrConfiguration: 'QR de configuration',
+    qrInvitation: 'QR d’invitation',
     agrandirPhoto: 'Agrandir la photo',
     photoAgrandie: 'Photo agrandie. Pince pour zoomer, touche pour fermer.',
     fermerPhoto: 'Fermer la photo',
@@ -462,11 +483,12 @@ export const texts = {
 
   /** Lecteur de QR de configuration (Réglages). */
   scanner: {
-    consigne: 'Vise le QR de configuration affiché sur l’autre téléphone.',
+    consigne: 'Vise le QR de configuration ou d’invitation affiché sur l’autre téléphone.',
     cameraRefusee: 'L’appareil photo n’est pas autorisé. *Autorise-le dans les réglages d’Android*.',
-    etranger: 'Ce code n’est pas un QR de configuration ClosetA. *Vise le bon code*.',
+    etranger: 'Ce code n’est pas un QR ClosetA. *Vise le bon code*.',
     adresse: 'Ce code donne une adresse de relais non sécurisée. *Demande un nouveau code*.',
     jeton: 'Ce code ne contient pas de jeton. *Demande un nouveau code*.',
+    code: 'Ce QR d’invitation est incomplet. *Demande une nouvelle invitation*.',
   },
 
   /** Confirmation d'une configuration (QR scanné ou lien closeta://config ouvert). */
@@ -479,5 +501,25 @@ export const texts = {
     enCours: 'On vérifie l’accès…',
     invalide: 'Ce lien de configuration ne convient pas. *Demande un nouveau code*.',
     retour: 'Retour aux Réglages',
+  },
+
+  /** Utilisation d'un code d'invitation (saisi, lien closeta://invitation ou QR). */
+  invitation: {
+    titre: 'Invitation',
+    saisie: (hote: string) => `Saisis le code reçu. Il relie ce téléphone au relais *${hote}*.`,
+    code: 'Code d’invitation',
+    codeExemple: 'CLST-7K4Q-9M2P',
+    question: (hote: string) => `Relier ce téléphone au relais *${hote}* avec cette invitation ?`,
+    utiliser: 'Utiliser le code',
+    annuler: 'Annuler',
+    enCours: 'On vérifie le code…',
+    codeMalForme: 'Ce code ne ressemble pas à un code ClosetA. *Vérifie-le*.',
+    lienInvalide: 'Ce lien d’invitation ne convient pas. *Demande une nouvelle invitation*.',
+    echec: {
+      invalide: 'Ce code ne fonctionne plus : déjà utilisé, annulé ou expiré. *Demande une nouvelle invitation*.',
+      limite: 'Trop d’essais en une minute. *Réessaie dans un instant*.',
+      injoignable: 'Le relais ne répond pas. *Vérifie ta connexion* et réessaie.',
+      inattendu: 'Le relais a répondu de façon inattendue. *Réessaie plus tard*.',
+    },
   },
 } as const;

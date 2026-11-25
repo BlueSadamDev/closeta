@@ -6,6 +6,7 @@ import { lireGenre, type Genre } from './genre';
 import { clePhoto, estJpeg, identifiantValide, identifier, QuotaAtteint, RechercheIndisponible, type Stockage } from './identify';
 import {
   creerInstallation,
+  empreinteHex,
   identifiantInstallationValide,
   installationDuJeton,
   type Installation,
@@ -16,6 +17,7 @@ import {
   PRINCIPALE,
   revoquerInstallation,
 } from './installations';
+import { normaliserCode, nouveauCode } from './invitations';
 import { type EspaceQuota, lireLimite, lireLimiteInstallation, objetQuota, QuotaInstallation } from './quota';
 import { settings } from './settings';
 import { urlPublique } from './url';
@@ -34,6 +36,8 @@ export interface Env {
   /** Clé SerpApi (Google Lens et Shopping) : secret Cloudflare, jamais dans le dépôt. */
   SERPAPI_KEY?: string;
   LIMITEUR: Limiteur;
+  /** Limite plus stricte pour l'utilisation d'un code d'invitation (sans jeton) ; à défaut, LIMITEUR. */
+  LIMITEUR_INVITATION?: Limiteur;
   /** IA de Cloudflare (Workers AI) qui décrit les photos. */
   AI: IA;
   /** Stockage temporaire des photos, le temps de la recherche Google Lens. */
@@ -66,7 +70,8 @@ export type CodeErreur =
   | 'recherche_indisponible'
   | 'quota_atteint'
   | 'mise_a_jour_requise'
-  | 'installation_inconnue';
+  | 'installation_inconnue'
+  | 'invitation_invalide';
 
 const json = (corps: unknown, statut = 200) =>
   new Response(JSON.stringify(corps), {
@@ -288,15 +293,65 @@ async function limiteParAdresse(requete: Request, env: Env): Promise<boolean> {
   return (await env.LIMITEUR.limit({ key: `ip:${ip}` })).success;
 }
 
-/** Routes /v1/admin/installations : réservées au jeton d'administration. */
-async function routeAdmin(requete: Request, env: Env, id: string | null): Promise<Response> {
+/** Routes /v1/admin/… : réservées au jeton d'administration. */
+async function routeAdmin(requete: Request, env: Env, ressource: string, id: string | null): Promise<Response> {
   const jeton = jetonRecu(requete);
   if (!jeton || !env.ADMIN_TOKEN || !(await jetonsEgaux(jeton, env.ADMIN_TOKEN))) {
     if (!(await limiteParAdresse(requete, env))) return erreur('limite', 429);
     return jeton ? erreur('jeton_refuse', 403) : erreur('jeton_absent', 401);
   }
   if (!(await env.LIMITEUR.limit({ key: 'admin' })).success) return erreur('limite', 429);
+  return ressource === 'invitations' ? adminInvitations(requete, env, id) : adminInstallations(requete, env, id);
+}
 
+/** Corps JSON d'une demande, ou undefined s'il est illisible. */
+async function corpsJson(requete: Request): Promise<unknown> {
+  try {
+    return await requete.json();
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * /v1/admin/invitations : création (POST, le code n'est renvoyé qu'ici, une seule fois), liste des
+ * invitations en attente (GET), annulation (DELETE /<id>). Seule l'empreinte du code est gardée.
+ */
+async function adminInvitations(requete: Request, env: Env, id: string | null): Promise<Response> {
+  const objet = objetQuota(env.QUOTAS);
+  if (requete.method === 'GET' && id === null) return json({ invitations: await objet.listerInvitations() });
+  if (requete.method === 'POST' && id === null) {
+    const nom = lireNom(await corpsJson(requete));
+    if (!nom) return erreur('requete_invalide', 400);
+    const code = nouveauCode();
+    const invitation = await objet.creerInvitation(await empreinteHex(normaliserCode(code) as string), nom);
+    return json({ invitation, code }, 201);
+  }
+  if (requete.method === 'DELETE' && id !== null) {
+    return (await objet.annulerInvitation(id)) ? json({ annulee: true }) : erreur('invitation_invalide', 404);
+  }
+  return erreur('route_inconnue', 404);
+}
+
+/**
+ * POST /v1/invitations/utiliser `{ code }`, sans jeton : crée l'installation prévue et renvoie son jeton,
+ * une seule fois. Le code est effacé dans la même opération que sa vérification. Un code inconnu, déjà
+ * utilisé, annulé ou expiré reçoit la même réponse. Limite de débit stricte, par adresse.
+ */
+async function routeUtiliserInvitation(requete: Request, env: Env): Promise<Response> {
+  const ip = requete.headers.get('cf-connecting-ip') ?? 'inconnue';
+  const limiteur = env.LIMITEUR_INVITATION ?? env.LIMITEUR;
+  if (!(await limiteur.limit({ key: `invitation:${ip}` })).success) return erreur('limite', 429);
+  const corps = await corpsJson(requete);
+  const code = normaliserCode(corps && typeof corps === 'object' ? (corps as { code?: unknown }).code : undefined);
+  if (!code) return erreur('requete_invalide', 400);
+  const prevue = await objetQuota(env.QUOTAS).utiliserInvitation(await empreinteHex(code));
+  if (!prevue) return erreur('invitation_invalide', 404);
+  return json(await creerInstallation(prevue.nom, env.QUOTA), 201);
+}
+
+/** /v1/admin/installations : liste (GET), création (POST), révocation (DELETE /<id>). */
+async function adminInstallations(requete: Request, env: Env, id: string | null): Promise<Response> {
   if (requete.method === 'GET' && id === null) {
     const installations = [PRINCIPALE, ...(await listerInstallations(env.QUOTA))];
     const { mois, utilises } = await objetQuota(env.QUOTAS).utilises(installations.map((i) => i.id));
@@ -334,8 +389,10 @@ export default {
     const photo = pathname.match(/^(?:\/v1)?\/photo\/([^/]+)$/);
     if (requete.method === 'GET' && photo) return routePhoto(photo[1], env, requete);
 
-    const admin = pathname.match(/^\/v1\/admin\/installations(?:\/([^/]+))?$/);
-    if (admin) return routeAdmin(requete, env, admin[1] ?? null);
+    const admin = pathname.match(/^\/v1\/admin\/(installations|invitations)(?:\/([^/]+))?$/);
+    if (admin) return routeAdmin(requete, env, admin[1], admin[2] ?? null);
+
+    if (requete.method === 'POST' && pathname === '/v1/invitations/utiliser') return routeUtiliserInvitation(requete, env);
 
     const chemin = pathname.startsWith('/v1/') ? pathname.slice(3) : pathname;
     const route = `${requete.method} ${chemin}`;
