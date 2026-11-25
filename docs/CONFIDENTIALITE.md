@@ -1,6 +1,6 @@
 # ClosetA — Confidentialité
 
-> **BROUILLON.** Rédigé le 24 novembre 2026 (lot 4, étape 8) à partir du code relu sur `main` : app (`src/`), relais (`relay/src/`, `relay/wrangler.toml`) et workflows. Décisions de l'utilisateur intégrées le 24 novembre 2026 (voir aussi docs/SPEC.md, « Lot 4 », « Décisions de confidentialité »). Les mentions **[à vérifier]** signalent une information qui ne vient pas du code (engagements d'un fournisseur) et qui n'a pas pu être confirmée sur la source officielle. Les mentions **[prévu]** décrivent une mesure décidée, pas encore en place dans le code.
+> **Version 1, validée le 25 novembre 2026.** Rédigé le 24 novembre 2026 (lot 4, étape 8) à partir du code relu sur `main` : app (`src/`), relais (`relay/src/`, `relay/wrangler.toml`) et workflows. Décisions de l'utilisateur intégrées le 24 novembre 2026 (voir aussi docs/SPEC.md, « Lot 4 », « Décisions de confidentialité »). Les mentions **[à vérifier]** signalent une information qui ne vient pas du code (engagements d'un fournisseur) et qui n'a pas pu être confirmée sur la source officielle. Les mentions **[prévu]** décrivent une mesure décidée, pas encore en place dans le code.
 
 Ce document décrit les données que ClosetA traite, pourquoi, où, combien de temps et avec qui. Il couvre trois lieux :
 
@@ -61,7 +61,7 @@ Le relais n'intervient pas dans ces échanges. Ce choix est assumé : faire pass
 
 ---
 
-## 3. Ce qui passe par le relais (état actuel)
+## 3. Ce qui passe par le relais (lots 1 à 3)
 
 Toutes les requêtes de l'app vers le relais sont en HTTPS et portent :
 
@@ -84,7 +84,7 @@ Cloudflare reçoit aussi, comme pour toute requête web, l'**adresse IP** du té
 
 **Ce que voit Google** : SerpApi transmet l'adresse de la photo à Google Lens. Les serveurs de Google téléchargent alors la photo depuis le relais. Google traite ensuite l'image et les requêtes Shopping **selon ses propres règles**. ClosetA n'a pas de contrat avec Google : Google n'est pas un sous-traitant, mais un destinataire tiers. **C'est la raison principale du rappel affiché sur les écrans photo : « Photographie la pièce seule, sans personne. »** Une photo sans personne, de vêtement seul, n'est en principe pas une donnée personnelle.
 
-### Ce que le relais conserve aujourd'hui
+### Ce que le relais conservait avant le catalogue
 
 | Donnée | Stockage | Durée |
 | --- | --- | --- |
@@ -94,7 +94,7 @@ Cloudflare reçoit aussi, comme pour toute requête web, l'**adresse IP** du té
 | Photo envoyée pour une recherche | Cloudflare R2 | Le temps de la recherche (environ 30 s au plus), un jour au maximum en cas d'échec de la suppression |
 | Compteur de la limite de débit (30 requêtes par minute, clé = installation ou adresse IP) | Mémoire de Cloudflare (Rate Limiting) | Environ une minute **[à vérifier : documentation Cloudflare]** |
 
-Le relais ne garde **ni** les pages lues, **ni** les liens envoyés, **ni** les résultats de recherche, **ni** les descriptions de l'IA, **ni** l'identifiant d'installation du téléphone, **ni** l'adresse IP. Il n'écrit aucun journal (`console.log` absent du code ; journaux Cloudflare non activés dans `wrangler.toml`). **[à vérifier : métadonnées gardées par défaut par Cloudflare, comme les statistiques de requêtes du tableau de bord]**
+Avant le catalogue du lot 4 (§ 4), le relais ne gardait **ni** les pages lues, **ni** les liens envoyés, **ni** les résultats de recherche, **ni** les descriptions de l'IA, **ni** l'identifiant d'installation du téléphone, **ni** l'adresse IP. Il n'écrit aucun journal (`console.log` absent du code ; journaux Cloudflare non activés dans `wrangler.toml`). **[à vérifier : métadonnées gardées par défaut par Cloudflare, comme les statistiques de requêtes du tableau de bord]**
 
 ---
 
@@ -105,7 +105,7 @@ Règle du lot 4 : **le relais ne conserve aucune donnée personnelle.** Il garde
 | Étape | Changement | Effet sur les données |
 | --- | --- | --- |
 | 1 — Durable Object `Quota` (en ligne) | Les compteurs passent de KV à un Durable Object (stockage SQLite) : table `compteur (mois, cle, utilise)`, `cle` = `global` ou identifiant d'installation. | Mêmes données, stockées ailleurs ; mois en cours et précédent gardés. **[prévu]** Déplacement dans la juridiction `eu` (§ 7). |
-| 2 — Catalogue D1 | Tables `produit` (adresse canonique, boutique, nom, marque, image, catégorie, couleur, genre, première et dernière vue), `observation_prix` (date, prix, devise, disponibilité, disponibilité par taille), `recherche` (clé = empreinte de type + entrée + genre ; résultats ; dates). | Données de **pièces vendues en ligne**, sans lien avec la personne qui les a demandées : ni identifiant d'installation, ni jeton, ni IP, ni photo (tests prévus). Voir les réserves ci-dessous. |
+| 2 — Catalogue D1 (en ligne) | Tables `produit` (adresse canonique, boutique, nom, marque, image, catégorie, couleur, genre, première et dernière vue), `observation_prix` (date, prix, devise, disponibilité, disponibilité par taille), `recherche` (clé = empreinte de type + entrée + genre ; résultats ; dates). | Données de **pièces vendues en ligne**, sans lien avec la personne qui les a demandées : ni identifiant d'installation, ni jeton, ni IP, ni photo (tests prévus). Voir les réserves ci-dessous. |
 | 2 — Cache des recherches | Une recherche déjà faite (Lens ou Shopping, même entrée, même genre) est resservie sans rappeler SerpApi. | Moins de données envoyées à SerpApi et Google. La photo n'est plus envoyée du tout quand son empreinte est en cache. |
 | 3 — Historique partagé | `/v1/extract` renvoie le prix le plus bas observé. | Aucune donnée nouvelle sur la personne. |
 | 4 — Interface de recherche | Les appels à SerpApi passent par une interface unique. | Aucun. Un changement de fournisseur demandera de mettre à jour ce document et le registre. |
@@ -127,7 +127,7 @@ Durées du catalogue (décisions du 24 novembre 2026) :
 
 **Caractère anonyme du catalogue : réserves et mesures** :
 
-1. **Adresse canonique** : un lien partagé depuis un panier, un e-mail ou un compte client peut contenir un identifiant propre à la personne (session, référence client, code d'affiliation). Mesure décidée **[prévu, étape 2]** : **liste blanche**, seuls les paramètres reconnus comme taille, couleur ou variante sont gardés, tous les autres sont retirés.
+1. **Adresse canonique** : un lien partagé depuis un panier, un e-mail ou un compte client peut contenir un identifiant propre à la personne (session, référence client, code d'affiliation). Mesure décidée **[prévu, correctif du relais]** : **liste blanche**, seuls les paramètres reconnus comme taille, couleur ou variante sont gardés, tous les autres sont retirés. L'étape 2, fusionnée avant cette décision, retire seulement les paramètres de suivi connus (`utm_*`, `gclid`, `fbclid`…) : d'ici le correctif, un paramètre propre à une personne peut entrer dans le catalogue.
 2. **Empreinte de la photo** : l'empreinte SHA-256 d'une photo de vêtement seul ne permet pas de retrouver la photo, ni la personne. Si la photo montrait une personne, l'empreinte serait une donnée pseudonymisée, d'où le rappel « sans personne ».
 3. **Clé Shopping** : la requête est construite à partir de la fiche (nom, marque, catégorie, couleur, genre), donc normalement sans donnée personnelle. Mais le nom d'une pièce saisi à la main est du texte libre.
 4. **Genre** : le genre recherché (« Je cherche pour ») fait partie des clés de cache et de la table `produit`. Il décrit le rayon (homme, femme, mixte), pas la personne. Il n'est relié à aucune installation.
@@ -176,7 +176,7 @@ Personne d'autre ne reçoit de données : pas de régie publicitaire, pas d'outi
 | SerpApi | États-Unis | **[à vérifier : DPF ou clauses types ; à défaut, transfert sans encadrement documenté, à signaler]** |
 | Google (Lens, Shopping, ML Kit) | États-Unis et monde | Tiers responsable de son traitement ; DPF côté Google **[à vérifier]** |
 
-**Mesure décidée [prévu, piste A]** : base D1 du catalogue créée avec la juridiction `eu`, Durable Object `Quota` déplacé dans la juridiction `eu`, bucket R2 des photos dans la juridiction européenne, pour que les données gardées restent dans l'UE. KV (installations) n'offre pas cette option : il reste répliqué dans le monde entier, sous le DPA de Cloudflare.
+**Mesure décidée [prévu, piste A]** : base D1 du catalogue recréée avec la juridiction `eu` (celle de l'étape 2 a été créée sans), Durable Object `Quota` déplacé dans la juridiction `eu`, bucket R2 des photos dans la juridiction européenne, pour que les données gardées restent dans l'UE. KV (installations) n'offre pas cette option : il reste répliqué dans le monde entier, sous le DPA de Cloudflare.
 
 ---
 
@@ -241,8 +241,8 @@ Décisions du 24 novembre 2026 sur les points relevés à la relecture du code :
 | Images chargées directement par le téléphone (IP vue par Google, SerpApi, boutiques) | Accepté et documenté | — |
 | Photo publique sans jeton pendant la recherche Lens | Accepté et documenté (identifiant aléatoire, suppression immédiate) | — |
 | Installation révoquée gardée dans KV | Suppression à la révocation ; pas de renommage | Prévu (relais) |
-| Paramètres d'adresse dans le catalogue | Liste blanche | Prévu (étape 2) |
-| Juridiction UE pour D1, Durable Object, R2 | Oui | Prévu (piste A) |
+| Paramètres d'adresse dans le catalogue | Liste blanche | Prévu (correctif du relais ; l'étape 2 retire seulement le suivi connu) |
+| Juridiction UE pour D1, Durable Object, R2 | Oui | Prévu (piste A ; D1 et Durable Object à recréer ou déplacer) |
 | Durée des compteurs mensuels | Mois en cours et précédent | Fait (étape 1) |
 
 Restent à vérifier :
