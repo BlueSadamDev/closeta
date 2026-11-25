@@ -557,6 +557,9 @@ Jamais : identifiant d'installation ou jeton dans le catalogue, lien entre une r
 **Étape 9 — Production**
 
 - Vérifications complètes (expo-doctor, lint, tsc, jest, tests du relais), mise en ligne du relais, APK de production publié en release, **test unique** par l'utilisateur.
+- Retours d'usage ajoutés le 25 novembre 2026, développés avant le build :
+  - **Recadrage au choix de la photo, pour la Wishlist aussi** (« Par photo », photo du formulaire) : recadrage d'Android proposé dès que la photo est prise ou choisie, format libre (le Vestiaire garde son recadrage 3:4).
+  - **« Modifier » en haut à droite de la fiche** (icône dans l'en-tête), à la place du bouton en bas de fiche.
 
 ### Critères d'acceptation
 

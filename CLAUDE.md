@@ -99,7 +99,10 @@ Piste B · App et conformité :
 8. Confidentialité : `docs/CONFIDENTIALITE.md`, `docs/REGISTRE.md`, écran « Confidentialité », rappel sur les écrans photo. **Terminée, fusionnée via la PR #35** : `docs/CONFIDENTIALITE.md` et `docs/REGISTRE.md` (version 1, contact dpo@closeta.fr), écran « Confidentialité » dans Réglages, rappel « sans personne » sur les écrans photo, sauvegarde automatique d'Android désactivée ; décisions pour la piste A notées dans docs/SPEC.md (juridiction `eu`, liste blanche des paramètres, suppression à la révocation).
 
 Fin du lot :
-9. Production : vérifications complètes, relais en ligne, APK publié en release, test unique par l'utilisateur.
+9. Production : vérifications complètes, relais en ligne, APK publié en release, test unique par l'utilisateur. Retours ajoutés le 25 novembre 2026 : recadrage au choix de la photo pour la Wishlist, « Modifier » en haut à droite de la fiche.
+
+## Lot 4b : Confort de saisie (ajouté le 25 novembre 2026, après le lot 4)
+Brouillons repris plus tard, choix Wishlist ou Vestiaire dans le formulaire d'ajout, recadrage d'une photo déjà enregistrée. Détail à écrire dans docs/SPEC.md avant le développement (voir docs/ROADMAP.md).
 
 ## Lots suivants
 Lots 4 à 7 (robustesse et catalogue partagé, bien tailler, plan d'achat, style) : voir [docs/ROADMAP.md](docs/ROADMAP.md). Chaque lot sera détaillé dans docs/SPEC.md avant son développement. Architecture, coûts et passage à plusieurs utilisateurs : [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), à lire avant toute évolution du relais.
