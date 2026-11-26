@@ -526,6 +526,7 @@ Jamais : identifiant d'installation ou jeton dans le catalogue, lien entre une r
 - Les appels à SerpApi passent par une interface unique (`lens(image)`, `shopping(requete, genre)`) avec une implémentation SerpApi ; aucune autre partie du relais ne connaît SerpApi.
 - Variable `RECHERCHE_FOURNISSEUR` (défaut `serpapi`), pour pouvoir changer de fournisseur plus tard sans toucher aux routes.
 - Aucune différence visible ; les tests existants doivent rester verts sans modification de leurs attentes.
+- Fait le 26 novembre 2026 : interface `FournisseurRecherche` dans `relay/src/recherche.ts` (`lens(image, prixDabord)`, `shopping(requete)` : la requête porte déjà le genre), implémentation dans `relay/src/serpapi.ts` (seul fichier qui connaît SerpApi, clé masquée dans les erreurs), choix dans `relay/src/fournisseur.ts` ; variable `RECHERCHE_FOURNISSEUR = "serpapi"` dans `wrangler.toml`. Le code d'incident `cle_serpapi_absente` est gardé (réponses inchangées).
 
 **Étape 5 — Supervision et photos temporaires**
 

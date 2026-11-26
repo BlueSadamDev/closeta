@@ -14,6 +14,10 @@ export const settings = {
   userAgent:
     'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36',
 
+  // --- Recherche (Google Lens et Shopping) ---
+  /** Fournisseur si RECHERCHE_FOURNISSEUR est vide (seul fournisseur disponible aujourd'hui). */
+  fournisseurRechercheDefaut: 'serpapi',
+
   // --- Compteur SerpApi ---
   /** Seuil mensuel si wrangler.toml n'en donne pas (variable SERPAPI_LIMITE_MOIS). */
   limiteSerpApiDefaut: 250,

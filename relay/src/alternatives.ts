@@ -12,7 +12,7 @@ import { filtrerGenre, GenreInvalide, lireGenre, rechercheAvecGenre, type Genre 
 import type { Description } from './ia';
 import { clePhoto, estJpeg, nouvelIdentifiant, QuotaAtteint, RechercheIndisponible, resume, type Reservation, type Stockage } from './identify';
 import { classer } from './pertinence';
-import { adresseLens, adresseShopping, appelerSerpApi, lireLens, lireShopping, siteIgnore, type Proposition } from './recherche';
+import { siteIgnore, type FournisseurRecherche, type Proposition } from './recherche';
 import { settings } from './settings';
 import { urlPublique } from './url';
 
@@ -159,14 +159,15 @@ export async function chercherAlternatives(
   d: Demande,
   outils: {
     stockage: Stockage;
-    cleSerpApi: string | undefined;
+    /** Fournisseur de recherche (Lens et Shopping) ; null : aucune recherche payante possible. */
+    recherche: FournisseurRecherche | null;
     quota: Reservation;
     adressePhoto: (id: string) => string;
     /** Catalogue partagé : recherches déjà faites, réutilisées sans consommer le quota (absent = sans cache). */
     catalogue?: Catalogue | null;
   },
 ): Promise<{ resultats: Alternative[]; depuis_cache: boolean; incidents?: string[] }> {
-  const { stockage, cleSerpApi, quota, catalogue } = outils;
+  const { stockage, recherche, quota, catalogue } = outils;
   const incidents: string[] = [];
   const suivi = nouveauSuivi();
 
@@ -178,7 +179,7 @@ export async function chercherAlternatives(
   };
 
   const lensPayee = async (): Promise<Proposition[] | null> => {
-    if (!cleSerpApi) {
+    if (!recherche) {
       incidents.push('cle_serpapi_absente');
       return null;
     }
@@ -189,9 +190,9 @@ export async function chercherAlternatives(
     // Image de la boutique : Lens la lit directement, rien n'est déposé.
     if (d.imageUrl) {
       try {
-        return lireLens(await appelerSerpApi(adresseLens(cleSerpApi, d.imageUrl), settings.delaiLensMs), false);
+        return await recherche.lens(d.imageUrl, false);
       } catch (e) {
-        incidents.push(`lens: ${resume(e, cleSerpApi)}`);
+        incidents.push(`lens: ${resume(e)}`);
         return null;
       }
     }
@@ -199,13 +200,13 @@ export async function chercherAlternatives(
     try {
       await stockage.put(clePhoto(id), d.photo as Uint8Array, { httpMetadata: { contentType: 'image/jpeg' } });
     } catch (e) {
-      incidents.push(`stockage: ${resume(e, cleSerpApi)}`);
+      incidents.push(`stockage: ${resume(e)}`);
       return null;
     }
     try {
-      return lireLens(await appelerSerpApi(adresseLens(cleSerpApi, outils.adressePhoto(id)), settings.delaiLensMs), false);
+      return await recherche.lens(outils.adressePhoto(id), false);
     } catch (e) {
-      incidents.push(`lens: ${resume(e, cleSerpApi)}`);
+      incidents.push(`lens: ${resume(e)}`);
       return null;
     } finally {
       // La photo ne sert qu'à Lens : supprimée aussitôt.
@@ -218,7 +219,7 @@ export async function chercherAlternatives(
 
   // null = recherche Shopping non faite ou en échec.
   const shoppingPaye = async (requete: string): Promise<Proposition[] | null> => {
-    if (!cleSerpApi) {
+    if (!recherche) {
       if (!incidents.includes('cle_serpapi_absente')) incidents.push('cle_serpapi_absente');
       return null;
     }
@@ -227,18 +228,18 @@ export async function chercherAlternatives(
       return null;
     }
     try {
-      return lireShopping(await appelerSerpApi(adresseShopping(cleSerpApi, requete), settings.delaiShoppingMs));
+      return await recherche.shopping(requete);
     } catch (e) {
-      incidents.push(`shopping: ${resume(e, cleSerpApi)}`);
+      incidents.push(`shopping: ${resume(e)}`);
       return null;
     }
   };
 
   let shopping: Proposition[] | null = null;
-  if (retenus < settings.resultatsMin && (cleSerpApi || catalogue)) {
+  if (retenus < settings.resultatsMin && (recherche || catalogue)) {
     const requete = rechercheTexte(d);
     shopping = await viaCatalogue(catalogue, 'shopping', requete, d.genre, suivi, () => shoppingPaye(requete));
-  } else if (!cleSerpApi && !incidents.includes('cle_serpapi_absente')) {
+  } else if (!recherche && !incidents.includes('cle_serpapi_absente')) {
     incidents.push('cle_serpapi_absente');
   }
 

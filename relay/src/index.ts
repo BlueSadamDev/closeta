@@ -1,6 +1,7 @@
 import { chercherAlternatives, DemandeInvalide, lireDemande } from './alternatives';
 import { adresseCatalogue, type BaseD1, Catalogue } from './catalogue';
 import { extraireAvecTailles } from './extract';
+import { fournisseurRecherche } from './fournisseur';
 import type { IA } from './ia';
 import { lireGenre, type Genre } from './genre';
 import { clePhoto, estJpeg, identifiantValide, identifier, QuotaAtteint, RechercheIndisponible, type Stockage } from './identify';
@@ -35,6 +36,8 @@ export interface Env {
   ADMIN_TOKEN?: string;
   /** Clé SerpApi (Google Lens et Shopping) : secret Cloudflare, jamais dans le dépôt. */
   SERPAPI_KEY?: string;
+  /** Fournisseur de recherche (« serpapi », seul disponible) ; vide : celui de settings.ts. */
+  RECHERCHE_FOURNISSEUR?: string;
   LIMITEUR: Limiteur;
   /** Limite plus stricte pour l'utilisation d'un code d'invitation (sans jeton) ; à défaut, LIMITEUR. */
   LIMITEUR_INVITATION?: Limiteur;
@@ -235,7 +238,7 @@ async function routeIdentify(requete: Request, env: Env, installation: Installat
       genre,
       ia: env.AI,
       stockage: env.PHOTOS,
-      cleSerpApi: env.SERPAPI_KEY,
+      recherche: fournisseurRecherche(env),
       quota,
       adressePhoto: (id) => `${origine}/photo/${id}`,
       catalogue,
@@ -271,7 +274,7 @@ async function routeAlternatives(requete: Request, env: Env, installation: Insta
     return json(
       await chercherAlternatives(demande, {
         stockage: env.PHOTOS,
-        cleSerpApi: env.SERPAPI_KEY,
+        recherche: fournisseurRecherche(env),
         quota,
         adressePhoto: (id) => `${origine}/photo/${id}`,
         catalogue,

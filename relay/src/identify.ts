@@ -9,7 +9,7 @@
 import { type Catalogue, depuisCache, empreinte, nouveauSuivi, viaCatalogue } from './catalogue';
 import { filtrerGenre, rechercheAvecGenre, type Genre } from './genre';
 import { DESCRIPTION_VIDE, decrirePhoto, type Description, type IA } from './ia';
-import { adresseLens, adresseShopping, appelerSerpApi, lireLens, lireShopping, prixDevant, type Proposition } from './recherche';
+import { prixDevant, type FournisseurRecherche, type Proposition } from './recherche';
 import { classer } from './pertinence';
 import { settings } from './settings';
 
@@ -74,7 +74,7 @@ export class RechercheIndisponible extends Error {
 }
 
 /** Message d'erreur court et sans secret, pour le diagnostic. */
-export const resume = (e: unknown, secret: string | undefined) => {
+export const resume = (e: unknown, secret?: string) => {
   const brut = e instanceof Error ? e.message : String(e);
   return (secret ? brut.split(secret).join('***') : brut).slice(0, 160);
 };
@@ -92,14 +92,15 @@ export async function identifier(
     genre?: Genre | null;
     ia: IA;
     stockage: Stockage;
-    cleSerpApi: string | undefined;
+    /** Fournisseur de recherche (Lens et Shopping) ; null : aucune recherche payante possible. */
+    recherche: FournisseurRecherche | null;
     quota: Reservation;
     adressePhoto: (id: string) => string;
     /** Catalogue partagé : recherches déjà faites, réutilisées sans consommer le quota (absent = sans cache). */
     catalogue?: Catalogue | null;
   },
 ): Promise<Identification> {
-  const { ia, stockage, cleSerpApi, quota, catalogue } = outils;
+  const { ia, stockage, recherche, quota, catalogue } = outils;
   const genre = outils.genre ?? null;
   const id = nouvelIdentifiant();
   // Étapes en échec, renvoyées seulement en cas de panne (aucun secret dedans).
@@ -111,7 +112,7 @@ export async function identifier(
     viaCatalogue(catalogue, 'lens_photo', await empreinte(photo), genre, suivi, lensPayee);
 
   const lensPayee = async (): Promise<Proposition[] | null> => {
-    if (!cleSerpApi) {
+    if (!recherche) {
       incidents.push('cle_serpapi_absente');
       return null;
     }
@@ -122,13 +123,13 @@ export async function identifier(
     try {
       await stockage.put(clePhoto(id), photo, { httpMetadata: { contentType: 'image/jpeg' } });
     } catch (e) {
-      incidents.push(`stockage: ${resume(e, cleSerpApi)}`);
+      incidents.push(`stockage: ${resume(e)}`);
       return null;
     }
     try {
-      return lireLens(await appelerSerpApi(adresseLens(cleSerpApi, outils.adressePhoto(id)), settings.delaiLensMs), false);
+      return await recherche.lens(outils.adressePhoto(id), false);
     } catch (e) {
-      incidents.push(`lens: ${resume(e, cleSerpApi)}`);
+      incidents.push(`lens: ${resume(e)}`);
       return null;
     } finally {
       // La photo ne sert qu'à Lens : supprimée aussitôt (une règle de R2 nettoie aussi au bout d'un jour).
@@ -137,9 +138,9 @@ export async function identifier(
   };
 
   const [description, lensBrut] = await Promise.all([
-    decrirePhoto(ia, photo, (e) => incidents.push(`ia: ${resume(e, cleSerpApi)}`)).catch(() => DESCRIPTION_VIDE),
+    decrirePhoto(ia, photo, (e) => incidents.push(`ia: ${resume(e)}`)).catch(() => DESCRIPTION_VIDE),
     lens().catch((e: unknown) => {
-      incidents.push(`lens: ${resume(e, cleSerpApi)}`);
+      incidents.push(`lens: ${resume(e)}`);
       return null;
     }),
   ]);
@@ -148,24 +149,24 @@ export async function identifier(
 
   // Shopping payé : réservation, puis appel ; null = non fait ou en échec.
   const shoppingPaye = async (requete: string): Promise<Proposition[] | null> => {
-    if (!cleSerpApi) return null;
+    if (!recherche) return null;
     if (!(await quota.reserver())) {
       // Seuil atteint après Lens : on garde ce que Lens a trouvé.
       incidents.push('quota_atteint');
       return null;
     }
     try {
-      return lireShopping(await appelerSerpApi(adresseShopping(cleSerpApi, requete), settings.delaiShoppingMs));
+      return await recherche.shopping(requete);
     } catch (e) {
       // Shopping en échec : on garde ce que Lens a trouvé.
-      incidents.push(`shopping: ${resume(e, cleSerpApi)}`);
+      incidents.push(`shopping: ${resume(e)}`);
       return null;
     }
   };
 
   // null = recherche Shopping non faite ou en échec.
   let shopping: Proposition[] | null = null;
-  if ((trouves?.length ?? 0) < settings.resultatsMin && (cleSerpApi || catalogue) && description.recherche) {
+  if ((trouves?.length ?? 0) < settings.resultatsMin && (recherche || catalogue) && description.recherche) {
     const requete = rechercheAvecGenre(description.recherche, genre);
     const brut = await viaCatalogue(catalogue, 'shopping', requete, genre, suivi, () => shoppingPaye(requete));
     shopping = brut === null ? null : filtrerGenre(brut, genre);
