@@ -92,5 +92,18 @@ jobs:
       - name: Créer ou mettre à jour les tables du catalogue (D1)
         run: npx wrangler d1 migrations apply CATALOGUE --remote
 
+      # Filet de sécurité des photos temporaires : une règle du bucket les efface au bout d'un jour, même si
+      # le relais n'a pas pu les supprimer après la recherche. Ajoutée si elle manque (le jeton doit avoir
+      # le droit « Workers R2 Storage : Edit »).
+      - name: Vérifier la règle « suppression après 1 jour » du bucket des photos
+        run: |
+          J=""; [ -n "$RELAIS_R2_JURIDICTION" ] && J="--jurisdiction $RELAIS_R2_JURIDICTION"
+          if npx wrangler r2 bucket lifecycle list "$RELAIS_BUCKET_R2" $J | grep -q "closeta-suppression-1-jour"; then
+            echo "Règle déjà en place sur $RELAIS_BUCKET_R2"
+          else
+            npx wrangler r2 bucket lifecycle add "$RELAIS_BUCKET_R2" closeta-suppression-1-jour --expire-days 1 --force $J
+            echo "Règle ajoutée sur $RELAIS_BUCKET_R2 : objets effacés au bout d'un jour"
+          fi
+
       - name: Mettre en ligne sur Cloudflare
         run: npx wrangler deploy --name "$RELAIS_NOM_WORKER"

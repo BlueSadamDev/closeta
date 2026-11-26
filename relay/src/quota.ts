@@ -10,6 +10,7 @@
  * `serpapi:2026-11:<id>`) sont recopiées une fois ; ensuite KV ne sert plus au quota.
  */
 import type { ObjetInvitations } from './invitations';
+import type { ObjetSupervision } from './supervision';
 import { settings } from './settings';
 
 /** Stockage clé → valeur Cloudflare KV (déclaré dans wrangler.toml). */
@@ -82,7 +83,7 @@ export interface ObjetQuota {
 /** Accès au Durable Object, déclaré dans wrangler.toml (lien QUOTAS) : compteur et invitations. */
 export interface EspaceQuota {
   idFromName(nom: string): unknown;
-  get(id: unknown): ObjetQuota & ObjetInvitations & ObjetTransferable;
+  get(id: unknown): ObjetQuota & ObjetInvitations & ObjetTransferable & ObjetSupervision;
   /** Sous-espace dont les exemplaires restent dans une juridiction (« eu ») : stockage et exécution. */
   jurisdiction?(juridiction: string): EspaceQuota;
 }

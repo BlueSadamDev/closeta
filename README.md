@@ -93,6 +93,7 @@ Petit programme hébergé chez Cloudflare (gratuit). L'app lui envoie un lien pr
 - L'ancien jeton `RELAY_TOKEN` reste accepté : il compte comme l'installation « Principale ».
 - Chaque recherche SerpApi compte dans la case de l'installation et dans la case globale ; le seuil global reste la limite dure. Seuil par installation : `SERPAPI_LIMITE_INSTALLATION` dans `wrangler.toml` (vide = même seuil que le global).
 - Administration, avec le secret Cloudflare `ADMIN_TOKEN` (en-tête `Authorization: Bearer <jeton d'administration>`) :
+  - `GET /v1/admin/etat` : quota global du mois, part des réponses servies depuis le catalogue, requêtes et erreurs des dernières 24 h (des nombres seulement) ;
   - `GET /v1/admin/installations` : liste (nom, date, active ou non, recherches du mois) ;
   - `POST /v1/admin/installations`, corps `{ "nom": "Téléphone de Léa" }` : crée l'installation et renvoie son jeton **une seule fois** ;
   - `DELETE /v1/admin/installations/<id>` : révoque l'installation ;
@@ -117,7 +118,7 @@ Petit programme hébergé chez Cloudflare (gratuit). L'app lui envoie un lien pr
 
 ### Ajout par photo (`/identify`) : à préparer une fois, avant la mise en ligne
 
-1. **Stockage R2** : tableau de bord Cloudflare > R2 > Create bucket, nom `closeta-photos-temp`, emplacement **Specify jurisdiction > European Union** (données dans l'UE) ; variable GitHub `RELAIS_R2_JURIDICTION` = `eu`. Puis dans le bucket : Settings > Object lifecycle rules > supprimer les objets après 1 jour (filet de sécurité).
+1. **Stockage R2** : tableau de bord Cloudflare > R2 > Create bucket, nom `closeta-photos-temp`, emplacement **Specify jurisdiction > European Union** (données dans l'UE) ; variable GitHub `RELAIS_R2_JURIDICTION` = `eu`. La règle « supprimer les objets après 1 jour » (filet de sécurité) est vérifiée et ajoutée si besoin par le workflow de mise en ligne.
 2. **Jeton GitHub → Cloudflare** : le jeton du secret `CLOUDFLARE_API_TOKEN` doit avoir les droits « Workers R2 Storage : Edit » et « Workers AI : Read ».
 3. **SerpApi** : créer un compte sur serpapi.com (offre gratuite), puis ajouter sa clé comme secret Cloudflare `SERPAPI_KEY` (même chemin que `RELAY_TOKEN`).
 4. **Installations et compteur des recherches** : l'espace Cloudflare KV `closeta-quota` (créé par `npx wrangler kv namespace create closeta-quota`, ou tableau de bord > Storage & Databases > Workers KV) garde la liste des installations. Son identifiant va dans la variable GitHub `RELAIS_KV_ID`. Le jeton `CLOUDFLARE_API_TOKEN` doit aussi avoir le droit « Workers KV Storage : Edit ». Les recherches SerpApi du mois du calendrier (heure de Paris) sont comptées par un Durable Object `Quota`, déclaré dans `wrangler.toml` et créé tout seul à la mise en ligne (rien à préparer). Le seuil se règle dans `wrangler.toml` (`SERPAPI_LIMITE_MOIS`, 250 par défaut) : une fois atteint, `/identify` et `/alternatives` répondent `quota_atteint` sans appeler SerpApi.
@@ -131,7 +132,7 @@ Pour utiliser ClosetA avec **ton propre** relais (ton compte Cloudflare, ta clé
 
 1. **Copier le dépôt** : sur GitHub, bouton **Fork** (une copie à toi, publique comme l'original). Les étapes suivantes se font dans ta copie.
 2. **Compte Cloudflare** : créer un compte sur cloudflare.com (offre gratuite). Noter l'**Account ID** (tableau de bord > Workers & Pages, colonne de droite).
-3. **Bucket R2** (photos temporaires) : tableau de bord > R2 > activer R2 (gratuit, une carte peut être demandée sans être débitée) > **Create bucket**, nom au choix, par exemple `closeta-photos-temp`, emplacement **Specify jurisdiction > European Union** (puis variable GitHub `RELAIS_R2_JURIDICTION` = `eu`). Dans le bucket : Settings > Object lifecycle rules > supprimer les objets après 1 jour.
+3. **Bucket R2** (photos temporaires) : tableau de bord > R2 > activer R2 (gratuit, une carte peut être demandée sans être débitée) > **Create bucket**, nom au choix, par exemple `closeta-photos-temp`, emplacement **Specify jurisdiction > European Union** (puis variable GitHub `RELAIS_R2_JURIDICTION` = `eu`). La règle « supprimer les objets après 1 jour » est ajoutée par le workflow de mise en ligne si elle manque.
 4. **Espace KV** (compteur et installations) : tableau de bord > Storage & Databases > Workers KV > **Create**, nom `closeta-quota`. Noter son **ID** (32 caractères).
    **Base D1** (catalogue partagé) : tableau de bord > Storage & Databases > D1 SQL Database > **Create Database**, nom `closeta-catalogue`, emplacement **Jurisdiction > European Union**. Noter son **Database ID** (36 caractères, avec des tirets).
 5. **Jeton d'API Cloudflare** (permet à GitHub de mettre le relais en ligne) : My Profile > API Tokens > **Create Token** > modèle « Edit Cloudflare Workers ». Vérifier qu'il contient « Workers Scripts : Edit », « Workers KV Storage : Edit » et « Workers R2 Storage : Edit », ajouter « Workers AI : Read » et « D1 : Edit », puis créer et copier le jeton (il ne s'affiche qu'une fois).

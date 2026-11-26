@@ -9,6 +9,7 @@ import { DurableObject } from 'cloudflare:workers';
 
 import type { MagasinListable } from './installations';
 import { type Invitation, type ObjetInvitations, RegistreInvitations } from './invitations';
+import { type ObjetSupervision, RegistreSupervision, type Supervision } from './supervision';
 import {
   type BaseSql,
   CLE_GLOBALE,
@@ -58,9 +59,10 @@ export async function casesKv(kv: MagasinListable, mois: string): Promise<Record
   return valeurs;
 }
 
-export class Quota extends DurableObject<EnvQuota> implements ObjetQuota, ObjetInvitations, ObjetTransferable {
+export class Quota extends DurableObject<EnvQuota> implements ObjetQuota, ObjetInvitations, ObjetTransferable, ObjetSupervision {
   private readonly registre: RegistreQuota;
   private readonly invitations: RegistreInvitations;
+  private readonly statistiques: RegistreSupervision;
 
   constructor(
     ctx: EtatObjet,
@@ -70,6 +72,7 @@ export class Quota extends DurableObject<EnvQuota> implements ObjetQuota, ObjetI
     super(ctx, env);
     this.registre = new RegistreQuota(ctx.storage.sql);
     this.invitations = new RegistreInvitations(ctx.storage.sql);
+    this.statistiques = new RegistreSupervision(ctx.storage.sql);
     ctx.storage.sql.exec('CREATE TABLE IF NOT EXISTS transfert (fait INTEGER PRIMARY KEY)');
   }
 
@@ -152,5 +155,14 @@ export class Quota extends DurableObject<EnvQuota> implements ObjetQuota, ObjetI
   async utiliserInvitation(empreinte: string): Promise<{ nom: string } | null> {
     await this.pret();
     return this.invitations.utiliser(empreinte, this.maintenant());
+  }
+
+  /** Supervision : une requête de plus dans l'heure en cours (aucune donnée sur la requête elle-même). */
+  async noterRequete(depuisCache: boolean | null, enErreur: boolean): Promise<void> {
+    this.statistiques.noter(depuisCache, enErreur, this.maintenant());
+  }
+
+  async supervision(): Promise<Supervision> {
+    return this.statistiques.lire(this.maintenant());
   }
 }

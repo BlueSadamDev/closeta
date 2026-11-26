@@ -41,6 +41,11 @@ class_name = "Quota"
 tag = "v1"
 new_sqlite_classes = ["Quota"]
 
+# Journaux Cloudflare (Workers Logs) : une ligne JSON par requête, sans aucune donnée personnelle
+# (route sous forme de modèle, statut, durée, depuis_cache, code d'erreur ; voir src/supervision.ts).
+[observability]
+enabled = true
+
 # Purge nocturne du catalogue (recherches expirées), chaque nuit à 3 h UTC.
 [triggers]
 crons = ["0 3 * * *"]

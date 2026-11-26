@@ -19,8 +19,9 @@ import {
   revoquerInstallation,
 } from './installations';
 import { normaliserCode, nouveauCode } from './invitations';
-import { type EspaceQuota, lireJuridiction, lireLimite, lireLimiteInstallation, objetQuota, QuotaInstallation } from './quota';
+import { CLE_GLOBALE, type EspaceQuota, lireJuridiction, lireLimite, lireLimiteInstallation, objetQuota, QuotaInstallation } from './quota';
 import { settings } from './settings';
+import { estErreur, indicateurs, routeDuJournal, type EntreeJournal } from './supervision';
 import { urlPublique } from './url';
 import { lireDepot, lireDerniereRelease, miseAJourRequise, VERSION_INCONNUE, type VersionPubliee } from './version';
 
@@ -317,7 +318,33 @@ async function routeAdmin(requete: Request, env: Env, ressource: string, id: str
     return jeton ? erreur('jeton_refuse', 403) : erreur('jeton_absent', 401);
   }
   if (!(await env.LIMITEUR.limit({ key: 'admin' })).success) return erreur('limite', 429);
+  if (ressource === 'etat') return requete.method === 'GET' && id === null ? adminEtat(env) : erreur('route_inconnue', 404);
   return ressource === 'invitations' ? adminInvitations(requete, env, id) : adminInstallations(requete, env, id);
+}
+
+/**
+ * GET /v1/admin/etat : quota global du mois, part des réponses servies depuis le catalogue et erreurs
+ * des 24 dernières heures. Des nombres seulement, aucune donnée sur les requêtes elles-mêmes.
+ */
+async function adminEtat(env: Env): Promise<Response> {
+  const objet = quotaDe(env);
+  const global = lireLimite(env.SERPAPI_LIMITE_MOIS);
+  const [{ global: quota, mois }, s] = await Promise.all([
+    objet.etat(CLE_GLOBALE, { global, installation: global }),
+    objet.supervision(),
+  ]);
+  return json({
+    mois,
+    quota: { utilise: quota.utilise, limite: quota.limite },
+    periode_heures: settings.heuresSupervision,
+    requetes: s.requetes,
+    cache: {
+      reponses: s.avec_cache_possible,
+      depuis_cache: s.depuis_cache,
+      taux: s.avec_cache_possible === 0 ? null : Math.round((s.depuis_cache / s.avec_cache_possible) * 100) / 100,
+    },
+    erreurs: s.erreurs,
+  });
 }
 
 /** Corps JSON d'une demande, ou undefined s'il est illisible. */
@@ -421,52 +448,38 @@ const ROUTES_APP = ['POST /extract', 'POST /identify', 'POST /alternatives', 'GE
 /** Durable Object du compteur SerpApi : la classe doit être exportée par le Worker. */
 export { Quota } from './quotaObjet';
 
-export default {
-  async fetch(requete: Request, env: Env): Promise<Response> {
+/** Contexte d'exécution fourni par Cloudflare : `waitUntil` laisse finir un travail après la réponse. */
+type Contexte = { waitUntil(promesse: Promise<unknown>): void };
+
+/**
+ * Supervision d'une requête traitée : une ligne de journal JSON (sans aucune donnée personnelle, voir
+ * supervision.ts) et une requête de plus dans les compteurs de l'heure. Un échec ne gêne jamais la réponse.
+ */
+async function superviser(requete: Request, reponse: Response, debut: number, env: Env): Promise<void> {
+  try {
     const { pathname } = new URL(requete.url);
-    const photo = pathname.match(/^(?:\/v1)?\/photo\/([^/]+)$/);
-    if (requete.method === 'GET' && photo) return routePhoto(photo[1], env, requete);
+    const lus = await indicateurs(reponse);
+    const entree: EntreeJournal = {
+      route: routeDuJournal(requete.method, pathname),
+      statut: reponse.status,
+      duree_ms: Date.now() - debut,
+      ...lus,
+    };
+    console.log(JSON.stringify(entree));
+    await quotaDe(env).noterRequete(lus.depuis_cache ?? null, estErreur(reponse.status));
+  } catch {
+    // Supervision indisponible : la réponse est déjà partie.
+  }
+}
 
-    const admin = pathname.match(/^\/v1\/admin\/(installations|invitations)(?:\/([^/]+))?$/);
-    if (admin) return routeAdmin(requete, env, admin[1], admin[2] ?? null);
-
-    if (requete.method === 'POST' && pathname === '/v1/invitations/utiliser') return routeUtiliserInvitation(requete, env);
-
-    const chemin = pathname.startsWith('/v1/') ? pathname.slice(3) : pathname;
-    const route = `${requete.method} ${chemin}`;
-    if (!ROUTES_APP.includes(route)) return erreur('route_inconnue', 404);
-
-    // 1) Jeton : sans jeton valide (inconnu ou révoqué), aucune requête n'est traitée.
-    const jeton = jetonRecu(requete);
-    if (!jeton) {
-      if (!(await limiteParAdresse(requete, env))) return erreur('limite', 429);
-      return erreur('jeton_absent', 401);
-    }
-    const installation = await installationDuJeton(jeton, env.QUOTA, env.RELAY_TOKEN);
-    if (!installation) {
-      if (!(await limiteParAdresse(requete, env))) return erreur('limite', 429);
-      return erreur('jeton_refuse', 403);
-    }
-
-    // 2) Limite de débit par installation (commune à toutes les routes).
-    if (!(await env.LIMITEUR.limit({ key: `installation:${installation.id}` })).success) {
-      return erreur('limite', 429);
-    }
-
-    // 3) Identifiant d'installation envoyé par l'app : facultatif (anciens APK), mais bien formé.
-    const identifiant = requete.headers.get('x-closeta-installation');
-    if (identifiant !== null && !identifiantInstallationValide(identifiant)) return erreur('requete_invalide', 400);
-
-    // 4) Version de l'app : trop ancienne → mise à jour requise.
-    if (miseAJourRequise(requete.headers.get('x-closeta-version'), env.VERSION_APP_MIN)) {
-      return erreur('mise_a_jour_requise', 426);
-    }
-
-    if (chemin === '/quota') return routeQuota(env, installation);
-    if (chemin === '/version') return routeVersion(env);
-    if (chemin === '/alternatives') return routeAlternatives(requete, env, installation);
-    if (chemin === '/identify') return routeIdentify(requete, env, installation);
-    return routeExtract(requete, env);
+export default {
+  async fetch(requete: Request, env: Env, ctx?: Contexte): Promise<Response> {
+    const debut = Date.now();
+    const reponse = await traiter(requete, env);
+    const suivi = superviser(requete, reponse, debut, env);
+    if (ctx) ctx.waitUntil(suivi);
+    else await suivi;
+    return reponse;
   },
 
   /** Tâche planifiée (wrangler.toml, [triggers], chaque nuit à 3 h UTC) : purge des recherches expirées. */
@@ -474,3 +487,51 @@ export default {
     await catalogueDe(env)?.purger();
   },
 };
+
+/** Aiguillage d'une requête vers sa route. */
+async function traiter(requete: Request, env: Env): Promise<Response> {
+  const { pathname } = new URL(requete.url);
+  const photo = pathname.match(/^(?:\/v1)?\/photo\/([^/]+)$/);
+  if (requete.method === 'GET' && photo) return routePhoto(photo[1], env, requete);
+
+  const admin = pathname.match(/^\/v1\/admin\/(installations|invitations|etat)(?:\/([^/]+))?$/);
+  if (admin) return routeAdmin(requete, env, admin[1], admin[2] ?? null);
+
+  if (requete.method === 'POST' && pathname === '/v1/invitations/utiliser') return routeUtiliserInvitation(requete, env);
+
+  const chemin = pathname.startsWith('/v1/') ? pathname.slice(3) : pathname;
+  const route = `${requete.method} ${chemin}`;
+  if (!ROUTES_APP.includes(route)) return erreur('route_inconnue', 404);
+
+  // 1) Jeton : sans jeton valide (inconnu ou révoqué), aucune requête n'est traitée.
+  const jeton = jetonRecu(requete);
+  if (!jeton) {
+    if (!(await limiteParAdresse(requete, env))) return erreur('limite', 429);
+    return erreur('jeton_absent', 401);
+  }
+  const installation = await installationDuJeton(jeton, env.QUOTA, env.RELAY_TOKEN);
+  if (!installation) {
+    if (!(await limiteParAdresse(requete, env))) return erreur('limite', 429);
+    return erreur('jeton_refuse', 403);
+  }
+
+  // 2) Limite de débit par installation (commune à toutes les routes).
+  if (!(await env.LIMITEUR.limit({ key: `installation:${installation.id}` })).success) {
+    return erreur('limite', 429);
+  }
+
+  // 3) Identifiant d'installation envoyé par l'app : facultatif (anciens APK), mais bien formé.
+  const identifiant = requete.headers.get('x-closeta-installation');
+  if (identifiant !== null && !identifiantInstallationValide(identifiant)) return erreur('requete_invalide', 400);
+
+  // 4) Version de l'app : trop ancienne → mise à jour requise.
+  if (miseAJourRequise(requete.headers.get('x-closeta-version'), env.VERSION_APP_MIN)) {
+    return erreur('mise_a_jour_requise', 426);
+  }
+
+  if (chemin === '/quota') return routeQuota(env, installation);
+  if (chemin === '/version') return routeVersion(env);
+  if (chemin === '/alternatives') return routeAlternatives(requete, env, installation);
+  if (chemin === '/identify') return routeIdentify(requete, env, installation);
+  return routeExtract(requete, env);
+}
