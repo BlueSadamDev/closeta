@@ -20,7 +20,9 @@ export async function prendrePhoto(source: SourcePhoto): Promise<Prise> {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) return { ok: false, raison: 'camera_refusee' };
     }
-    const options: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], quality: 1, exif: false };
+    // Recadrage d'Android proposé dès la prise ou le choix, en format libre (retour d'usage du 25 novembre 2026,
+    // docs/SPEC.md, « Lot 4 », « Étape 9 ») ; le Vestiaire a son propre recadrage 3:4 (photo/vestiaire.ts).
+    const options: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], quality: 1, exif: false, allowsEditing: true };
     const choix =
       source === 'camera' ? await ImagePicker.launchCameraAsync(options) : await ImagePicker.launchImageLibraryAsync(options);
     const photo = choix.canceled ? undefined : choix.assets[0];

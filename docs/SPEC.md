@@ -563,6 +563,7 @@ Jamais : identifiant d'installation ou jeton dans le catalogue, lien entre une r
 - Retours d'usage ajoutés le 25 novembre 2026, développés avant le build :
   - **Recadrage au choix de la photo, pour la Wishlist aussi** (« Par photo », photo du formulaire) : recadrage d'Android proposé dès que la photo est prise ou choisie, format libre (le Vestiaire garde son recadrage 3:4).
   - **« Modifier » en haut à droite de la fiche** (icône dans l'en-tête), à la place du bouton en bas de fiche.
+  - Faits le 26 novembre 2026 : `allowsEditing` d'`expo-image-picker` pour la photo de la Wishlist (appareil photo et galerie), icône crayon dans l'en-tête de la fiche (bouton du bas retiré).
 
 ### Critères d'acceptation
 
