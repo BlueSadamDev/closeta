@@ -188,7 +188,10 @@ export default function Fiche() {
 
   return (
     <SafeAreaView style={styles.ecran} edges={['top', 'bottom']}>
-      <Entete gauche={<BoutonIcone nom="retour" libelle={texts.accessibilite.retour} onPress={retour} />} />
+      <Entete
+        gauche={<BoutonIcone nom="retour" libelle={texts.accessibilite.retour} onPress={retour} />}
+        droite={<BoutonIcone nom="crayon" libelle={texts.fiche.modifier} onPress={() => router.push(`/formulaire?id=${article.id}`)} />}
+      />
       <ScrollView contentContainerStyle={styles.contenu}>
         {bandeau ? (
           <Pressable
@@ -317,7 +320,6 @@ export default function Fiche() {
               {quotaAtteint ? <RichText style={[type.body, styles.discret]}>{texts.alternatives.quotaAtteint}</RichText> : null}
             </View>
           ) : null}
-          <Bouton libelle={texts.fiche.modifier} variante="secondaire" onPress={() => router.push(`/formulaire?id=${article.id}`)} />
           {achete ? <Bouton libelle={texts.fiche.remettre} variante="secondaire" onPress={remettre} /> : null}
           <Bouton libelle={texts.fiche.supprimer} variante="danger" onPress={supprimer} />
         </View>
