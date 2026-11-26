@@ -150,6 +150,33 @@ describe('produits et observations de prix', () => {
     expect(produit).toEqual({ boutique: 'boutique.exemple.test', premiere_vue: Date.UTC(2026, 10, 1), derniere_vue: t });
   });
 
+  it('historique partagé : prix le plus bas (le plus ancien en cas d’égalité), à partir de 2 observations', async () => {
+    let t = Date.UTC(2026, 9, 5);
+    const catalogue = new Catalogue(baseD1(), () => t);
+    const url = 'https://boutique.exemple.test/manteau';
+    const m = [{ tailles: ['m'], etat: 'en_stock' as const }];
+    await catalogue.enregistrerLecture(url, extraction(120), m);
+    expect(await catalogue.historique(url, 'EUR')).toBeNull();
+
+    t = Date.UTC(2026, 9, 20);
+    await catalogue.enregistrerLecture(url, extraction(79), m);
+    t = Date.UTC(2026, 10, 2);
+    await catalogue.enregistrerLecture(url, extraction(99), m);
+    t = Date.UTC(2026, 10, 10);
+    await catalogue.enregistrerLecture(url, extraction(79, 'epuise'), m);
+    expect(await catalogue.historique(url, 'EUR')).toEqual({
+      prix_min: 79,
+      devise: 'EUR',
+      date_prix_min: new Date(Date.UTC(2026, 9, 20)).toISOString(),
+      observations: 4,
+      depuis: new Date(Date.UTC(2026, 9, 5)).toISOString(),
+    });
+    // Autre devise, produit inconnu ou devise absente : rien à montrer.
+    expect(await catalogue.historique(url, 'USD')).toBeNull();
+    expect(await catalogue.historique('https://boutique.exemple.test/autre', 'EUR')).toBeNull();
+    expect(await catalogue.historique(url, null)).toBeNull();
+  });
+
   it('servi pendant 24 h, avec la disponibilité de la taille demandée ; ensuite, à relire', async () => {
     let t = Date.UTC(2026, 10, 1);
     const catalogue = new Catalogue(baseD1(), () => t);
@@ -237,6 +264,8 @@ describe('relais : /v1/extract avec le catalogue', () => {
     const premiere = await relais.fetch(requete('/extract', JSON.stringify({ url: 'https://boutique.exemple.test/products/robe?utm_source=x', taille: 'M' })), e);
     const corps1 = (await premiere.json()) as Record<string, unknown>;
     expect(corps1.depuis_cache).toBe(false);
+    // Une seule observation : pas d'historique à montrer.
+    expect(corps1.historique).toBeUndefined();
 
     vi.setSystemTime(Date.UTC(2026, 10, 25, 9));
     // Autre suivi, même page : même produit.

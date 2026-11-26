@@ -9,6 +9,8 @@ const CHAMPS_DE_LA_SPEC = [
   'est_alternative', 'date_ajout', 'date_achat', 'date_maj',
   // Lot 3 (migration 2)
   'prix_ajout', 'disponibilite', 'dispo_taille', 'date_verif', 'alternative_de',
+  // Lot 4, étape 3 (migration 4)
+  'prix_min_observe', 'date_prix_min_observe',
 ];
 
 const CHAMPS_RELEVE = ['id', 'article_id', 'date', 'prix', 'devise', 'disponibilite', 'dispo_taille', 'source'];

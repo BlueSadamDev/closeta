@@ -43,6 +43,8 @@ export const settings = {
   dureeInvitationMs: 7 * 24 * 3600_000,
 
   // --- Catalogue partagé (Cloudflare D1) ---
+  /** Historique partagé : montré à partir de 2 observations du prix (docs/SPEC.md, « Lot 4 », « Étape 3 »). */
+  observationsHistoriqueMin: 2,
   /** Une page produit lue il y a moins de 24 h est servie depuis le catalogue, sans la relire. */
   dureePageMs: 24 * 3600_000,
   /** Durée de validité d'un résultat de recherche, par type (ensuite purgé la nuit). */

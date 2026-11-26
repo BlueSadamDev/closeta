@@ -1,4 +1,4 @@
-import { brouillonDepuisLien, estLienWeb, lireExtraction, listeFrancaise, nomDuSite, preremplir, trouverLien } from '../lien';
+import { brouillonDepuisLien, estLienWeb, lireExtraction, lireHistorique, listeFrancaise, nomDuSite, preremplir, trouverLien } from '../lien';
 
 // Données fictives uniquement : boutique.example est un domaine réservé aux exemples.
 const LIEN = 'https://www.boutique.example/veste-laine-ecru';
@@ -22,8 +22,9 @@ const EXTRACTION_COMPLETE = {
   url: LIEN,
   disponibilite: 'en_stock' as const,
   dispoTaille: 'epuise' as const,
+  historique: null,
 };
-const RIEN_DE_PUBLIE = { disponibilite: 'inconnue' as const, dispoTaille: 'inconnue' as const };
+const RIEN_DE_PUBLIE = { disponibilite: 'inconnue' as const, dispoTaille: 'inconnue' as const, historique: null };
 
 describe('trouverLien', () => {
   it('lit un lien seul', () => {
@@ -90,6 +91,27 @@ describe('lireExtraction', () => {
     expect(lireExtraction(429, { erreur: 'limite' }, LIEN)).toEqual({ ok: false, raison: 'limite' });
     expect(lireExtraction(502, { erreur: 'page_illisible' }, LIEN)).toEqual({ ok: false, raison: 'illisible' });
     expect(lireExtraction(400, { erreur: 'url_refusee' }, LIEN)).toEqual({ ok: false, raison: 'illisible' });
+  });
+});
+
+describe('lireHistorique', () => {
+  const historique = { prix_min: 79, devise: 'EUR', date_prix_min: '2026-10-20T00:00:00.000Z', observations: 3, depuis: '2026-10-05T00:00:00.000Z' };
+
+  it('lit le prix le plus bas observé en euros', () => {
+    expect(lireHistorique(historique)).toEqual({ prixMin: 79, date: '2026-10-20T00:00:00.000Z' });
+    expect(lireExtraction(200, { ...EXTRACTION_COMPLETE, historique }, LIEN)).toMatchObject({
+      ok: true,
+      extraction: { historique: { prixMin: 79 } },
+    });
+  });
+
+  it('ignore une autre devise, moins de 2 observations, un prix ou une date invalides, une absence', () => {
+    expect(lireHistorique({ ...historique, devise: 'USD' })).toBeNull();
+    expect(lireHistorique({ ...historique, observations: 1 })).toBeNull();
+    expect(lireHistorique({ ...historique, prix_min: 0 })).toBeNull();
+    expect(lireHistorique({ ...historique, date_prix_min: 'hier' })).toBeNull();
+    expect(lireHistorique(undefined)).toBeNull();
+    expect(lireExtraction(200, EXTRACTION_COMPLETE, LIEN)).toMatchObject({ ok: true, extraction: { historique: null } });
   });
 });
 

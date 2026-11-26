@@ -2,6 +2,7 @@
  * Prix et disponibilité actualisés (docs/SPEC.md, lot 3, étape 3) : quand relire la page boutique,
  * ce que la relecture change, baisse ou hausse depuis l'ajout, étiquette de la carte. Logique pure.
  */
+import type { HistoriquePartage } from './lien';
 import type { Article, Disponibilite } from './article';
 import { enCentimes } from './prix';
 import type { RelevePrix } from './releve';
@@ -12,6 +13,8 @@ export type Lecture = {
   devise: string | null;
   disponibilite: Disponibilite;
   dispoTaille: Disponibilite;
+  /** Historique partagé du relais ; absent ou null : le dernier connu est gardé. */
+  historique?: HistoriquePartage | null;
 };
 
 /**
@@ -46,6 +49,8 @@ export function appliquerLecture(
     disponibilite: l.disponibilite,
     dispoTaille: a.taille ? l.dispoTaille : 'inconnue',
     dateVerif: date,
+    prixMinObserve: l.historique?.prixMin ?? a.prixMinObserve,
+    datePrixMinObserve: l.historique?.date ?? a.datePrixMinObserve,
   };
   const change =
     article.prix !== a.prix || article.disponibilite !== a.disponibilite || article.dispoTaille !== a.dispoTaille;
@@ -62,6 +67,22 @@ export function appliquerLecture(
       }
     : null;
   return { article, releve };
+}
+
+const MOIS_LONGS = [
+  'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+  'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
+] as const;
+
+/**
+ * « Prix le plus bas observé : 79 € (octobre 2026) » : prix et mois (à l'heure du téléphone), pour une pièce
+ * de la Wishlist dont le relais a donné l'historique partagé ; null sinon (rien n'est affiché).
+ */
+export function prixMinObserve(a: Pick<Article, 'statut' | 'prixMinObserve' | 'datePrixMinObserve'>): { euros: number; mois: string } | null {
+  if (a.statut !== 'souhaite' || a.prixMinObserve === null || !a.datePrixMinObserve) return null;
+  const date = new Date(a.datePrixMinObserve);
+  if (Number.isNaN(date.getTime())) return null;
+  return { euros: a.prixMinObserve, mois: `${MOIS_LONGS[date.getMonth()]} ${date.getFullYear()}` };
 }
 
 export type VariationPrix = { sens: 'baisse' | 'hausse'; euros: number };

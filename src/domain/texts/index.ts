@@ -119,6 +119,8 @@ export const texts = {
     bandeauEpuise: 'Épuisé. *Voir des alternatives*',
     verifieLe: (date: string) => `Vérifié le ${date}`,
     historique: 'Historique des prix',
+    /** Catalogue partagé du relais (« Lot 4 », « Étape 3 ») : {prix} et {mois} sont remplacés. */
+    prixMinObserve: 'Prix le plus bas observé : *{prix}* ({mois})',
     sansPrix: 'Sans prix',
     /** Fiche d'une pièce ajoutée comme alternative : « Alternative à : <nom> ». */
     alternativeA: 'Alternative à :',

@@ -15,7 +15,9 @@ import { settings } from './settings';
 
 export const FORMAT_SAUVEGARDE = 'closeta';
 /** Version du schéma de la base au moment de l'écriture (= numéro de la dernière migration). */
-export const VERSION_SAUVEGARDE = 3;
+export const VERSION_SAUVEGARDE = 4;
+/** Plus ancienne version de sauvegarde jamais écrite (lot 3, étape 11). */
+const VERSION_SAUVEGARDE_MIN = 3;
 
 export type Sauvegarde = {
   format: typeof FORMAT_SAUVEGARDE;
@@ -76,6 +78,8 @@ const copieArticle = (a: Article, imageLocale: string | null): Article => ({
   dispoTaille: a.dispoTaille,
   dateVerif: a.dateVerif,
   alternativeDe: a.alternativeDe,
+  prixMinObserve: a.prixMinObserve,
+  datePrixMinObserve: a.datePrixMinObserve,
 });
 
 const copieReleve = (r: RelevePrix): RelevePrix => ({
@@ -199,6 +203,9 @@ function lireArticle(v: unknown, photos: Record<string, string>): Article {
     dispoTaille: disponibilite(a.dispoTaille),
     dateVerif: dateOuNulle(a.dateVerif),
     alternativeDe: texteOuNul(a.alternativeDe),
+    // Absents des sauvegardes d'avant le lot 4, étape 3 : null (relu à la prochaine actualisation).
+    prixMinObserve: prix(a.prixMinObserve),
+    datePrixMinObserve: dateOuNulle(a.datePrixMinObserve),
   };
 }
 
@@ -238,8 +245,8 @@ export function lireSauvegarde(contenu: string): Lecture {
     if (s.format !== FORMAT_SAUVEGARDE) throw new Illisible();
     if (typeof s.version !== 'number' || !Number.isInteger(s.version) || s.version < 1) throw new Illisible();
     if (s.version > VERSION_SAUVEGARDE) return { ok: false, raison: 'version_recente' };
-    // Seule la version 3 a jamais été écrite : une version plus ancienne n'existe pas.
-    if (s.version !== VERSION_SAUVEGARDE) throw new Illisible();
+    // Les versions 3 et 4 ont été écrites ; une version 3 n'a pas le prix le plus bas observé (relu ensuite).
+    if (s.version < VERSION_SAUVEGARDE_MIN) throw new Illisible();
 
     const photosBrutes = objet(s.photos);
     if (!Array.isArray(s.articles) || !Array.isArray(s.releves)) throw new Illisible();
