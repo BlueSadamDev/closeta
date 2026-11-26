@@ -17,19 +17,28 @@ import {
   type Limites,
   lireNombre,
   moisDe,
+  type EspaceQuota,
   type ObjetQuota,
+  type ObjetTransferable,
   RegistreQuota,
+  type Transfert,
   type Utilises,
 } from './quota';
+import { settings } from './settings';
 
 /** État fourni par Cloudflare au Durable Object (ctx), réduit à ce que le compteur utilise. */
 export interface EtatObjet {
   storage: { sql: BaseSql };
+  /** Identifiant de l'exemplaire : sa juridiction (« eu ») s'il a été créé dans une juridiction. */
+  id?: { jurisdiction?: string };
   blockConcurrencyWhile<T>(action: () => Promise<T>): Promise<T>;
 }
 
-/** Ce que le Durable Object lit de l'environnement du Worker : l'espace KV, pour la reprise. */
-type EnvQuota = { QUOTA: MagasinListable };
+/**
+ * Ce que le Durable Object lit de l'environnement du Worker : l'espace KV (reprise des compteurs) et
+ * l'espace des Durable Objects (transfert depuis l'ancien exemplaire, sans juridiction).
+ */
+type EnvQuota = { QUOTA: MagasinListable; QUOTAS?: EspaceQuota };
 
 /** Cases KV encore présentes pour ce mois : `global` et une par installation. */
 export async function casesKv(kv: MagasinListable, mois: string): Promise<Record<string, number>> {
@@ -49,7 +58,7 @@ export async function casesKv(kv: MagasinListable, mois: string): Promise<Record
   return valeurs;
 }
 
-export class Quota extends DurableObject<EnvQuota> implements ObjetQuota, ObjetInvitations {
+export class Quota extends DurableObject<EnvQuota> implements ObjetQuota, ObjetInvitations, ObjetTransferable {
   private readonly registre: RegistreQuota;
   private readonly invitations: RegistreInvitations;
 
@@ -61,6 +70,37 @@ export class Quota extends DurableObject<EnvQuota> implements ObjetQuota, ObjetI
     super(ctx, env);
     this.registre = new RegistreQuota(ctx.storage.sql);
     this.invitations = new RegistreInvitations(ctx.storage.sql);
+    ctx.storage.sql.exec('CREATE TABLE IF NOT EXISTS transfert (fait INTEGER PRIMARY KEY)');
+  }
+
+  /**
+   * Exemplaire créé dans une juridiction : au premier appel, il reprend une fois le contenu de l'ancien
+   * exemplaire (compteurs, mois repris, invitations), qui l'efface en le remettant. Rien ne repart à zéro.
+   * En cas d'échec, l'exemplaire fonctionne quand même et réessaiera au prochain appel.
+   */
+  private async pret(): Promise<void> {
+    if (!this.ctx.id?.jurisdiction || !this.env.QUOTAS || this.aTransfere()) return;
+    const espace = this.env.QUOTAS;
+    await this.ctx.blockConcurrencyWhile(async () => {
+      if (this.aTransfere()) return;
+      try {
+        const contenu = await espace.get(espace.idFromName(settings.nomObjetQuota)).transferer();
+        this.registre.importer(contenu);
+        this.invitations.importer(contenu.invitations);
+        this.ctx.storage.sql.exec('INSERT OR IGNORE INTO transfert (fait) VALUES (1)');
+      } catch {
+        // Ancien exemplaire injoignable : nouvel essai au prochain appel.
+      }
+    });
+  }
+
+  private aTransfere(): boolean {
+    return this.ctx.storage.sql.exec('SELECT fait FROM transfert').toArray().length > 0;
+  }
+
+  /** Appelé par l'exemplaire de la juridiction sur l'ancien : remet tout et l'efface. */
+  async transferer(): Promise<Transfert> {
+    return { ...this.registre.vider(), invitations: this.invitations.vider() };
   }
 
   /**
@@ -68,6 +108,7 @@ export class Quota extends DurableObject<EnvQuota> implements ObjetQuota, ObjetI
    * Cloudflare met les autres demandes en attente (blockConcurrencyWhile).
    */
   private async moisPret(): Promise<string> {
+    await this.pret();
     const mois = moisDe(this.maintenant());
     if (!this.registre.aRepris(mois)) {
       await this.ctx.blockConcurrencyWhile(async () => {
@@ -94,18 +135,22 @@ export class Quota extends DurableObject<EnvQuota> implements ObjetQuota, ObjetI
   }
 
   async creerInvitation(empreinte: string, nom: string): Promise<Invitation> {
+    await this.pret();
     return this.invitations.creer(empreinte, nom, this.maintenant());
   }
 
   async listerInvitations(): Promise<Invitation[]> {
+    await this.pret();
     return this.invitations.lister(this.maintenant());
   }
 
   async annulerInvitation(id: string): Promise<boolean> {
+    await this.pret();
     return this.invitations.annuler(id);
   }
 
   async utiliserInvitation(empreinte: string): Promise<{ nom: string } | null> {
+    await this.pret();
     return this.invitations.utiliser(empreinte, this.maintenant());
   }
 }

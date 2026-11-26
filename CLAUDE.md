@@ -31,7 +31,7 @@
 
 ## Relais Cloudflare
 - Les clés d'API (IA, SerpApi) sont des secrets Cloudflare (`wrangler secret put`), jamais dans `wrangler.toml` ni dans le code.
-- `wrangler.toml` ne contient aucun identifiant propre au compte : l'identifiant du compte vient du secret `CLOUDFLARE_ACCOUNT_ID`, le nom du Worker, l'espace KV, le bucket R2 et la base D1 des variables GitHub `RELAIS_NOM_WORKER`, `RELAIS_KV_ID`, `RELAIS_BUCKET_R2` et `RELAIS_D1_ID` (ajoutés par le workflow de mise en ligne).
+- `wrangler.toml` ne contient aucun identifiant propre au compte : l'identifiant du compte vient du secret `CLOUDFLARE_ACCOUNT_ID`, le nom du Worker, l'espace KV, le bucket R2 et la base D1 des variables GitHub `RELAIS_NOM_WORKER`, `RELAIS_KV_ID`, `RELAIS_BUCKET_R2` et `RELAIS_D1_ID` (ajoutés par le workflow de mise en ligne). Juridiction UE : `JURIDICTION_DONNEES` dans `wrangler.toml` (Durable Object), variable GitHub facultative `RELAIS_R2_JURIDICTION` (bucket R2) ; D1 et R2 créés dans la juridiction `eu`.
 - Le relais refuse toute requête sans jeton valide (en-tête `Authorization`) et limite le débit à 30 requêtes par minute.
 - `/extract` n'accepte que des URL `https` publiques (pas d'adresse IP locale ou privée).
 - Le relais ne conserve **aucune donnée personnelle** (depuis le lot 4, étape 2). Il garde les installations (empreintes des jetons) et les compteurs de quota, et un **catalogue anonyme** dans Cloudflare D1 (produits, prix observés, résultats de recherche, aux durées de `relay/src/settings.ts`). Jamais dans le catalogue : identifiant d'installation, jeton, adresse IP, lien entre une recherche et la personne qui l'a faite, photo (seulement son empreinte SHA-256, comme clé), copie d'image de boutique (seulement son adresse). Photos pour Google Lens : dépôt temporaire dans Cloudflare R2, supprimé juste après la recherche.
@@ -99,7 +99,10 @@ Piste B · App et conformité :
 8. Confidentialité : `docs/CONFIDENTIALITE.md`, `docs/REGISTRE.md`, écran « Confidentialité », rappel sur les écrans photo. **Terminée, fusionnée via la PR #35** : `docs/CONFIDENTIALITE.md` et `docs/REGISTRE.md` (version 1, contact dpo@closeta.fr), écran « Confidentialité » dans Réglages, rappel « sans personne » sur les écrans photo, sauvegarde automatique d'Android désactivée ; décisions pour la piste A notées dans docs/SPEC.md (juridiction `eu`, liste blanche des paramètres, suppression à la révocation).
 
 Fin du lot :
-9. Production : vérifications complètes, relais en ligne, APK publié en release, test unique par l'utilisateur.
+9. Production : vérifications complètes, relais en ligne, APK publié en release, test unique par l'utilisateur. Retours ajoutés le 25 novembre 2026 : recadrage au choix de la photo pour la Wishlist, « Modifier » en haut à droite de la fiche.
+
+## Lot 4b : Confort de saisie (ajouté le 25 novembre 2026, après le lot 4)
+Brouillons repris plus tard, choix Wishlist ou Vestiaire dans le formulaire d'ajout, recadrage d'une photo déjà enregistrée. Détail à écrire dans docs/SPEC.md avant le développement (voir docs/ROADMAP.md).
 
 ## Lots suivants
 Lots 4 à 7 (robustesse et catalogue partagé, bien tailler, plan d'achat, style) : voir [docs/ROADMAP.md](docs/ROADMAP.md). Chaque lot sera détaillé dans docs/SPEC.md avant son développement. Architecture, coûts et passage à plusieurs utilisateurs : [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), à lire avant toute évolution du relais.

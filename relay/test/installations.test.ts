@@ -106,6 +106,27 @@ describe('jetons par installation', () => {
     expect((await relais.fetch(requete('/v1/quota'), e)).status).toBe(200);
   });
 
+  it('efface la fiche et l’empreinte du jeton à la révocation', async () => {
+    const { e, kv } = env();
+    const a = await creer(e, 'Téléphone de Léa');
+    await relais.fetch(requete(`/v1/admin/installations/${a.id}`, { methode: 'DELETE', jeton: JETON_ADMIN }), e);
+    expect(kv.cases.has(`installation:${a.id}`)).toBe(false);
+    expect(kv.cases.has(`jeton:${await empreinteHex(a.jeton)}`)).toBe(false);
+    expect(JSON.stringify([...kv.cases.entries()])).not.toContain('Léa');
+  });
+
+  it('efface au passage les installations révoquées avant cette règle, et ne les liste plus', async () => {
+    const ancienne = { id: 'b6f1c2d3-0000-4000-8000-000000000001', nom: 'Ancien téléphone', cree_le: '2026-11-20T10:00:00Z', actif: false };
+    const { e, kv } = env({
+      quota: { [`installation:${ancienne.id}`]: JSON.stringify(ancienne), 'jeton:empreinte-ancienne': ancienne.id },
+    });
+    const r = await relais.fetch(requete('/v1/admin/installations', { jeton: JETON_ADMIN }), e);
+    const liste = (await r.json()) as { installations: { id: string }[] };
+    expect(liste.installations.map((i) => i.id)).not.toContain(ancienne.id);
+    expect(kv.cases.has(`installation:${ancienne.id}`)).toBe(false);
+    expect(kv.cases.has('jeton:empreinte-ancienne')).toBe(false);
+  });
+
   it('le jeton d’administration n’ouvre pas les routes de l’app', async () => {
     const { e } = env();
     expect((await relais.fetch(requete('/v1/quota', { jeton: JETON_ADMIN }), e)).status).toBe(403);

@@ -468,9 +468,9 @@ Décisions validées par l'utilisateur le 24 novembre 2026 :
 
 Décisions de confidentialité validées le 24 novembre 2026 (étape 8, détail dans [CONFIDENTIALITE.md](CONFIDENTIALITE.md)) :
 
-- **Hébergement dans l'UE** : base D1 `CATALOGUE` créée avec la juridiction `eu` (`wrangler d1 create … --jurisdiction eu` ; la base de l'étape 2, créée sans, est à recréer et `RELAIS_D1_ID` à changer), Durable Object `Quota` obtenu dans la juridiction `eu` (`QUOTAS.jurisdiction('eu')`), bucket R2 des photos dans la juridiction européenne. KV (installations) n'a pas cette option. Le Durable Object de l'étape 1, déjà en ligne sans juridiction, est à déplacer (reprise des compteurs du mois).
-- **Adresse canonique** (correctif après l'étape 2, fusionnée avant cette décision) : **liste blanche** ; seuls les paramètres reconnus comme taille, couleur ou variante sont gardés, tous les autres sont retirés (un paramètre inconnu peut contenir un identifiant de session ou de client).
-- **Installation révoquée** : sa fiche et l'empreinte de son jeton sont **supprimées** de KV à la révocation ; ses compteurs disparaissent avec le mois (mois en cours et précédent gardés). Pas de renommage : révoquer puis recréer.
+- **Hébergement dans l'UE** (code fait le 25 novembre 2026 : variable `JURIDICTION_DONNEES` pour le Durable Object, variable GitHub `RELAIS_R2_JURIDICTION` pour le bucket ; recréation de D1 et R2 par l'utilisateur) : base D1 `CATALOGUE` créée avec la juridiction `eu` (`wrangler d1 create … --jurisdiction eu` ; la base de l'étape 2, créée sans, est à recréer et `RELAIS_D1_ID` à changer), Durable Object `Quota` obtenu dans la juridiction `eu` (`QUOTAS.jurisdiction('eu')`), bucket R2 des photos dans la juridiction européenne. KV (installations) n'a pas cette option. Le Durable Object de l'étape 1, déjà en ligne sans juridiction, est à déplacer (reprise des compteurs du mois).
+- **Adresse canonique** (correctif après l'étape 2, fait le 25 novembre 2026 ; une adresse qui garde un paramètre inconnu est lue sans passer par le catalogue, pour ne pas confondre deux pièces) : **liste blanche** ; seuls les paramètres reconnus comme taille, couleur ou variante sont gardés, tous les autres sont retirés (un paramètre inconnu peut contenir un identifiant de session ou de client).
+- **Installation révoquée** (fait le 25 novembre 2026 ; les installations révoquées avant sont effacées à la prochaine liste) : sa fiche et l'empreinte de son jeton sont **supprimées** de KV à la révocation ; ses compteurs disparaissent avec le mois (mois en cours et précédent gardés). Pas de renommage : révoquer puis recréer.
 - **Sauvegarde automatique d'Android désactivée** (`android.allowBackup: false`) : la seule sauvegarde est le fichier `.closeta`.
 - Images des boutiques et miniatures chargées directement par le téléphone, photo publique le temps de la recherche Lens : acceptées et documentées, sans changement.
 
@@ -557,6 +557,9 @@ Jamais : identifiant d'installation ou jeton dans le catalogue, lien entre une r
 **Étape 9 — Production**
 
 - Vérifications complètes (expo-doctor, lint, tsc, jest, tests du relais), mise en ligne du relais, APK de production publié en release, **test unique** par l'utilisateur.
+- Retours d'usage ajoutés le 25 novembre 2026, développés avant le build :
+  - **Recadrage au choix de la photo, pour la Wishlist aussi** (« Par photo », photo du formulaire) : recadrage d'Android proposé dès que la photo est prise ou choisie, format libre (le Vestiaire garde son recadrage 3:4).
+  - **« Modifier » en haut à droite de la fiche** (icône dans l'en-tête), à la place du bouton en bas de fiche.
 
 ### Critères d'acceptation
 

@@ -1,5 +1,5 @@
 import { chercherAlternatives, DemandeInvalide, lireDemande } from './alternatives';
-import { adresseCanonique, type BaseD1, Catalogue } from './catalogue';
+import { adresseCatalogue, type BaseD1, Catalogue } from './catalogue';
 import { extraireAvecTailles } from './extract';
 import type { IA } from './ia';
 import { lireGenre, type Genre } from './genre';
@@ -18,7 +18,7 @@ import {
   revoquerInstallation,
 } from './installations';
 import { normaliserCode, nouveauCode } from './invitations';
-import { type EspaceQuota, lireLimite, lireLimiteInstallation, objetQuota, QuotaInstallation } from './quota';
+import { type EspaceQuota, lireJuridiction, lireLimite, lireLimiteInstallation, objetQuota, QuotaInstallation } from './quota';
 import { settings } from './settings';
 import { urlPublique } from './url';
 import { lireDepot, lireDerniereRelease, miseAJourRequise, VERSION_INCONNUE, type VersionPubliee } from './version';
@@ -52,11 +52,16 @@ export interface Env {
   SERPAPI_LIMITE_INSTALLATION?: string;
   /** Version minimale de l'app (vide : aucune exigence). */
   VERSION_APP_MIN?: string;
+  /** Juridiction des données gardées par le Durable Object (« eu ») ; vide : aucune. */
+  JURIDICTION_DONNEES?: string;
   /** Dépôt GitHub dont les releases annoncent les nouvelles versions (« propriétaire/nom ») ; vide : aucune. */
   DEPOT_RELEASES?: string;
   /** Catalogue partagé et anonyme (Cloudflare D1) ; absent = relais sans cache. */
   CATALOGUE?: BaseD1;
 }
+
+/** Le Durable Object `Quota` (compteurs et invitations), dans la juridiction demandée s'il y en a une. */
+const quotaDe = (env: Env) => objetQuota(env.QUOTAS, lireJuridiction(env.JURIDICTION_DONNEES));
 
 const catalogueDe = (env: Env) => (env.CATALOGUE ? new Catalogue(env.CATALOGUE) : null);
 
@@ -172,9 +177,10 @@ async function routeExtract(requete: Request, env: Env): Promise<Response> {
   const taille = (corps as { taille?: unknown }).taille;
   const tailleLue = typeof taille === 'string' && taille.trim() !== '' ? taille.trim().slice(0, settings.tailleMaxTaille) : null;
 
-  const catalogue = catalogueDe(env);
-  const canonique = adresseCanonique(url);
-  const enCache = await catalogue?.produitRecent(canonique, tailleLue);
+  // Catalogue seulement pour une adresse sans paramètre hors liste blanche (sinon : lecture directe, rien gardé).
+  const canonique = adresseCatalogue(url);
+  const catalogue = canonique ? catalogueDe(env) : null;
+  const enCache = canonique ? await catalogue?.produitRecent(canonique, tailleLue) : null;
   if (enCache) return json({ ...enCache, url: url.toString(), depuis_cache: true });
 
   // Lecture de la page et extraction.
@@ -187,7 +193,7 @@ async function routeExtract(requete: Request, env: Env): Promise<Response> {
   if (!page) return erreur('page_illisible', 502);
 
   const { extraction, dispoTailles } = extraireAvecTailles(page.html, page.url, tailleLue);
-  await catalogue?.enregistrerLecture(canonique, extraction, dispoTailles);
+  if (canonique) await catalogue?.enregistrerLecture(canonique, extraction, dispoTailles);
   return json({ ...extraction, url: url.toString(), depuis_cache: false });
 }
 
@@ -195,7 +201,7 @@ async function routeExtract(requete: Request, env: Env): Promise<Response> {
 function compteur(env: Env, installation: Installation): QuotaInstallation {
   const global = lireLimite(env.SERPAPI_LIMITE_MOIS);
   const propre = lireLimiteInstallation(env.SERPAPI_LIMITE_INSTALLATION, global);
-  return new QuotaInstallation(objetQuota(env.QUOTAS), installation.id, { global, installation: propre });
+  return new QuotaInstallation(quotaDe(env), installation.id, { global, installation: propre });
 }
 
 /** GET /quota : recherches SerpApi du mois, `{ installation: { utilise, limite }, global: { utilise, limite }, mois }`. */
@@ -320,7 +326,7 @@ async function corpsJson(requete: Request): Promise<unknown> {
  * invitations en attente (GET), annulation (DELETE /<id>). Seule l'empreinte du code est gardée.
  */
 async function adminInvitations(requete: Request, env: Env, id: string | null): Promise<Response> {
-  const objet = objetQuota(env.QUOTAS);
+  const objet = quotaDe(env);
   if (requete.method === 'GET' && id === null) return json({ invitations: await objet.listerInvitations() });
   if (requete.method === 'POST' && id === null) {
     const nom = lireNom(await corpsJson(requete));
@@ -347,7 +353,7 @@ async function routeUtiliserInvitation(requete: Request, env: Env): Promise<Resp
   const corps = await corpsJson(requete);
   const code = normaliserCode(corps && typeof corps === 'object' ? (corps as { code?: unknown }).code : undefined);
   if (!code) return erreur('requete_invalide', 400);
-  const prevue = await objetQuota(env.QUOTAS).utiliserInvitation(await empreinteHex(code));
+  const prevue = await quotaDe(env).utiliserInvitation(await empreinteHex(code));
   if (!prevue) return erreur('invitation_invalide', 404);
   return json(await creerInstallation(prevue.nom, env.QUOTA), 201);
 }
@@ -356,7 +362,7 @@ async function routeUtiliserInvitation(requete: Request, env: Env): Promise<Resp
 async function adminInstallations(requete: Request, env: Env, id: string | null): Promise<Response> {
   if (requete.method === 'GET' && id === null) {
     const installations = [PRINCIPALE, ...(await listerInstallations(env.QUOTA))];
-    const { mois, utilises } = await objetQuota(env.QUOTAS).utilises(installations.map((i) => i.id));
+    const { mois, utilises } = await quotaDe(env).utilises(installations.map((i) => i.id));
     return json({ installations: installations.map((i) => ({ ...i, utilise: utilises[i.id] ?? 0 })), mois });
   }
   if (requete.method === 'POST' && id === null) {

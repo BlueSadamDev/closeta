@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { adresseCanonique, Catalogue, cleRecherche, empreinte, requeteNormalisee } from '../src/catalogue';
+import { adresseCanonique, adresseCatalogue, Catalogue, cleRecherche, empreinte, requeteNormalisee } from '../src/catalogue';
 import type { Extraction } from '../src/extract';
 import relais, { type Env } from '../src/index';
 import { PRINCIPALE } from '../src/installations';
@@ -54,6 +54,21 @@ describe('adresse canonique', () => {
   it('même page avec des paramètres dans un autre ordre = même adresse ; sans paramètre = sans « ? »', () => {
     expect(adresseCanonique('https://exemple.test/p?b=2&a=1')).toBe(adresseCanonique('https://exemple.test/p?a=1&b=2'));
     expect(adresseCanonique('https://exemple.test/p?utm_campaign=x')).toBe('https://exemple.test/p');
+  });
+});
+
+describe('adresse du catalogue (liste blanche)', () => {
+  it('garde seulement référence, taille, couleur et variante, triées, sans suivi ni ancre', () => {
+    expect(adresseCatalogue('https://boutique.exemple.test/p?utm_source=insta&Taille=M&gclid=abc&variant=42#avis')).toBe(
+      'https://boutique.exemple.test/p?Taille=M&variant=42',
+    );
+    expect(adresseCatalogue('https://boutique.exemple.test/p?fbclid=x')).toBe('https://boutique.exemple.test/p');
+  });
+
+  it('refuse une adresse qui garde un paramètre inconnu (session, client, affiliation)', () => {
+    expect(adresseCatalogue('https://boutique.exemple.test/p?taille=M&session=8f3a2c')).toBeNull();
+    expect(adresseCatalogue('https://boutique.exemple.test/p?customer_id=1234')).toBeNull();
+    expect(adresseCatalogue('https://boutique.exemple.test/p?aff=promo')).toBeNull();
   });
 });
 
@@ -239,6 +254,24 @@ describe('relais : /v1/extract avec le catalogue', () => {
     expect(lectures).toHaveBeenCalledTimes(2);
     // Prix et disponibilité inchangés : une seule observation.
     expect(nombre(base.db, 'observation_prix')).toBe(1);
+  });
+});
+
+describe('relais : /v1/extract et la liste blanche', () => {
+  it('adresse avec un paramètre inconnu : page lue à chaque fois, rien mis au catalogue', async () => {
+    const { e, base } = env();
+    const lectures = vi.fn(async () => new Response(shopifyTailles, { headers: { 'content-type': 'text/html' } }));
+    vi.stubGlobal('fetch', lectures);
+    const adresse = 'https://boutique.exemple.test/products/robe?session=8f3a2c';
+    for (let i = 0; i < 2; i++) {
+      const reponse = await relais.fetch(requete('/extract', JSON.stringify({ url: adresse })), e);
+      const corps = (await reponse.json()) as Record<string, unknown>;
+      expect(corps.depuis_cache).toBe(false);
+      expect(corps.url).toBe(adresse);
+    }
+    expect(lectures).toHaveBeenCalledTimes(2);
+    expect(nombre(base.db, 'produit')).toBe(0);
+    expect(JSON.stringify(base.db.prepare('SELECT * FROM produit').all())).not.toContain('8f3a2c');
   });
 });
 

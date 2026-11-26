@@ -82,11 +82,37 @@ export interface ObjetQuota {
 /** Accès au Durable Object, déclaré dans wrangler.toml (lien QUOTAS) : compteur et invitations. */
 export interface EspaceQuota {
   idFromName(nom: string): unknown;
-  get(id: unknown): ObjetQuota & ObjetInvitations;
+  get(id: unknown): ObjetQuota & ObjetInvitations & ObjetTransferable;
+  /** Sous-espace dont les exemplaires restent dans une juridiction (« eu ») : stockage et exécution. */
+  jurisdiction?(juridiction: string): EspaceQuota;
 }
 
-/** L'unique exemplaire du compteur : toutes les installations passent par lui. */
-export const objetQuota = (espace: EspaceQuota) => espace.get(espace.idFromName(settings.nomObjetQuota));
+/** Juridiction demandée (variable JURIDICTION_DONNEES, « eu ») ; null si vide ou inconnue. */
+export function lireJuridiction(texte: string | undefined): string | null {
+  const propre = (texte ?? '').trim().toLowerCase();
+  return (settings.juridictions as readonly string[]).includes(propre) ? propre : null;
+}
+
+/**
+ * L'unique exemplaire du compteur : toutes les installations passent par lui. Avec une juridiction,
+ * l'exemplaire est créé dans cette juridiction (décision de confidentialité du 24 novembre 2026).
+ */
+export const objetQuota = (espace: EspaceQuota, juridiction: string | null = null) => {
+  const e = juridiction && espace.jurisdiction ? espace.jurisdiction(juridiction) : espace;
+  return e.get(e.idFromName(settings.nomObjetQuota));
+};
+
+/** Contenu transféré de l'ancien exemplaire (sans juridiction) vers celui de la juridiction. */
+export type Transfert = {
+  compteurs: { mois: string; cle: string; utilise: number }[];
+  reprises: string[];
+  invitations: { id: string; empreinte: string; nom: string; cree_le: string; expire_le: string }[];
+};
+
+/** Ancien exemplaire : remet tout son contenu et l'efface, en une seule opération. */
+export interface ObjetTransferable {
+  transferer(): Promise<Transfert>;
+}
 
 /** Base SQLite d'un Durable Object (ctx.storage.sql), réduite à ce dont le compteur a besoin. */
 export interface BaseSql {
@@ -154,6 +180,24 @@ export class RegistreQuota {
 
   utilises(mois: string, installations: string[]): Utilises {
     return { mois, utilises: Object.fromEntries(installations.map((id) => [id, this.lire(mois, id)])) };
+  }
+
+  /** Tout le contenu (compteurs et mois repris), puis effacement : pour le transfert vers une juridiction. */
+  vider(): Pick<Transfert, 'compteurs' | 'reprises'> {
+    const compteurs = this.sql
+      .exec('SELECT mois, cle, utilise FROM compteur')
+      .toArray()
+      .map((l) => ({ mois: String(l.mois), cle: String(l.cle), utilise: Number(l.utilise) }));
+    const reprises = this.sql.exec('SELECT mois FROM reprise').toArray().map((l) => String(l.mois));
+    this.sql.exec('DELETE FROM compteur');
+    this.sql.exec('DELETE FROM reprise');
+    return { compteurs, reprises };
+  }
+
+  /** Ajoute le contenu transféré (les compteurs s'additionnent : rien ne redescend). */
+  importer(t: Pick<Transfert, 'compteurs' | 'reprises'>) {
+    for (const c of t.compteurs) if (c.utilise > 0) this.ajouter(c.mois, c.cle, c.utilise);
+    for (const mois of t.reprises) this.sql.exec('INSERT OR IGNORE INTO reprise (mois) VALUES (?)', mois);
   }
 }
 
