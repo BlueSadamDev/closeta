@@ -42,6 +42,9 @@ export type Article = {
   dateVerif: string | null;
   /** Pièce d'origine, si celle-ci a été ajoutée comme alternative. */
   alternativeDe: string | null;
+  /** Prix le plus bas observé par le catalogue partagé du relais (euros), et sa date ; null si inconnu. */
+  prixMinObserve: number | null;
+  datePrixMinObserve: string | null;
 };
 
 export const PRIORITES: readonly Priorite[] = ['forte', 'moyenne', 'un_jour'];

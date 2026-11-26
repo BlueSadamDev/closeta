@@ -14,7 +14,7 @@ import { PhotoArticle } from '@/components/PhotoArticle';
 import { PhotoPleinEcran } from '@/components/PhotoPleinEcran';
 import { RichText } from '@/components/RichText';
 import { enregistrerArticle, lireArticle, lireReleves, supprimerArticle } from '@/db/articles';
-import { appliquerLecture, aRelire, bandeauEpuise, disponibiliteAffichee, variationPrix } from '@/domain/actualisation';
+import { appliquerLecture, aRelire, bandeauEpuise, disponibiliteAffichee, prixMinObserve, variationPrix } from '@/domain/actualisation';
 import { marquerAchete, remettreEnWishlist, type Article } from '@/domain/article';
 import { formaterPrix } from '@/domain/prix';
 import { niveauQuota, type Quota } from '@/domain/relais';
@@ -171,6 +171,8 @@ export default function Fiche() {
   const quotaAtteint = quota !== null && niveauQuota(quota) === 'atteint';
   // Pièce épuisée : bandeau en tête de fiche ; la recherche n'est lancée qu'au toucher (économie du quota).
   const bandeau = bandeauEpuise(article);
+  // Prix le plus bas observé par le catalogue partagé (Wishlist seulement) ; rien si l'information manque.
+  const prixMin = prixMinObserve(article);
   const voirAlternatives = () => router.push(`/alternatives?id=${article.id}`);
   const dateAchat = dateAchatLongue(article.dateAchat);
   const photo = article.imageLocale ?? article.imageSource;
@@ -282,6 +284,12 @@ export default function Fiche() {
           </View>
         ) : null}
 
+        {prixMin ? (
+          <RichText style={[type.body, styles.prixMin]}>
+            {texts.fiche.prixMinObserve.replace('{prix}', formaterPrix(prixMin.euros)).replace('{mois}', prixMin.mois)}
+          </RichText>
+        ) : null}
+
         {article.urlBoutique ? (
           <Pressable accessibilityRole="link" onPress={ouvrirBoutique} style={styles.lien}>
             <Text style={[type.button, styles.texteLien]}>{texts.fiche.voirEnBoutique}</Text>
@@ -355,6 +363,7 @@ const styles = StyleSheet.create({
   prixBarre: { color: colors.inkMuted, textDecorationLine: 'line-through' },
   texteFort: { color: colors.ink },
   historique: { marginTop: 24, gap: 8 },
+  prixMin: { color: colors.ink, marginTop: 16 },
   sansMarge: { marginTop: 0 },
   discret: { color: colors.inkMuted },
   origine: {

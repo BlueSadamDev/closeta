@@ -181,7 +181,10 @@ async function routeExtract(requete: Request, env: Env): Promise<Response> {
   const canonique = adresseCatalogue(url);
   const catalogue = canonique ? catalogueDe(env) : null;
   const enCache = canonique ? await catalogue?.produitRecent(canonique, tailleLue) : null;
-  if (enCache) return json({ ...enCache, url: url.toString(), depuis_cache: true });
+  if (enCache) {
+    const historique = canonique ? await catalogue?.historique(canonique, enCache.devise) : null;
+    return json({ ...enCache, url: url.toString(), depuis_cache: true, ...(historique ? { historique } : {}) });
+  }
 
   // Lecture de la page et extraction.
   let page: { html: string; url: URL } | null;
@@ -194,7 +197,9 @@ async function routeExtract(requete: Request, env: Env): Promise<Response> {
 
   const { extraction, dispoTailles } = extraireAvecTailles(page.html, page.url, tailleLue);
   if (canonique) await catalogue?.enregistrerLecture(canonique, extraction, dispoTailles);
-  return json({ ...extraction, url: url.toString(), depuis_cache: false });
+  // Historique partagé, après l'enregistrement : il tient compte de la lecture qui vient d'avoir lieu.
+  const historique = canonique ? await catalogue?.historique(canonique, extraction.devise) : null;
+  return json({ ...extraction, url: url.toString(), depuis_cache: false, ...(historique ? { historique } : {}) });
 }
 
 /** Compteur global et compteur de l'installation (chaque recherche compte dans les deux). */

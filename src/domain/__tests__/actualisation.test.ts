@@ -1,5 +1,5 @@
 import { articleFictif } from '../__fixtures__/articles';
-import { appliquerLecture, aRelire, bandeauEpuise, disponibiliteAffichee, etiquetteAlerte, variationPrix, type Lecture } from '../actualisation';
+import { appliquerLecture, aRelire, bandeauEpuise, disponibiliteAffichee, etiquetteAlerte, prixMinObserve, variationPrix, type Lecture } from '../actualisation';
 
 const MAINTENANT = new Date('2026-11-23T12:00:00.000Z');
 
@@ -27,6 +27,28 @@ describe('aRelire', () => {
     expect(aRelire({ ...PIECE, urlBoutique: null }, MAINTENANT, 24)).toBe(false);
     expect(aRelire({ ...PIECE, urlBoutique: 'http://boutique.exemple.test/veste' }, MAINTENANT, 24)).toBe(false);
     expect(aRelire({ ...PIECE, statut: 'achete' }, MAINTENANT, 24)).toBe(false);
+  });
+});
+
+describe('historique partagé (prix le plus bas observé)', () => {
+  const lecture: Lecture = { prix: 99, devise: 'EUR', disponibilite: 'en_stock', dispoTaille: 'inconnue' };
+  const maintenant = new Date('2026-11-25T10:00:00.000Z');
+
+  it('garde le prix le plus bas donné par le relais, et le dernier connu quand il n’en donne pas', () => {
+    const a = articleFictif({ id: 'h', prix: 120 });
+    const avec = appliquerLecture(a, { ...lecture, historique: { prixMin: 79, date: '2026-10-20T00:00:00.000Z' } }, maintenant, 'r1').article;
+    expect(avec.prixMinObserve).toBe(79);
+    expect(avec.datePrixMinObserve).toBe('2026-10-20T00:00:00.000Z');
+    const sans = appliquerLecture(avec, { ...lecture, historique: null }, maintenant, 'r2').article;
+    expect(sans.prixMinObserve).toBe(79);
+  });
+
+  it('s’affiche avec le mois en toutes lettres, seulement dans la Wishlist et s’il est connu', () => {
+    const a = articleFictif({ id: 'h', prixMinObserve: 79, datePrixMinObserve: '2026-10-20T12:00:00.000Z' });
+    expect(prixMinObserve(a)).toEqual({ euros: 79, mois: 'octobre 2026' });
+    expect(prixMinObserve({ ...a, statut: 'achete' })).toBeNull();
+    expect(prixMinObserve({ ...a, prixMinObserve: null })).toBeNull();
+    expect(prixMinObserve({ ...a, datePrixMinObserve: 'pas une date' })).toBeNull();
   });
 });
 

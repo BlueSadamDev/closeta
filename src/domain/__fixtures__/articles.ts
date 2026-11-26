@@ -27,6 +27,8 @@ export function articleFictif(champs: Partial<Article> & Pick<Article, 'id'>): A
     dispoTaille: 'inconnue',
     dateVerif: null,
     alternativeDe: null,
+    prixMinObserve: null,
+    datePrixMinObserve: null,
     ...champs,
   };
 }

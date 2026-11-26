@@ -110,6 +110,9 @@ const SQL_PRODUIT = `
   )
   WHERE p.url = ?`;
 
+/** Historique partagé renvoyé par /v1/extract (dates ISO). */
+export type Historique = { prix_min: number; devise: string; date_prix_min: string; observations: number; depuis: string };
+
 export class Catalogue {
   constructor(
     private readonly base: BaseD1,
@@ -177,6 +180,42 @@ export class Catalogue {
         .run();
     } catch {
       // Catalogue indisponible : la réponse part quand même.
+    }
+  }
+
+  /**
+   * Historique partagé du prix d'un produit (docs/SPEC.md, « Lot 4 », « Étape 3 ») : prix le plus bas observé
+   * (le plus ancien en cas d'égalité), dans la devise `devise`, avec le nombre d'observations et la première.
+   * null s'il y a moins de 2 observations avec un prix dans cette devise (pas d'historique à montrer).
+   */
+  async historique(url: string, devise: string | null): Promise<Historique | null> {
+    if (!devise) return null;
+    try {
+      const total = await this.base
+        .prepare(
+          `SELECT COUNT(*) AS n, MIN(o.date) AS depuis FROM observation_prix o JOIN produit p ON p.id = o.produit_id
+           WHERE p.url = ? AND o.prix IS NOT NULL AND o.devise = ?`,
+        )
+        .bind(url, devise)
+        .first<{ n: number; depuis: number | null }>();
+      if (!total || total.n < settings.observationsHistoriqueMin || total.depuis === null) return null;
+      const bas = await this.base
+        .prepare(
+          `SELECT o.prix, o.date FROM observation_prix o JOIN produit p ON p.id = o.produit_id
+           WHERE p.url = ? AND o.prix IS NOT NULL AND o.devise = ? ORDER BY o.prix ASC, o.date ASC LIMIT 1`,
+        )
+        .bind(url, devise)
+        .first<{ prix: number; date: number }>();
+      if (!bas) return null;
+      return {
+        prix_min: bas.prix,
+        devise,
+        date_prix_min: new Date(bas.date).toISOString(),
+        observations: total.n,
+        depuis: new Date(total.depuis).toISOString(),
+      };
+    } catch {
+      return null;
     }
   }
 

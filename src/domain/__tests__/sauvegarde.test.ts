@@ -121,6 +121,21 @@ describe('sauvegarde : lecture', () => {
     expect(lireSauvegarde(modifie((s) => (s.version = VERSION_SAUVEGARDE + 1)))).toEqual({ ok: false, raison: 'version_recente' });
   });
 
+  it('relit une sauvegarde de version 3 (sans prix le plus bas observé) : ce prix reste vide', () => {
+    const v3 = modifie((s) => {
+      s.version = 3;
+      for (const a of s.articles as Record<string, unknown>[]) {
+        delete a.prixMinObserve;
+        delete a.datePrixMinObserve;
+      }
+    });
+    const lu = lireSauvegarde(v3);
+    expect(lu.ok).toBe(true);
+    if (lu.ok) {
+      expect(lu.sauvegarde.articles.every((a) => a.prixMinObserve === null && a.datePrixMinObserve === null)).toBe(true);
+    }
+  });
+
   it('refuse une version qui n’existe pas', () => {
     for (const version of [0, 2, 2.5, '3', null]) {
       expect(lireSauvegarde(modifie((s) => (s.version = version)))).toEqual({ ok: false, raison: 'illisible' });

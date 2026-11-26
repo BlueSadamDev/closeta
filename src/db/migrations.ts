@@ -101,4 +101,12 @@ export const MIGRATIONS: readonly Migration[] = [
       );
     `,
   },
+  {
+    version: 4,
+    description: 'Prix le plus bas observé par le catalogue partagé du relais (lot 4, étape 3)',
+    sql: `
+      ALTER TABLE article ADD COLUMN prix_min_observe REAL CHECK (prix_min_observe IS NULL OR prix_min_observe > 0);
+      ALTER TABLE article ADD COLUMN date_prix_min_observe TEXT;
+    `,
+  },
 ];

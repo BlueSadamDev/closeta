@@ -18,7 +18,27 @@ export type Extraction = {
   /** Disponibilité publiée par la boutique (globale, et pour la taille demandée) ; `inconnue` sinon. */
   disponibilite: Disponibilite;
   dispoTaille: Disponibilite;
+  /** Prix le plus bas observé par le catalogue partagé du relais (en euros), null s'il n'y en a pas. */
+  historique: HistoriquePartage | null;
 };
+
+/** Historique partagé du relais (docs/SPEC.md, « Lot 4 », « Étape 3 ») : prix le plus bas observé et sa date. */
+export type HistoriquePartage = { prixMin: number; date: string };
+
+/**
+ * Lit `historique` de /v1/extract : en euros seulement (le champ prix de l'app attend des euros), au moins
+ * 2 observations, prix et date valides ; null sinon.
+ */
+export function lireHistorique(v: unknown): HistoriquePartage | null {
+  if (typeof v !== 'object' || v === null) return null;
+  const h = v as Record<string, unknown>;
+  const prix = h.prix_min;
+  if (typeof prix !== 'number' || !Number.isFinite(prix) || prix <= 0) return null;
+  if (h.devise !== 'EUR' || typeof h.observations !== 'number' || h.observations < 2) return null;
+  const date = typeof h.date_prix_min === 'string' ? h.date_prix_min : '';
+  if (Number.isNaN(new Date(date).getTime())) return null;
+  return { prixMin: prix, date };
+}
 
 /** Raisons pour lesquelles le relais n'a rien rendu d'utilisable. */
 export type EchecExtraction =
@@ -96,6 +116,7 @@ export function lireExtraction(statut: number | null, corps: unknown, lienDemand
     url: texteOuNull(c.url) ?? lienDemande,
     disponibilite: dispo(c.disponibilite),
     dispoTaille: dispo(c.dispo_taille),
+    historique: lireHistorique(c.historique),
   };
   // Une page dont on n'a rien tiré compte comme illisible.
   if (!extraction.nom && !extraction.marque && !extraction.image && extraction.prix === null) {

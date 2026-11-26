@@ -518,6 +518,7 @@ Jamais : identifiant d'installation ou jeton dans le catalogue, lien entre une r
 
 - `/v1/extract` renvoie en plus `historique : { prix_min, date_prix_min, observations, depuis }` quand le produit compte au moins 2 observations.
 - App, fiche d'une pièce de la Wishlist : sous l'historique local, ligne « Prix le plus bas observé : *79 €* (octobre 2026) » ; rien si l'information manque.
+- Fait le 25 novembre 2026 : `historique = { prix_min, devise, date_prix_min, observations, depuis }`, calculé dans la devise de la page ; l'app ne garde que les euros. Migration 4 de la base du téléphone : `article.prix_min_observe` et `article.date_prix_min_observe` (gardés entre deux relectures, mis à jour à chaque relecture qui en donne un) ; sauvegarde en version 4 (une sauvegarde en version 3 reste lisible, sans ce prix).
 - Le relevé local du téléphone (`releve_prix`) ne change pas.
 
 **Étape 4 — Interface de recherche indépendante du fournisseur**

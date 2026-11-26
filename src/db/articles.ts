@@ -38,6 +38,8 @@ export type Ligne = {
   dispo_taille: Article['dispoTaille'];
   date_verif: string | null;
   alternative_de: string | null;
+  prix_min_observe: number | null;
+  date_prix_min_observe: string | null;
 };
 
 /** La base garde le nom seul de la photo ; l'app reçoit le chemin complet (domain/cheminPhoto). */
@@ -67,20 +69,22 @@ export const versArticle = (l: Ligne): Article => ({
   dispoTaille: l.dispo_taille,
   dateVerif: l.date_verif,
   alternativeDe: l.alternative_de,
+  prixMinObserve: l.prix_min_observe,
+  datePrixMinObserve: l.date_prix_min_observe,
 });
 
 export const COLONNES = [
   'id', 'nom', 'marque', 'type', 'categorie', 'taille', 'couleur', 'prix', 'devise', 'url_boutique',
   'image_locale', 'image_source', 'priorite', 'notes', 'statut', 'origine', 'est_alternative',
   'date_ajout', 'date_achat', 'date_maj', 'prix_ajout', 'disponibilite', 'dispo_taille', 'date_verif',
-  'alternative_de',
+  'alternative_de', 'prix_min_observe', 'date_prix_min_observe',
 ] as const;
 
 export const valeurs = (a: Article): Valeur[] => [
   a.id, a.nom, a.marque, a.type, a.categorie, a.taille, a.couleur, a.prix, a.devise, a.urlBoutique,
   versNomDePhoto(a.imageLocale), a.imageSource, a.priorite, a.notes, a.statut, a.origine, a.estAlternative ? 1 : 0,
   a.dateAjout, a.dateAchat, a.dateMaj, a.prixAjout, a.disponibilite, a.dispoTaille, a.dateVerif,
-  a.alternativeDe,
+  a.alternativeDe, a.prixMinObserve, a.datePrixMinObserve,
 ];
 
 /** Tous les articles de la Wishlist (statut souhaité). */

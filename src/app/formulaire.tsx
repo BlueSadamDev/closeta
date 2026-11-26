@@ -16,7 +16,7 @@ import { RichText } from '@/components/RichText';
 import { enregistrerArticle, lireArticle } from '@/db/articles';
 import { lireParametreAlternative, preremplirDepuisAlternative } from '@/domain/alternatives';
 import { CATEGORIES, PRIORITES, type Article, type Disponibilite, type TypeArticle } from '@/domain/article';
-import { brouillonDepuisLien, listeFrancaise, nomDuSite, preremplir, type ChampManquant } from '@/domain/lien';
+import { brouillonDepuisLien, listeFrancaise, nomDuSite, preremplir, type ChampManquant, type HistoriquePartage } from '@/domain/lien';
 import { brouillonDepuisDescription, lireParametresPhoto, preremplirDepuisProposition, type Proposition } from '@/domain/photo';
 import { prixPourSaisie } from '@/domain/prix';
 import { releveAEnregistrer } from '@/domain/releve';
@@ -122,6 +122,8 @@ export default function Formulaire() {
   const [manquants, setManquants] = useState<ChampManquant[]>(depart?.manquants ?? []);
   // Ajout par lien : disponibilité lue sur la page (la taille n'est pas encore connue).
   const [dispoLue, setDispoLue] = useState<Disponibilite>('inconnue');
+  // Prix le plus bas observé par le catalogue partagé du relais (ajout par lien), gardé avec la pièce.
+  const [historiqueLu, setHistoriqueLu] = useState<HistoriquePartage | null>(null);
   // Ajout par photo : proposition choisie.
   const choisie = depart?.proposition ?? null;
   // Photo prise ou choisie par l'utilisateur (parcours photo, ou ajoutée depuis le formulaire),
@@ -167,6 +169,7 @@ export default function Formulaire() {
         setImageSource(p.image);
         setManquants(p.manquants);
         setDispoLue(resultat.extraction.disponibilite);
+        setHistoriqueLu(resultat.extraction.historique);
         setAnnonce(texts.formulaire.lien.trouve);
       } else {
         // Un échec ne bloque jamais l'ajout : formulaire vide, lien conservé.
@@ -279,6 +282,8 @@ export default function Formulaire() {
           // Alternative : la page boutique n'a pas été relue (fiche remplie depuis la recherche).
           ...(lieeA ? { dateVerif: null } : {}),
           alternativeDe: lieeA,
+          prixMinObserve: pourVestiaire ? null : (historiqueLu?.prixMin ?? null),
+          datePrixMinObserve: pourVestiaire ? null : (historiqueLu?.date ?? null),
         };
     try {
       // Historique des prix (Wishlist seulement) : relevé à l'ajout par lien ou photo, ou à chaque prix modifié à la main.
