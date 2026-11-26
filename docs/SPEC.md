@@ -533,6 +533,7 @@ Jamais : identifiant d'installation ou jeton dans le catalogue, lien entre une r
 - Journaux Cloudflare activés (`[observability]` dans `wrangler.toml`), en JSON : route, durée, résultat, `depuis_cache`, code d'erreur. **Jamais** de jeton, d'identifiant d'installation, d'adresse IP, d'URL de photo ni de requête de recherche dans les journaux.
 - `GET /v1/admin/etat` (jeton d'administration) : quota global du mois, taux de réponses depuis le cache, nombre d'erreurs des 24 dernières heures.
 - Photos R2 : le workflow de mise en ligne vérifie que la règle « suppression après 1 jour » existe sur le bucket, et l'ajoute sinon (`wrangler r2 bucket lifecycle`).
+- Fait le 26 novembre 2026 : `relay/src/supervision.ts` (une ligne JSON par requête : route sous forme de modèle, statut, durée, `depuis_cache`, code d'erreur ; test qui vérifie l'absence de jeton, d'identifiant, d'adresse IP, d'URL de photo et de page), compteurs par heure dans le Durable Object `Quota` (48 h gardées), `GET /v1/admin/etat` (`mois`, `quota`, `requetes`, `cache { reponses, depuis_cache, taux }`, `erreurs` : statuts 500 et plus), règle R2 nommée `closeta-suppression-1-jour`.
 
 ### Piste B · App et conformité
 

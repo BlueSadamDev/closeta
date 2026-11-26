@@ -38,6 +38,12 @@ export const settings = {
   /** Identité envoyée à GitHub (pas celle d'un navigateur : c'est un programme qui demande). */
   userAgentVersion: 'ClosetA-relais',
 
+  // --- Supervision (GET /v1/admin/etat) ---
+  /** Période résumée par GET /v1/admin/etat, en heures. */
+  heuresSupervision: 24,
+  /** Compteurs horaires gardés (au-delà : effacés). */
+  heuresSupervisionGardees: 48,
+
   // --- Codes d'invitation ---
   /** Préfixe fixe des codes (`CLST-7K4Q-9M2P`) ; suivi de caractères tirés au hasard. */
   prefixeCodeInvitation: 'CLST',
